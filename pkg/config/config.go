@@ -21,6 +21,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/mysqlx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/nacosx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/postgresx"
+	"github.com/BwCloudWeGo/bw-cli/pkg/rabbitmqx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/redisx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/rocketmqx"
 )
@@ -139,6 +140,38 @@ type MiddlewareConfig struct {
 	JWT  middleware.JWTConfig  `mapstructure:"jwt" yaml:"jwt"`
 }
 
+// RabbitMQConfig 包含 RabbitMQ 连接串、交换机与队列设置。
+type RabbitMQConfig struct {
+	URL            string        `mapstructure:"url" yaml:"url"`
+	Exchange       string        `mapstructure:"exchange" yaml:"exchange"`
+	ExchangeType   string        `mapstructure:"exchange_type" yaml:"exchange_type"`
+	Queue          string        `mapstructure:"queue" yaml:"queue"`
+	RoutingKeys    []string      `mapstructure:"routing_keys" yaml:"routing_keys"`
+	ConsumerTag    string        `mapstructure:"consumer_tag" yaml:"consumer_tag"`
+	PrefetchCount  int           `mapstructure:"prefetch_count" yaml:"prefetch_count"`
+	Durable        bool          `mapstructure:"durable" yaml:"durable"`
+	PublishTimeout time.Duration `mapstructure:"publish_timeout" yaml:"publish_timeout"`
+	ConsumeTimeout time.Duration `mapstructure:"consume_timeout" yaml:"consume_timeout"`
+	ReconnectDelay time.Duration `mapstructure:"reconnect_delay" yaml:"reconnect_delay"`
+}
+
+// RabbitmqxConfig 将 YAML 配置转换为公共 RabbitMQ 客户端配置。
+func (cfg RabbitMQConfig) RabbitmqxConfig() rabbitmqx.Config {
+	return rabbitmqx.Config{
+		URL:            cfg.URL,
+		Exchange:       cfg.Exchange,
+		ExchangeType:   cfg.ExchangeType,
+		Queue:          cfg.Queue,
+		RoutingKeys:    cfg.RoutingKeys,
+		ConsumerTag:    cfg.ConsumerTag,
+		PrefetchCount:  cfg.PrefetchCount,
+		Durable:        cfg.Durable,
+		PublishTimeout: cfg.PublishTimeout,
+		ConsumeTimeout: cfg.ConsumeTimeout,
+		ReconnectDelay: cfg.ReconnectDelay,
+	}
+}
+
 // Config 是每个进程加载的应用根配置。
 type Config struct {
 	Source        Source                   `mapstructure:"-" yaml:"-"`
@@ -155,6 +188,7 @@ type Config struct {
 	Elasticsearch esx.Config               `mapstructure:"elasticsearch" yaml:"elasticsearch"`
 	Kafka         kafkax.Config            `mapstructure:"kafka" yaml:"kafka"`
 	RocketMQ      rocketmqx.Config         `mapstructure:"rocketmq" yaml:"rocketmq"`
+	RabbitMQ      RabbitMQConfig           `mapstructure:"rabbitmq" yaml:"rabbitmq"`
 	Alipay        alipayx.Config           `mapstructure:"alipay" yaml:"alipay"`
 	Nacos         nacosx.Config            `mapstructure:"nacos" yaml:"nacos"`
 	Middleware    MiddlewareConfig         `mapstructure:"middleware" yaml:"middleware"`
@@ -425,6 +459,17 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("rocketmq.retry_times", rocketmqx.DefaultConfig().RetryTimes)
 	v.SetDefault("rocketmq.send_timeout", rocketmqx.DefaultConfig().SendTimeout)
 	v.SetDefault("rocketmq.consume_message_batch_max_size", rocketmqx.DefaultConfig().ConsumeMessageBatchMaxSize)
+	v.SetDefault("rabbitmq.url", rabbitmqx.DefaultConfig().URL)
+	v.SetDefault("rabbitmq.exchange", rabbitmqx.DefaultConfig().Exchange)
+	v.SetDefault("rabbitmq.exchange_type", rabbitmqx.DefaultConfig().ExchangeType)
+	v.SetDefault("rabbitmq.queue", rabbitmqx.DefaultConfig().Queue)
+	v.SetDefault("rabbitmq.routing_keys", rabbitmqx.DefaultConfig().RoutingKeys)
+	v.SetDefault("rabbitmq.consumer_tag", rabbitmqx.DefaultConfig().ConsumerTag)
+	v.SetDefault("rabbitmq.prefetch_count", rabbitmqx.DefaultConfig().PrefetchCount)
+	v.SetDefault("rabbitmq.durable", rabbitmqx.DefaultConfig().Durable)
+	v.SetDefault("rabbitmq.publish_timeout", rabbitmqx.DefaultConfig().PublishTimeout)
+	v.SetDefault("rabbitmq.consume_timeout", rabbitmqx.DefaultConfig().ConsumeTimeout)
+	v.SetDefault("rabbitmq.reconnect_delay", rabbitmqx.DefaultConfig().ReconnectDelay)
 	v.SetDefault("alipay.app_id", alipayx.DefaultConfig().AppID)
 	v.SetDefault("alipay.private_key", alipayx.DefaultConfig().PrivateKey)
 	v.SetDefault("alipay.alipay_public_key", alipayx.DefaultConfig().AlipayPublicKey)

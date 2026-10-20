@@ -12,6 +12,10 @@ grpc:
   host: 0.0.0.0
 
 services:
+  driver:
+    name: driver-service
+    port: 9101
+    target: 127.0.0.1:9101
   gateway:
     name: gateway
   user:
@@ -28,22 +32,20 @@ services:
     target: 127.0.0.1:9100
 
 database:
-  driver: mysql
-  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
-
-mysql:
-  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
-  max_idle_conns: 10
-  max_open_conns: 100
-  conn_max_lifetime_seconds: 3600
+  # 关系型数据库统一使用本地 PostgreSQL；DSN 见下方 postgresql 块。
+  # 可选值：mysql / postgresql / sqlite。
+  driver: postgresql
+  dsn: ""
 
 postgresql:
-  dsn: ""
+  # 本地 Docker 容器 pgsql（postgres:16-alpine，root/root123456）。
+  dsn: "host=127.0.0.1 user=root password=root123456 dbname=root port=5432 sslmode=disable TimeZone=Asia/Shanghai"
   max_idle_conns: 10
   max_open_conns: 100
   conn_max_lifetime_seconds: 3600
 
 mongodb:
+  # 本地 Docker 容器 mongo（mongo:8，未开启鉴权）。
   uri: mongodb://127.0.0.1:27017
   username: ""
   password: ""
@@ -53,6 +55,21 @@ mongodb:
   max_pool_size: 100
   connect_timeout_seconds: 10
   server_selection_timeout_seconds: 5
+
+rabbitmq:
+  # 本地 Docker 容器 rabbitmq（rabbitmq:3-management，用户 bw/bw123456）。
+  url: amqp://bw:bw123456@127.0.0.1:5672/
+  exchange: xiaolanshu.events
+  exchange_type: topic
+  queue: xiaolanshu.order.created
+  routing_keys:
+    - order.created
+  consumer_tag: xiaolanshu-consumer
+  prefetch_count: 10
+  durable: true
+  publish_timeout: 5s
+  consume_timeout: 30s
+  reconnect_delay: 3s
 
 file_storage:
   provider: minio
@@ -149,59 +166,6 @@ elasticsearch:
   password: ""
   cloud_id: ""
   api_key: ""
-
-kafka:
-  brokers:
-    - 127.0.0.1:9092
-  topic: xiaolanshu-events
-  group_id: xiaolanshu-consumer
-  client_id: xiaolanshu
-  required_acks: all
-  dial_timeout: 5s
-  producer:
-    max_attempts: 10
-    batch_size: 100
-    batch_bytes: 1048576
-    batch_timeout: 10ms
-    read_timeout: 10s
-    write_timeout: 10s
-    async: false
-    compression: none
-    allow_auto_topic_creation: false
-  consumer:
-    queue_capacity: 100
-    min_bytes: 1
-    max_bytes: 10485760
-    max_wait: 10s
-    read_batch_timeout: 10s
-    commit_interval: 0s
-    heartbeat_interval: 3s
-    session_timeout: 30s
-    rebalance_timeout: 30s
-    start_offset: first
-    watch_partition_changes: true
-    max_attempts: 3
-  sasl:
-    enable: false
-    mechanism: plain
-    username: ""
-    password: ""
-  tls:
-    enable: false
-    insecure_skip_verify: false
-    server_name: ""
-
-rocketmq:
-  name_servers:
-    - 127.0.0.1:9876
-  group_name: xiaolanshu-producer
-  consumer_group: xiaolanshu-consumer
-  namespace: ""
-  access_key: ""
-  secret_key: ""
-  retry_times: 2
-  send_timeout: 3s
-  consume_message_batch_max_size: 1
 
 alipay:
   app_id: ""

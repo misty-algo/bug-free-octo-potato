@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package driver.v1;
+
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1;driverv1";
+
+// DriverService 是 driver 业务服务的 gRPC 边界。
+// 默认 CRUD 契约可直接调用；业务增长时再扩展 message 和 RPC。
+service DriverService {
+  rpc CreateDriver(CreateDriverRequest) returns (DriverResponse);
+  rpc GetDriver(GetDriverRequest) returns (DriverResponse);
+  rpc ListDrivers(ListDriversRequest) returns (ListDriversResponse);
+  rpc UpdateDriver(UpdateDriverRequest) returns (DriverResponse);
+  rpc DeleteDriver(DeleteDriverRequest) returns (DeleteDriverResponse);
+}
+
+message CreateDriverRequest {
+  string name = 1;
+  string description = 2;
+}
+
+
+message GetDriverRequest {
+  string id = 1;
+}
+
+message ListDriversRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message UpdateDriverRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+
+message DeleteDriverRequest {
+  string id = 1;
+}
+
+message DriverResponse {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string created_at = 4;
+  string updated_at = 5;
+}
+
+
+message ListDriversResponse {
+  repeated DriverResponse items = 1;
+  int64 total = 2;
+}
+
+message DeleteDriverResponse {
+  bool success = 1;
+}
