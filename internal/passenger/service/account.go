@@ -387,6 +387,8 @@ func (s *Service) BindPhone(ctx context.Context, accountID, phone string) (*dto.
 		return nil, err
 	}
 	account.Phone = phone
+	// 手机号变了，哈希必须跟着重算，否则按新号码查不到这个账号。
+	account.PhoneHash = ""
 	account.UpdatedAt = now
 	if err := s.accounts.UpdatePhone(ctx, account); err != nil {
 		return nil, err

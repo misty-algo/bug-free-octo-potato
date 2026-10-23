@@ -28,7 +28,10 @@ const (
 type AccountDocument struct {
 	ID       string `bson:"_id"`
 	PhoneEnc string `bson:"phone_enc"`
-	PhoneHash string `bson:"phone_hash"`
+	// PhoneHash 为手机号哈希，用于等值查询与唯一索引。
+	// 还没绑手机号的账号不写这个字段，靠稀疏索引跳过，
+	// 否则多个空手机号账号会撞唯一索引。
+	PhoneHash string `bson:"phone_hash,omitempty"`
 	PhoneMask string `bson:"phone_mask"`
 	Status   string `bson:"status"`
 	Nickname string `bson:"nickname"`

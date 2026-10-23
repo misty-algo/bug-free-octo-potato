@@ -1,0 +1,54 @@
+# 乘客端本地联调配置
+#
+# 只覆盖与脚手架默认值不同的项，其余走 pkg/config 的默认回退。
+# 密码类 MUST NOT 提交真值，密码通过 MONGODB_PASSWORD 环境变量传入。
+
+app:
+  name: huaxiaozhu
+  env: local
+
+http:
+  host: 127.0.0.1
+  port: 8088
+  read_timeout_seconds: 10
+  write_timeout_seconds: 20
+
+grpc:
+  host: 127.0.0.1
+
+services:
+  gateway:
+    name: gateway
+  passenger:
+    name: passenger-service
+    port: 9005
+    target: 127.0.0.1:9005
+
+mongodb:
+  # 连接串、用户名与密码都是环境相关的真值，MUST NOT 提交到仓库。
+  # 本地联调时覆盖这三个值，或改用 MONGODB_PASSWORD 环境变量注入密码。
+  uri: mongodb://127.0.0.1:27017
+  username: ""
+  # 密码从 MONGODB_PASSWORD 环境变量读，配置里保持为空。
+  password: ""
+  database: huaxiaozhu
+  app_name: bw-cli-passenger
+  min_pool_size: 0
+  max_pool_size: 20
+  connect_timeout_seconds: 10
+  server_selection_timeout_seconds: 10
+
+middleware:
+  jwt:
+    # 真实密钥从 PASSENGER_TOKEN_SECRET 环境变量读，这里只留占位。
+    secret: ""
+    issuer: huaxiaozhu
+    expire_seconds: 7200
+
+log:
+  service: passenger
+  environment: local
+  level: info
+  encoding: json
+  file:
+    enabled: false

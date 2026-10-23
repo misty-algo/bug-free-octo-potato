@@ -21,6 +21,7 @@ var (
 	ErrCodeUsed           = errors.New("verification code already used")
 	ErrCodeRateLimited    = errors.New("too many verification code requests")
 	ErrInvalidPassword    = errors.New("invalid password")
+	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrPasswordNotSet     = errors.New("password is not set")
 	ErrInvalidRole        = errors.New("invalid role")
 	ErrInvalidChannel     = errors.New("invalid channel")
@@ -78,11 +79,19 @@ const (
 	ChannelWeChat Channel = "wechat"
 	ChannelQQ     Channel = "qq"
 	ChannelSMS    Channel = "sms"
+	// ChannelPassword 是手机号加密码的登录方式，不是第三方渠道，
+	// 但登录入口与渠道走同一套分发逻辑，所以放在同一枚举里。
+	ChannelPassword Channel = "password"
 )
 
 // Valid 报告渠道是否合法。
 func (c Channel) Valid() bool {
-	return c == ChannelWeChat || c == ChannelQQ || c == ChannelSMS
+	return c == ChannelWeChat || c == ChannelQQ || c == ChannelSMS || c == ChannelPassword
+}
+
+// IsThirdParty 报告是否为第三方渠道。只有第三方渠道需要绑定渠道标识。
+func (c Channel) IsThirdParty() bool {
+	return c == ChannelWeChat || c == ChannelQQ
 }
 
 // AccountStatus 表示账号状态。
@@ -97,9 +106,13 @@ const (
 
 // Account 是主账号聚合。乘客与司机共用同一个账号，角色不拆分账号。
 type Account struct {
-	ID     string
-	Phone  string
-	Status AccountStatus
+	ID string
+	// Phone 为真实手机号，只在服务内部使用；对外一律输出掩码值。
+	Phone string
+	// PhoneHash 为手机号哈希，用于等值查询与唯一索引。
+	// 从库里读出来时原样带出，写回时直接复用，不从掩码或明文重算。
+	PhoneHash string
+	Status    AccountStatus
 	// Nickname 与 Avatar 展示用，可空。
 	Nickname string
 	Avatar   string

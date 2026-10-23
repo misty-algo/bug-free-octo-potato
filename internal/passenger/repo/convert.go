@@ -97,13 +97,20 @@ func DecryptPhone(encrypted string) (string, error) {
 func toAccountDocument(account *entity.Account) *model.AccountDocument {
 	encrypted, err := EncryptPhone(account.Phone)
 	if err != nil {
-		// 密钥未配置时落空值并置未删除标记，由启动校验兜住。
+		// 密钥未配置时落空值。启动阶段的配置校验会兜住这个问题，
+		// 这里不因为加密失败就中断写入，避免整个登录链路不可用。
 		encrypted = ""
 	}
-	return &model.AccountDocument{
+	// 手机号哈希不可逆，写回时 MUST 用库里带出来的原值，
+	// 不能拿展示用的掩码重算，否则会撞手机号唯一索引。
+	phoneHash := account.PhoneHash
+	if phoneHash == "" && account.Phone != "" {
+		phoneHash = HashPhone(account.Phone)
+	}
+	document := &model.AccountDocument{
 		ID:              account.ID,
 		PhoneEnc:        encrypted,
-		PhoneHash:       HashPhone(account.Phone),
+		PhoneHash:       phoneHash,
 		PhoneMask:       entity.MaskPhone(account.Phone),
 		Status:          string(account.Status),
 		Nickname:        account.Nickname,
@@ -113,13 +120,28 @@ func toAccountDocument(account *entity.Account) *model.AccountDocument {
 		CreatedAt:       account.CreatedAt,
 		UpdatedAt:       account.UpdatedAt,
 	}
+	// 还没绑手机号的账号不写哈希字段，靠稀疏索引跳过。
+	// 否则多个空手机号账号会撞手机号唯一索引。
+	if phoneHash == "" {
+		document.PhoneHash = ""
+		document.PhoneEnc = ""
+	}
+	return document
 }
 
 // toAccountEntity 把落库文档转成账号实体。
+//
+// Phone 取解密后的真实手机号，解密失败时退回掩码值；
+// PhoneHash 直接透传库里的原值，写回时不需要也不能重算。
 func toAccountEntity(document *model.AccountDocument) *entity.Account {
+	phone := document.PhoneMask
+	if decrypted, err := DecryptPhone(document.PhoneEnc); err == nil && decrypted != "" {
+		phone = decrypted
+	}
 	return &entity.Account{
 		ID:               document.ID,
-		Phone:            document.PhoneMask,
+		Phone:            phone,
+		PhoneHash:        document.PhoneHash,
 		Status:           entity.AccountStatus(document.Status),
 		Nickname:         document.Nickname,
 		Avatar:           document.Avatar,

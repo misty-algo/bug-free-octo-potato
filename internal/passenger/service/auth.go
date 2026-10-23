@@ -243,6 +243,8 @@ func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.LoginDT
 	switch cmd.Channel {
 	case entity.ChannelSMS:
 		account, isNewUser, err = s.loginBySMS(ctx, cmd, now)
+	case entity.ChannelPassword:
+		account, isNewUser, err = s.loginByPassword(ctx, cmd)
 	case entity.ChannelWeChat, entity.ChannelQQ:
 		account, isNewUser, err = s.loginByChannel(ctx, cmd, now)
 	default:
@@ -338,6 +340,32 @@ func (s *Service) loginBySMS(ctx context.Context, cmd dto.LoginCommand, now time
 		return nil, false, err
 	}
 	return created, true, nil
+}
+
+// loginByPassword 用手机号与密码登录。
+//
+// 账号必须已设置密码；未设密码时引导改用验证码登录，不在此处自动建号。
+func (s *Service) loginByPassword(ctx context.Context, cmd dto.LoginCommand) (*entity.Account, bool, error) {
+	if err := entity.ValidatePhone(cmd.Phone); err != nil {
+		return nil, false, err
+	}
+	if cmd.Password == "" {
+		return nil, false, entity.ErrInvalidPassword
+	}
+	account, err := s.accounts.FindByPhone(ctx, cmd.Phone)
+	if err != nil {
+		if errors.Is(err, entity.ErrAccountNotFound) {
+			return nil, false, entity.ErrInvalidCredentials
+		}
+		return nil, false, err
+	}
+	if !account.HasPassword() {
+		return nil, false, entity.ErrPasswordNotSet
+	}
+	if !s.hasher.Verify(account.PasswordHash, cmd.Password) {
+		return nil, false, entity.ErrInvalidCredentials
+	}
+	return account, false, nil
 }
 
 // loginByChannel 用第三方授权码登录。没有绑定记录时建号。

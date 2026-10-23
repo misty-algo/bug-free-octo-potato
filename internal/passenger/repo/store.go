@@ -76,7 +76,7 @@ type AccountRepository struct {
 
 // FindByID 按标识查账号。
 func (r *AccountRepository) FindByID(ctx context.Context, id string) (*entity.Account, error) {
-	document, err := r.store.accounts.FindOne(ctx, bson.M{"_id": id, "is_deleted": false})
+	document, err := r.store.accounts.FindOne(ctx, bson.M{"_id": id, "is_deleted": bson.M{"$ne": true}})
 	if err != nil {
 		if errors.Is(err, mongox.ErrNotFound) {
 			return nil, entity.ErrAccountNotFound
@@ -90,7 +90,7 @@ func (r *AccountRepository) FindByID(ctx context.Context, id string) (*entity.Ac
 func (r *AccountRepository) FindByPhone(ctx context.Context, phone string) (*entity.Account, error) {
 	document, err := r.store.accounts.FindOne(ctx, bson.M{
 		"phone_hash": HashPhone(phone),
-		"is_deleted": false,
+		"is_deleted": bson.M{"$ne": true},
 	})
 	if err != nil {
 		if errors.Is(err, mongox.ErrNotFound) {
@@ -104,7 +104,7 @@ func (r *AccountRepository) FindByPhone(ctx context.Context, phone string) (*ent
 // Save 保存账号。
 func (r *AccountRepository) Save(ctx context.Context, account *entity.Account) error {
 	document := toAccountDocument(account)
-	if _, err := r.store.accounts.ReplaceByID(ctx, account.ID, document); err != nil {
+	if _, err := r.store.accounts.UpsertByID(ctx, account.ID, document); err != nil {
 		return err
 	}
 	return nil
@@ -146,7 +146,7 @@ func (r *ChannelRepository) Save(ctx context.Context, binding *entity.ChannelBin
 		CreatedAt:  binding.CreatedAt,
 		UpdatedAt:  binding.UpdatedAt,
 	}
-	if _, err := r.store.channels.ReplaceByID(ctx, binding.ID, document); err != nil {
+	if _, err := r.store.channels.UpsertByID(ctx, binding.ID, document); err != nil {
 		return err
 	}
 	return nil
@@ -162,7 +162,7 @@ func (r *ChannelRepository) Delete(ctx context.Context, id string) error {
 
 // ListByAccount 列出账号的全部渠道绑定。
 func (r *ChannelRepository) ListByAccount(ctx context.Context, accountID string) ([]*entity.ChannelBinding, error) {
-	documents, err := r.store.channels.FindMany(ctx, bson.M{"account_id": accountID, "is_deleted": false})
+	documents, err := r.store.channels.FindMany(ctx, bson.M{"account_id": accountID, "is_deleted": bson.M{"$ne": true}})
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func (r *SessionRepository) Save(ctx context.Context, session *entity.Session) e
 		CreatedAt:        session.CreatedAt,
 		UpdatedAt:        session.UpdatedAt,
 	}
-	if _, err := r.store.sessions.ReplaceByID(ctx, session.ID, document); err != nil {
+	if _, err := r.store.sessions.UpsertByID(ctx, session.ID, document); err != nil {
 		return err
 	}
 	return nil
@@ -198,7 +198,7 @@ func (r *SessionRepository) Save(ctx context.Context, session *entity.Session) e
 
 // FindByID 按标识查会话。
 func (r *SessionRepository) FindByID(ctx context.Context, id string) (*entity.Session, error) {
-	document, err := r.store.sessions.FindOne(ctx, bson.M{"_id": id, "is_deleted": false})
+	document, err := r.store.sessions.FindOne(ctx, bson.M{"_id": id, "is_deleted": bson.M{"$ne": true}})
 	if err != nil {
 		if errors.Is(err, mongox.ErrNotFound) {
 			return nil, entity.ErrAccountNotFound
@@ -250,7 +250,7 @@ func (r *CodeRepository) Save(ctx context.Context, code *entity.VerificationCode
 		CreatedAt: code.SentAt,
 		UpdatedAt: time.Now().UTC(),
 	}
-	if _, err := r.store.codes.ReplaceByID(ctx, document.ID, document); err != nil {
+	if _, err := r.store.codes.UpsertByID(ctx, document.ID, document); err != nil {
 		return err
 	}
 	return nil
@@ -258,7 +258,7 @@ func (r *CodeRepository) Save(ctx context.Context, code *entity.VerificationCode
 
 // Load 按手机号查验证码。
 func (r *CodeRepository) Load(ctx context.Context, phone string) (*entity.VerificationCode, error) {
-	document, err := r.store.codes.FindOne(ctx, bson.M{"_id": HashPhone(phone), "is_deleted": false})
+	document, err := r.store.codes.FindOne(ctx, bson.M{"_id": HashPhone(phone), "is_deleted": bson.M{"$ne": true}})
 	if err != nil {
 		if errors.Is(err, mongox.ErrNotFound) {
 			return nil, entity.ErrAccountNotFound
@@ -312,7 +312,7 @@ func (r *EstimateRepository) Save(ctx context.Context, estimate *entity.Estimate
 		CreatedAt:      estimate.CreatedAt,
 		UpdatedAt:      estimate.UpdatedAt,
 	}
-	if _, err := r.store.estimates.ReplaceByID(ctx, estimate.ID, document); err != nil {
+	if _, err := r.store.estimates.UpsertByID(ctx, estimate.ID, document); err != nil {
 		return err
 	}
 	return nil
@@ -320,7 +320,7 @@ func (r *EstimateRepository) Save(ctx context.Context, estimate *entity.Estimate
 
 // FindByNo 按单号查估价单。
 func (r *EstimateRepository) FindByNo(ctx context.Context, no string) (*entity.Estimate, error) {
-	document, err := r.store.estimates.FindOne(ctx, bson.M{"no": no, "is_deleted": false})
+	document, err := r.store.estimates.FindOne(ctx, bson.M{"no": no, "is_deleted": bson.M{"$ne": true}})
 	if err != nil {
 		if errors.Is(err, mongox.ErrNotFound) {
 			return nil, entity.ErrEstimateNotFound
@@ -337,7 +337,7 @@ func (r *EstimateRepository) Consume(ctx context.Context, estimate *entity.Estim
 	result, err := r.store.estimates.UpdateOne(ctx, bson.M{
 		"no":         estimate.No,
 		"used":       false,
-		"is_deleted": false,
+		"is_deleted": bson.M{"$ne": true},
 	}, bson.M{
 		"$set": bson.M{"used": true, "updated_at": time.Now().UTC()},
 	})
@@ -372,7 +372,7 @@ func (r *AddressRepository) Save(ctx context.Context, address *entity.Address) e
 		CreatedAt:  address.CreatedAt,
 		UpdatedAt:  address.UpdatedAt,
 	}
-	if _, err := r.store.addresses.ReplaceByID(ctx, address.ID, document); err != nil {
+	if _, err := r.store.addresses.UpsertByID(ctx, address.ID, document); err != nil {
 		return err
 	}
 	return nil
@@ -380,7 +380,7 @@ func (r *AddressRepository) Save(ctx context.Context, address *entity.Address) e
 
 // FindByID 按标识查地址。
 func (r *AddressRepository) FindByID(ctx context.Context, id string) (*entity.Address, error) {
-	document, err := r.store.addresses.FindOne(ctx, bson.M{"_id": id, "is_deleted": false})
+	document, err := r.store.addresses.FindOne(ctx, bson.M{"_id": id, "is_deleted": bson.M{"$ne": true}})
 	if err != nil {
 		if errors.Is(err, mongox.ErrNotFound) {
 			return nil, entity.ErrAddressNotFound
@@ -400,7 +400,7 @@ func (r *AddressRepository) Delete(ctx context.Context, id string) error {
 
 // ListByType 列出该账号指定类型的地址。
 func (r *AddressRepository) ListByType(ctx context.Context, accountID string, addrType entity.AddressType, limit int) ([]*entity.Address, error) {
-	filter := bson.M{"account_id": accountID, "type": string(addrType), "is_deleted": false}
+	filter := bson.M{"account_id": accountID, "type": string(addrType), "is_deleted": bson.M{"$ne": true}}
 	opts := options.Find().SetSort(bson.D{{Key: "use_count", Value: -1}, {Key: "last_used_at", Value: -1}})
 	if limit > 0 {
 		opts.SetLimit(int64(limit))
@@ -421,7 +421,7 @@ func (r *AddressRepository) CountByType(ctx context.Context, accountID string, a
 	count, err := r.store.addresses.Count(ctx, bson.M{
 		"account_id": accountID,
 		"type":       string(addrType),
-		"is_deleted": false,
+		"is_deleted": bson.M{"$ne": true},
 	})
 	if err != nil {
 		return 0, err
@@ -434,7 +434,7 @@ func (r *AddressRepository) ClearHistory(ctx context.Context, accountID string) 
 	_, err := r.store.addresses.UpdateOne(ctx, bson.M{
 		"account_id": accountID,
 		"type":       string(entity.AddressTypeHistory),
-		"is_deleted": false,
+		"is_deleted": bson.M{"$ne": true},
 	}, bson.M{
 		"$set": bson.M{"is_deleted": true, "updated_at": time.Now().UTC()},
 	})
@@ -449,7 +449,7 @@ type OrderRepository struct {
 // Save 保存订单。
 func (r *OrderRepository) Save(ctx context.Context, order *entity.Order) error {
 	document := toOrderDocument(order)
-	if _, err := r.store.orders.ReplaceByID(ctx, order.ID, document); err != nil {
+	if _, err := r.store.orders.UpsertByID(ctx, order.ID, document); err != nil {
 		return err
 	}
 	return nil
@@ -457,7 +457,7 @@ func (r *OrderRepository) Save(ctx context.Context, order *entity.Order) error {
 
 // FindByID 按标识查订单。
 func (r *OrderRepository) FindByID(ctx context.Context, id string) (*entity.Order, error) {
-	document, err := r.store.orders.FindOne(ctx, bson.M{"_id": id, "is_deleted": false})
+	document, err := r.store.orders.FindOne(ctx, bson.M{"_id": id, "is_deleted": bson.M{"$ne": true}})
 	if err != nil {
 		if errors.Is(err, mongox.ErrNotFound) {
 			return nil, entity.ErrOrderNotFound
@@ -469,7 +469,7 @@ func (r *OrderRepository) FindByID(ctx context.Context, id string) (*entity.Orde
 
 // FindByEstimateNo 按估价单号查订单。
 func (r *OrderRepository) FindByEstimateNo(ctx context.Context, estimateNo string) (*entity.Order, error) {
-	document, err := r.store.orders.FindOne(ctx, bson.M{"estimate_no": estimateNo, "is_deleted": false})
+	document, err := r.store.orders.FindOne(ctx, bson.M{"estimate_no": estimateNo, "is_deleted": bson.M{"$ne": true}})
 	if err != nil {
 		if errors.Is(err, mongox.ErrNotFound) {
 			return nil, entity.ErrOrderNotFound
@@ -503,7 +503,7 @@ func (r *OrderRepository) FindActive(ctx context.Context, accountID string) (*en
 	}
 	document, err := r.store.orders.FindOne(ctx, bson.M{
 		"account_id": accountID,
-		"is_deleted": false,
+		"is_deleted": bson.M{"$ne": true},
 		"state":      bson.M{"$nin": terminal},
 	})
 	if err != nil {
@@ -574,12 +574,20 @@ type QuickEntryRepository struct {
 }
 
 // ListEnabled 返回启用中的入口配置。
+//
+// 生效时间区间是可选的：未配置起止时间的条目一直生效，
+// 配置了才按区间过滤。
 func (r *QuickEntryRepository) ListEnabled(ctx context.Context, now time.Time) ([]*entity.QuickEntry, error) {
 	documents, err := r.store.quick.FindMany(ctx, bson.M{
-		"enabled":    true,
-		"is_deleted": false,
+		"enabled": true,
+		// 未写这个字段的历史数据同样视为未删除。
+		"is_deleted": bson.M{"$ne": true},
 		"start_at":   bson.M{"$lte": now},
-		"end_at":     bson.M{"$gt": now},
+		"$or": []bson.M{
+			{"end_at": bson.M{"$gt": now}},
+			{"end_at": bson.M{"$exists": false}},
+			{"end_at": nil},
+		},
 	}, options.Find().SetSort(bson.D{{Key: "sort", Value: 1}}))
 	if err != nil {
 		return nil, err

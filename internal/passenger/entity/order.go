@@ -155,6 +155,9 @@ func (o *Order) CanTransition(next OrderState) bool {
 }
 
 // ApplyTransition 校验并执行状态流转。非法流转直接拒绝，不做静默兼容。
+//
+// 这里不自增 Version：版本号由仓储层的乐观锁更新统一自增，
+// 两处都自增会让过滤条件与实际版本错位，导致更新永远匹配不上。
 func (o *Order) ApplyTransition(next OrderState, now time.Time) error {
 	if o.State.Terminal() {
 		return ErrTerminalState
@@ -164,7 +167,6 @@ func (o *Order) ApplyTransition(next OrderState, now time.Time) error {
 	}
 	o.State = next
 	o.UpdatedAt = now.UTC()
-	o.Version++
 	return nil
 }
 

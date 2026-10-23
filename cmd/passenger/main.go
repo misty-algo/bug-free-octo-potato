@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -28,12 +29,42 @@ import (
 
 func main() {
 	// 加载服务身份、数据库和日志配置。
-	if err := config.InitGlobal("configs/config.yaml"); err != nil {
+	configPath := flag.String("config", "configs/config.yaml", "配置文件路径")
+	flag.Parse()
+	if err := config.InitGlobal(*configPath); err != nil {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
 	cfg.Log.Service = cfg.ServiceName("passenger")
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
+
+	// MongoDB 的连接串、用户名与密码都是环境相关的真值，MUST NOT 写进配置文件。
+	// 三者都支持环境变量覆盖，配置里的值只作为本地默认。
+	mongoCfg := cfg.MongoDB.MongoxConfig()
+	if value := strings.TrimSpace(os.Getenv("MONGODB_URI")); value != "" {
+		mongoCfg.URI = value
+	}
+	if value := strings.TrimSpace(os.Getenv("MONGODB_USERNAME")); value != "" {
+		mongoCfg.Username = value
+	}
+	if value := strings.TrimSpace(os.Getenv("MONGODB_PASSWORD")); value != "" {
+		mongoCfg.Password = value
+	}
+	if value := strings.TrimSpace(os.Getenv("MONGODB_DATABASE")); value != "" {
+		mongoCfg.Database = value
+	}
+
+	// 手机号加密密钥从环境变量读。MUST NOT 提交真值到仓库，
+	// 生产环境应从配置中心或密钥管理服务注入。
+	// 缺失时直接退出而不是用兜底值：兜底密钥等于没有加密。
+	// AES-256-GCM 要求密钥长度为 16、24 或 32 字节。
+	phoneKey := strings.TrimSpace(os.Getenv("PASSENGER_PHONE_KEY"))
+	if phoneKey == "" {
+		panic("environment variable PASSENGER_PHONE_KEY is required (16, 24 or 32 bytes)")
+	}
+	if err := passengerrepo.SetPhoneKey(phoneKey); err != nil {
+		panic(fmt.Errorf("configure phone encryption key: %w", err))
+	}
 
 	log, err := logger.New(cfg.Log)
 	if err != nil {
@@ -43,7 +74,7 @@ func main() {
 	config.PrintSourceNotice(cfg, os.Stdout)
 
 	// 乘客端数据落在 MongoDB。
-	client, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
+	client, err := mongox.NewClient(mongoCfg)
 	if err != nil {
 		log.Fatal("open mongodb client failed", zap.Error(err))
 	}

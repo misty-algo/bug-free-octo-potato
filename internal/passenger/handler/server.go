@@ -536,8 +536,11 @@ func mapPassengerError(err error) error {
 		stderrors.Is(err, entity.ErrCodeExpired),
 		stderrors.Is(err, entity.ErrCodeUsed),
 		stderrors.Is(err, entity.ErrTooClose),
-		stderrors.Is(err, entity.ErrCodeRateLimited):
+		stderrors.Is(err, entity.ErrCodeRateLimited),
+		stderrors.Is(err, entity.ErrPasswordNotSet):
 		return apperrors.InvalidArgument("invalid_passenger_request", err.Error())
+	case stderrors.Is(err, entity.ErrInvalidCredentials):
+		return apperrors.Unauthorized("invalid_credentials", "手机号或密码不正确")
 	case stderrors.Is(err, entity.ErrUnauthorized):
 		return apperrors.Unauthorized("unauthorized", "未登录或登录已过期")
 	case stderrors.Is(err, entity.ErrForbidden):
