@@ -1,0 +1,37 @@
+syntax = "proto3";
+package driver.v1;
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1;driverv1";
+
+// 资料上传与授权下载。
+// 上传链路：创建上传会话 → 上传私有暂存对象 → 完成校验 → 提交时原子绑定。
+// 下载链路：签发短期一次用途票据 → 代理读取前再次校验身份与用途。
+service FileService {
+  rpc CreateUpload(CreateUploadRequest) returns (UploadSessionResult);
+  rpc UploadContent(UploadContentRequest) returns (FileResult);
+  rpc GrantDownload(GrantDownloadRequest) returns (DownloadGrantResult);
+  rpc Download(DownloadRequest) returns (DownloadResult);
+  rpc SweepStaging(SweepStagingRequest) returns (SweepResult);
+}
+
+message CreateUploadRequest { string purpose = 1; }
+message UploadSessionResult {
+  string file_id = 1; int64 max_bytes = 2; repeated string allowed_types = 3; int32 max_per_version = 4;
+}
+
+// content 携带真实字节；服务端重新嗅探类型并统计实际大小。
+message UploadContentRequest {
+  string file_id = 1; string filename = 2; bytes content = 3; string content_type = 4;
+}
+message FileResult { string file_id = 1; string state = 2; string content_type = 3; int64 size = 4; string checksum = 5; }
+
+message GrantDownloadRequest { string file_id = 1; string purpose = 2; }
+// ticket 是一次用途凭证，这里不返回对象直签 URL。
+message DownloadGrantResult {
+  string ticket = 1; int64 expires_at = 2; string content_type = 3; int64 size = 4; string file_name = 5;
+}
+
+message DownloadRequest { string ticket = 1; }
+message DownloadResult { bytes content = 1; string content_type = 2; int64 size = 3; }
+
+message SweepStagingRequest { int64 limit = 1; }
+message SweepResult { int64 claimed = 1; int64 deleted = 2; int64 pending = 3; }

@@ -14,6 +14,11 @@ func TestInspectSQLiteDatabaseSchemaDetectsTablesColumnsAndForeignKeys(t *testin
 	dbPath := filepath.Join(root, "designer.db")
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, sqlDB.Close())
+	})
 	require.NoError(t, db.Exec(`create table product_spu (id text primary key, name text not null)`).Error)
 	require.NoError(t, db.Exec(`create table product_sku (id text primary key, spu_id text not null, price integer, foreign key(spu_id) references product_spu(id))`).Error)
 

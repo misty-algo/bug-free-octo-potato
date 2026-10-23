@@ -7,18 +7,28 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	driverv1 "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1"
 	notev1 "github.com/BwCloudWeGo/bw-cli/api/gen/note/v1"
 	orderv1 "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1"
 	userv1 "github.com/BwCloudWeGo/bw-cli/api/gen/user/v1"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 )
 
+// 资料上传单文件可达 5MB，gRPC 默认 4MB 收发上限必须放宽。
+const maxMaterialMessageBytes = 8 * 1024 * 1024
+
 // Clients 聚合 HTTP gateway 使用的所有 gRPC client。
 type Clients struct {
-	User   userv1.UserServiceClient
-	Note   notev1.NoteServiceClient
-	Order  orderv1.OrderServiceClient
-	Config *config.Config
+	User    userv1.UserServiceClient
+	Note    notev1.NoteServiceClient
+	Order   orderv1.OrderServiceClient
+	Arrival orderv1.ArrivalServiceClient
+	Contact orderv1.ContactServiceClient
+	Spec    orderv1.ServiceSpecServiceClient
+	Vehicle driverv1.VehicleServiceClient
+	File    driverv1.FileServiceClient
+	Safety  driverv1.SafetyServiceClient
+	Config  *config.Config
 
 	conns []*grpc.ClientConn
 }
@@ -37,7 +47,12 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		userConn.Close()
 		return nil, fmt.Errorf("dial note service: %w", err)
 	}
-	orderConn, err := grpc.Dial(orderTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	orderConn, err := grpc.Dial(orderTarget,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallSendMsgSize(maxMaterialMessageBytes),
+			grpc.MaxCallRecvMsgSize(maxMaterialMessageBytes),
+		))
 	if err != nil {
 		userConn.Close()
 		noteConn.Close()
@@ -50,11 +65,17 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		zap.String("order_target", orderTarget),
 	)
 	return &Clients{
-		User:   userv1.NewUserServiceClient(userConn),
-		Note:   notev1.NewNoteServiceClient(noteConn),
-		Order:  orderv1.NewOrderServiceClient(orderConn),
-		Config: cfg,
-		conns:  []*grpc.ClientConn{userConn, noteConn, orderConn},
+		User:    userv1.NewUserServiceClient(userConn),
+		Note:    notev1.NewNoteServiceClient(noteConn),
+		Order:   orderv1.NewOrderServiceClient(orderConn),
+		Arrival: orderv1.NewArrivalServiceClient(orderConn),
+		Contact: orderv1.NewContactServiceClient(orderConn),
+		Spec:    orderv1.NewServiceSpecServiceClient(orderConn),
+		Vehicle: driverv1.NewVehicleServiceClient(orderConn),
+		File:    driverv1.NewFileServiceClient(orderConn),
+		Safety:  driverv1.NewSafetyServiceClient(orderConn),
+		Config:  cfg,
+		conns:   []*grpc.ClientConn{userConn, noteConn, orderConn},
 	}, nil
 }
 

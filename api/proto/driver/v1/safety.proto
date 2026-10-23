@@ -1,0 +1,141 @@
+syntax = "proto3";
+package driver.v1;
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1;driverv1";
+
+// 司机安全事件域（D17）。
+// 求助不以有活动订单、定位成功、附件上传或内容审核为前提。
+// 司机身份一律来自令牌；client_request_id 是重试与恢复的唯一凭据。
+service SafetyService {
+  // 受理：成功才返回 event_id 与 received_at。
+  rpc ReportEvent(ReportEventRequest) returns (SafetyEventView);
+  // 响应丢失后按原请求号恢复：返回同一事件，而不是新编号。
+  rpc EventByRequest(EventByRequestRequest) returns (SafetyEventView);
+  // 追加：补充定位/说明，不覆盖最初的位置证据。
+  rpc AddSupplement(AddSupplementRequest) returns (SafetyEventView);
+  // 附件后补：先走既有上传流程，这里只做绑定。
+  rpc AddAttachment(AddAttachmentRequest) returns (SafetyEventView);
+  rpc Hotline(HotlineRequest) returns (HotlineView);
+  rpc PendingEvents(PendingEventsRequest) returns (PendingEventsResponse);
+  rpc DrainSafetyOutbox(DrainSafetyOutboxRequest) returns (DrainSafetyOutboxResponse);
+
+  // D18 处置闭环：RECEIVED → CLAIMED → PROCESSING → RESOLVED。
+  // 全部以 expected_version 条件更新，仅一个处理员成功；办结必填 result 与说明。
+  rpc ClaimEvent(ClaimEventRequest) returns (SafetyEventView);
+  rpc StartProcessing(StartProcessingRequest) returns (SafetyEventView);
+  rpc TransferEvent(TransferEventRequest) returns (SafetyEventView);
+  rpc AddAction(AddActionRequest) returns (SafetyEventView);
+  rpc ResolveEvent(ResolveEventRequest) returns (SafetyEventView);
+  // 必要证据：仅当前处理人可读，读取被审计。
+  rpc GetEvidence(GetEvidenceRequest) returns (EvidenceView);
+  // 升级扫描：按 received_at 判定，不依赖内存定时器。
+  rpc EscalateTick(EscalateTickRequest) returns (EscalateTickResponse);
+  // A18 说明内容（带 ETag 缓存）。
+  rpc GetNotice(GetNoticeRequest) returns (NoticeView);
+  rpc ListNotices(ListNoticesRequest) returns (ListNoticesResponse);
+}
+
+message ReportEventRequest {
+  string client_request_id = 1;
+  string event_type = 2;
+  // description / task_id 均可为空：收车时无任务也能求助。
+  string description = 3;
+  string task_id = 4;
+  // has_position 区分"未采集定位"与"坐标恰好是 0,0"，避免 0,0 伪装成位置。
+  bool   has_position = 5;
+  double lng = 6;
+  double lat = 7;
+  int64  captured_at = 8;
+}
+
+message PositionView {
+  // kind 取值 AVAILABLE（本次采集且新鲜）｜LAST_KNOWN（服务端最后已知位置）｜UNKNOWN。
+  string kind = 1;
+  double lng = 2;
+  double lat = 3;
+  int64  captured_at = 4;
+  string source = 5;
+}
+
+message SafetyEventView {
+  string event_id = 1; string driver_id = 2; string state = 3;
+  string event_type = 4; string description = 5; string task_id = 6;
+  PositionView position = 7;
+  int64 received_at = 8;
+  repeated string attachments = 9;
+  int32 supplements = 10;
+  int64 version = 11; string handler = 12; int64 claimed_at = 13;
+  int32 actions = 14; int32 escalations = 15;
+}
+
+message EventByRequestRequest { string client_request_id = 1; }
+
+message AddSupplementRequest {
+  string event_id = 1;
+  // kind 取值 position｜note。
+  string kind = 2;
+  string note = 3;
+  double lng = 4;
+  double lat = 5;
+  int64  captured_at = 6;
+  bool   has_position = 7;
+}
+
+message AddAttachmentRequest { string event_id = 1; string file_id = 2; }
+
+message HotlineRequest {}
+message HotlineItem { string name = 1; string number = 2; string note = 3; }
+// 紧急电话指引来自受控已发布配置。课程环境不自动拨号，且不替代后台受理。
+message HotlineView {
+  repeated HotlineItem items = 1;
+  string version = 2;
+  int64 published_at = 3;
+  bool auto_dial = 4;
+  bool demo = 5;
+  bool offline_cacheable = 6;
+}
+
+// state 为空时列出全部；driver_id 为空时列出全体，用于司机详情页。
+message PendingEventsRequest { string state = 1; int32 limit = 2; string driver_id = 3; }
+message PendingEventsResponse { repeated SafetyEventView items = 1; }
+
+message DrainSafetyOutboxRequest { int64 limit = 1; }
+message DrainSafetyOutboxResponse { int32 delivered = 1; int32 failed = 2; }
+
+message ClaimEventRequest { string event_id = 1; int64 expected_version = 2; string request_id = 3; }
+message StartProcessingRequest { string event_id = 1; int64 expected_version = 2; string request_id = 3; }
+message TransferEventRequest {
+  string event_id = 1; int64 expected_version = 2;
+  string to = 3; string reason = 4; string request_id = 5;
+}
+message AddActionRequest {
+  string event_id = 1; int64 expected_version = 2;
+  string kind = 3; string note = 4; string ref_id = 5; string request_id = 6;
+}
+message ResolveEventRequest {
+  string event_id = 1; int64 expected_version = 2;
+  string result = 3; string note = 4; string request_id = 5;
+}
+
+message GetEvidenceRequest { string event_id = 1; }
+message TracePointView { int64 seq = 1; int64 collected_at = 2; double lng = 3; double lat = 4; double accuracy = 5; }
+message MessageView { int64 seq = 1; string from = 2; string text = 3; int64 at = 4; }
+message VirtualCallView { string number = 1; int64 expires_at = 2; int64 revoked_at = 3; bool simulated = 4; }
+message RecordingView { bool available = 1; string note = 2; }
+message EvidenceView {
+  string event_id = 1; string task_id = 2;
+  repeated TracePointView trace = 3; repeated MessageView messages = 4;
+  VirtualCallView virtual_call = 5; RecordingView recording = 6;
+}
+
+message EscalateTickRequest { int64 now = 1; int32 limit = 2; }
+message EscalateTickResponse { int32 escalated = 1; int32 skipped = 2; int32 failed = 3; }
+
+message GetNoticeRequest { string key = 1; }
+message NoticeBlockView { string kind = 1; string text = 2; }
+message NoticeView {
+  string key = 1; string title = 2; int64 version = 3;
+  string etag = 4; repeated NoticeBlockView blocks = 5;
+}
+message ListNoticesRequest {}
+message NoticeItem { string key = 1; string title = 2; int64 version = 3; string etag = 4; }
+message ListNoticesResponse { repeated NoticeItem items = 1; }

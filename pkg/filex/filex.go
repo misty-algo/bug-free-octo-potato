@@ -22,6 +22,9 @@ const (
 	ProviderQiniu = "qiniu"
 	// ProviderCOS 将文件存储到腾讯云 COS。
 	ProviderCOS = "cos"
+	// ProviderLocal 将文件存储到服务端私有本地目录。
+	// 这是课程可控适配器：不产出公开 URL，读取必须走授权代理。
+	ProviderLocal = "local"
 )
 
 // Config 控制校验、对象命名和选中的存储提供商。
@@ -36,6 +39,7 @@ type Config struct {
 	OSS                 OSSConfig        `mapstructure:"oss" yaml:"oss"`
 	Qiniu               QiniuConfig      `mapstructure:"qiniu" yaml:"qiniu"`
 	COS                 TencentCOSConfig `mapstructure:"cos" yaml:"cos"`
+	Local               LocalConfig      `mapstructure:"local" yaml:"local"`
 }
 
 // MinIOConfig 包含 MinIO/S3 兼容上传配置。
@@ -388,6 +392,8 @@ func newBackend(cfg Config) (backend, error) {
 		return newQiniuBackend(cfg)
 	case ProviderCOS, "tencent", "tencent_cos":
 		return newTencentCOSBackend(cfg)
+	case ProviderLocal, "file", "fs":
+		return newLocalBackend(cfg)
 	default:
 		return nil, fmt.Errorf("unsupported file storage provider %q", cfg.Provider)
 	}

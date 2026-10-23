@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BwCloudWeGo/bw-cli/pkg/authn"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -86,19 +87,13 @@ func (j *JWT) Auth() gin.HandlerFunc {
 			return
 		}
 
-		claims := &registeredJWTClaims{}
-		token, err := jwt.ParseWithClaims(tokenText, claims, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrTokenSignatureInvalid
-			}
-			return []byte(j.cfg.Secret), nil
-		}, jwt.WithIssuer(j.cfg.Issuer))
-		if err != nil || !token.Valid {
+		principal, err := authn.VerifyToken(tokenText, authn.Config{Secret: j.cfg.Secret, Issuer: j.cfg.Issuer})
+		if err != nil {
 			abortUnauthorized(c, "invalid_token", "invalid bearer token")
 			return
 		}
 
-		c.Set(claimsContextKey, claims.JWTClaims)
+		c.Set(claimsContextKey, JWTClaims{UserID: principal.UserID, Role: principal.Role})
 		c.Next()
 	}
 }

@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"context"
 	stderrors "errors"
 	"fmt"
 	"net/http"
@@ -16,6 +17,9 @@ type Kind string
 const (
 	KindInvalidArgument Kind = "INVALID_ARGUMENT"
 	KindUnauthorized    Kind = "UNAUTHORIZED"
+	KindForbidden       Kind = "FORBIDDEN"
+	KindUnavailable     Kind = "UNAVAILABLE"
+	KindDeadline        Kind = "DEADLINE_EXCEEDED"
 	KindNotFound        Kind = "NOT_FOUND"
 	KindConflict        Kind = "CONFLICT"
 	KindInternal        Kind = "INTERNAL"
@@ -66,6 +70,21 @@ func Unauthorized(code string, message string) *AppError {
 	return New(KindUnauthorized, code, message)
 }
 
+// Forbidden indicates that the authenticated principal lacks permission.
+func Forbidden(code string, message string) *AppError {
+	return New(KindForbidden, code, message)
+}
+
+// Unavailable indicates a temporary service failure.
+func Unavailable(code string, message string) *AppError {
+	return New(KindUnavailable, code, message)
+}
+
+// Deadline indicates an exceeded operation deadline; a write may have committed.
+func Deadline(code string, message string) *AppError {
+	return New(KindDeadline, code, message)
+}
+
 // NotFound 表示资源不存在。
 func NotFound(code string, message string) *AppError {
 	return New(KindNotFound, code, message)
@@ -94,13 +113,22 @@ func As(err error) (*AppError, bool) {
 func HTTPStatus(err error) int {
 	appErr, ok := As(err)
 	if !ok {
-		return http.StatusInternalServerError
+		appErr = FromGRPC(err)
+		if appErr == nil {
+			return http.StatusInternalServerError
+		}
 	}
 	switch appErr.Kind {
 	case KindInvalidArgument:
 		return http.StatusBadRequest
 	case KindUnauthorized:
 		return http.StatusUnauthorized
+	case KindForbidden:
+		return http.StatusForbidden
+	case KindUnavailable:
+		return http.StatusServiceUnavailable
+	case KindDeadline:
+		return http.StatusGatewayTimeout
 	case KindNotFound:
 		return http.StatusNotFound
 	case KindConflict:
@@ -114,13 +142,22 @@ func HTTPStatus(err error) int {
 func GRPCCode(err error) codes.Code {
 	appErr, ok := As(err)
 	if !ok {
-		return codes.Internal
+		appErr = FromGRPC(err)
+		if appErr == nil {
+			return codes.Internal
+		}
 	}
 	switch appErr.Kind {
 	case KindInvalidArgument:
 		return codes.InvalidArgument
 	case KindUnauthorized:
 		return codes.Unauthenticated
+	case KindForbidden:
+		return codes.PermissionDenied
+	case KindUnavailable:
+		return codes.Unavailable
+	case KindDeadline:
+		return codes.DeadlineExceeded
 	case KindNotFound:
 		return codes.NotFound
 	case KindConflict:
@@ -137,7 +174,7 @@ func ToGRPC(err error) error {
 	}
 	appErr, ok := As(err)
 	if !ok {
-		appErr = Internal("internal_error", "internal error")
+		appErr = FromGRPC(err)
 	}
 	return status.Error(GRPCCode(appErr), appErr.Code+"|"+appErr.Message)
 }
@@ -147,12 +184,25 @@ func FromGRPC(err error) *AppError {
 	if err == nil {
 		return nil
 	}
+	if stderrors.Is(err, context.DeadlineExceeded) {
+		return Wrap(KindDeadline, "DEADLINE_EXCEEDED", "deadline exceeded", err)
+	}
 	st, ok := status.FromError(err)
 	if !ok {
 		return Internal("internal_error", "internal error")
 	}
 
 	code, message := splitGRPCMessage(st.Message())
+	if !strings.Contains(st.Message(), "|") {
+		switch st.Code() {
+		case codes.PermissionDenied:
+			code = "FORBIDDEN"
+		case codes.Unavailable:
+			code = "TEMPORARILY_UNAVAILABLE"
+		case codes.DeadlineExceeded:
+			code = "DEADLINE_EXCEEDED"
+		}
+	}
 	return &AppError{
 		Kind:    kindFromGRPCCode(st.Code()),
 		Code:    code,
@@ -174,6 +224,12 @@ func kindFromGRPCCode(code codes.Code) Kind {
 		return KindInvalidArgument
 	case codes.Unauthenticated:
 		return KindUnauthorized
+	case codes.PermissionDenied:
+		return KindForbidden
+	case codes.Unavailable:
+		return KindUnavailable
+	case codes.DeadlineExceeded:
+		return KindDeadline
 	case codes.NotFound:
 		return KindNotFound
 	case codes.AlreadyExists:

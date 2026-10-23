@@ -1,0 +1,29 @@
+app:
+  name: arrival-acceptance
+  env: acceptance
+http:
+  host: 0.0.0.0
+  port: 8080
+grpc:
+  host: 0.0.0.0
+mongodb:
+  app_name: arrival-service
+  connect_timeout_seconds: 3
+  server_selection_timeout_seconds: 2
+services:
+  order:
+    name: order-service
+    port: 9100
+    target: order:9100
+  user:
+    target: 127.0.0.1:9001
+  note:
+    target: 127.0.0.1:9002
+middleware:
+  jwt:
+    issuer: xiaolanshu
+log:
+  level: info
+  file:
+    enabled: false
+

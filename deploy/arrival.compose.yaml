@@ -1,0 +1,24 @@
+name: bw-arrival
+services:
+  order:
+    build:
+      context: ..
+      dockerfile: deploy/arrival.Dockerfile
+    command: ["/app/order"]
+    environment:
+      ARRIVAL_ENABLED: "true"
+      ARRIVAL_JWT_SECRET: ${ARRIVAL_JWT_SECRET:?Set a JWT secret}
+      ARRIVAL_MONGO_URI: ${ARRIVAL_MONGO_URI:?Set an authenticated MongoDB replica-set URI}
+      ARRIVAL_MONGO_DATABASE: ${ARRIVAL_MONGO_DATABASE:?Set the prepared database name}
+  gateway:
+    build:
+      context: ..
+      dockerfile: deploy/arrival.Dockerfile
+    command: ["/app/gateway"]
+    environment:
+      ARRIVAL_ENABLED: "true"
+      ARRIVAL_JWT_SECRET: ${ARRIVAL_JWT_SECRET:?Set a JWT secret}
+    ports:
+      - "127.0.0.1:18080:8080"
+    depends_on:
+      - order

@@ -1,0 +1,35 @@
+syntax = "proto3";
+package order.v1;
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1;orderv1";
+
+// Identity is always obtained from a verified authorization metadata token.
+// 接口文档 3.9.1 到达上车点确认、3.9.2 上车核验、3.9.3 开始行程、
+// 3.9.4 确认送达、3.9.5 司机位置与轨迹上报。
+service ArrivalService {
+  rpc RecordLocation(RecordLocationRequest) returns (LocationReceipt);
+  rpc Arrive(ArriveRequest) returns (ArrivalResult);
+  rpc Verify(VerifyRequest) returns (VerifyResult);
+  rpc Start(StartRequest) returns (StartResult);
+  rpc End(EndRequest) returns (EndResult);
+  rpc RecordSample(SampleRequest) returns (SampleResult);
+}
+
+message RecordLocationRequest { string task_id=1; double lng=2; double lat=3; }
+message LocationReceipt { bool accepted=1; }
+
+message ArriveRequest { string task_id=1; string idempotency_key=2; string reason=3; }
+message ArrivalResult { string task_id=1; string state=2; bool abnormal=3; }
+
+message VerifyRequest { string order_id=1; string code=2; string idempotency_key=3; }
+// lock_until 为 Unix 秒，0 表示未锁定。
+message VerifyResult { string order_id=1; bool verified=2; int32 remaining_attempts=3; int64 lock_until=4; }
+
+message StartRequest { string task_id=1; string idempotency_key=2; }
+message StartResult { string task_id=1; string state=2; int64 departed_at=3; }
+
+message EndRequest { string order_id=1; int64 actual_dist=2; int64 actual_dur=3; string end_reason=4; string idempotency_key=5; }
+message BillProjection { int64 T=1; int64 P=2; string state=3; }
+message EndResult { string order_id=1; string state=2; BillProjection bill=3; }
+
+message SampleRequest { string task_id=1; string session_id=2; int64 seq=3; double lng=4; double lat=5; string crs=6; double accuracy=7; int64 collected_at=8; }
+message SampleResult { bool accepted=1; string task_id=2; string session_id=3; int64 seq=4; int64 watermark=5; repeated int64 missing=6; string quality=7; bool converted=8; bool duplicated=9; }

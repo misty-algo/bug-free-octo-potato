@@ -25,6 +25,9 @@ func main() {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
+	if err := configureArrivalGateway(cfg); err != nil {
+		panic(err)
+	}
 	gatewayServiceName := cfg.ServiceName("gateway")
 	cfg.Log.Service = gatewayServiceName
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())

@@ -839,6 +839,8 @@ make proto
 
 ## 12. 更多文档
 
+- [司机到达后端接入](docs/arrival/integration.md)：MongoDB 事务、正常/异常到达、鉴权与幂等、OpenAPI、部署和验收脚本（需 MongoDB 副本集）。
+
 - [架构说明](docs/architecture.md)：分层、路由、公共包和扩展方式。
 - [详细使用说明](docs/usage.md)：发布 `bw-cli`、安装命令、生成项目、初始化依赖、配置服务、启动验证和扩展业务。
 - [工具组件总览与调用流程](docs/toolkit.md)：配置、日志、中间件、数据库、MongoDB、Redis、ES、Kafka、文件上传等公共工具的调用方式。

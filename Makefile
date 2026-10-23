@@ -7,7 +7,7 @@ export PROTOC
 export PROTO_PATH
 export PROTO_OUT
 
-.PHONY: proto test tidy run-gateway run-user run-note run-cli install-cli install-bw-cli tools run-order
+.PHONY: proto test tidy run-gateway run-user run-note run-cli install-cli install-bw-cli tools run-order mint-token
 
 tools:
 	$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -41,3 +41,8 @@ install-bw-cli: install-cli
 
 run-order:
 	$(GO) run ./cmd/order
+
+# 联调工具：直接签发令牌，跳过尚未实现的登录链路。
+# 例：make mint-token ARGS="6ad9adcc77e161c8570967b3 driver"
+mint-token:
+	$(GO) run ./cmd/mint-token $(ARGS)
