@@ -45,11 +45,11 @@ postgresql:
   conn_max_lifetime_seconds: 3600
 
 mongodb:
-  # 本地 Docker 容器 mongo（mongo:8，未开启鉴权）。
+  # 本地 Docker 容器 mongo（mongo:8.3，root 账号 dev/dev123456）。
   uri: mongodb://127.0.0.1:27017
-  username: ""
-  password: ""
-  database: xiaolanshu
+  username: "dev"
+  password: "dev123456"
+  database: day1
   app_name: bw-cli
   min_pool_size: 0
   max_pool_size: 100
@@ -70,6 +70,27 @@ rabbitmq:
   publish_timeout: 5s
   consume_timeout: 30s
   reconnect_delay: 3s
+
+driver:
+  # 司机端业务参数（金额单位统一为「分」，1 元 = 100 分）
+  commission_rate: 0.2              # 平台抽成比例
+  min_withdraw_fen: 1000            # 最低提现门槛（10 元）
+  max_withdraw_fen: 200000          # 单笔提现上限（2000 元）
+  daily_withdraw_limit_fen: 500000  # 单日提现累计上限（5000 元）
+  daily_withdraw_count: 3           # 单日提现受理次数
+  dual_approval_fen: 50000          # 单笔达到 500 元需双人审批
+  daily_release_limit: 3            # 单日退单次数上限（仅司机责任计入）
+  accept_timeout_seconds: 15        # 邀请确认超时（秒），超时换下一候选
+  listen_window_seconds: 60         # 听单通道窗口，结束后转抢单池
+  dispatch_window_seconds: 120      # 总派单时限，超时平台责任取消
+  heartbeat_timeout_seconds: 60     # 空闲连续无心跳自动收车
+  hall_list_limit: 50               # 接单大厅单页上限
+  auto_settle_on_trip_end: true     # 课程模拟：无财务域时行程结束即结算
+  dispatch_weights:                 # 派单评分权重，总和必须等于 10000
+    distance: 4000
+    rating: 2500
+    online: 1500
+    success: 2000
 
 file_storage:
   provider: minio
