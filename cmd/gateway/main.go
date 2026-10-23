@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -21,7 +22,10 @@ import (
 
 func main() {
 	// 构建依赖前先加载运行时配置。
-	if err := config.InitGlobal("configs/config.yaml"); err != nil {
+	// 配置路径可指定，便于本地联调时用不同端口与目标地址。
+	configPath := flag.String("config", "configs/config.yaml", "配置文件路径")
+	flag.Parse()
+	if err := config.InitGlobal(*configPath); err != nil {
 		panic(err)
 	}
 	cfg := config.MustGlobal()

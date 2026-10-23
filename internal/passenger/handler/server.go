@@ -452,7 +452,7 @@ func toLoginProto(out *dto.LoginDTO) *passengerv1.LoginResponse {
 
 // toEstimateProto 把估价出参转成 proto 结构。
 func toEstimateProto(out *dto.EstimateDTO) *passengerv1.EstimateResponse {
-	return &passengerv1.EstimateResponse{
+	response := &passengerv1.EstimateResponse{
 		EstimateNo:  out.EstimateNo,
 		CarType:     int32(out.CarType),
 		BaseFee:     out.BaseFee,
@@ -461,8 +461,13 @@ func toEstimateProto(out *dto.EstimateDTO) *passengerv1.EstimateResponse {
 		PayFee:      out.PayFee,
 		DistanceM:   out.DistanceM,
 		DurationS:   out.DurationS,
-		ExpiresAt:   out.ExpiresAt.Unix(),
 	}
+	// 游客看价没有过期时间。零值时间转 Unix 会得到一个无意义的负数，
+	// 这里保持零值，前端按「无过期时间」处理。
+	if !out.ExpiresAt.IsZero() {
+		response.ExpiresAt = out.ExpiresAt.Unix()
+	}
+	return response
 }
 
 // toOrderProto 把订单出参转成 proto 结构。

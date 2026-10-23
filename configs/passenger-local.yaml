@@ -23,6 +23,20 @@ services:
     name: passenger-service
     port: 9005
     target: 127.0.0.1:9005
+  # 其余域的地址仅用于让网关完成客户端初始化。
+  # gRPC 是懒连接，这些服务没起不影响乘客端接口联调。
+  user:
+    name: user-service
+    port: 9001
+    target: 127.0.0.1:9001
+  note:
+    name: note-service
+    port: 9002
+    target: 127.0.0.1:9002
+  order:
+    name: order-service
+    port: 9100
+    target: 127.0.0.1:9100
 
 mongodb:
   # 连接串、用户名与密码都是环境相关的真值，MUST NOT 提交到仓库。

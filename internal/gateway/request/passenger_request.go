@@ -47,36 +47,36 @@ type UnbindChannelRequest struct {
 
 // HomeRequest 是 GET /api/v1/passenger/home 使用的查询参数。
 type HomeRequest struct {
-	AccountID string `json:"accountId"`
-	Lng       float64 `json:"lng"`
-	Lat       float64 `json:"lat"`
+	AccountID string `form:"accountId"`
+	Lng       float64 `form:"lng"`
+	Lat       float64 `form:"lat"`
 	// HasLocation 标识前端是否成功取得定位。
-	HasLocation bool `json:"hasLocation"`
+	HasLocation bool `form:"hasLocation"`
 }
 
 // SearchPOIRequest 是 GET /api/v1/passenger/poi/search 使用的查询参数。
 type SearchPOIRequest struct {
-	AccountID string `json:"accountId"`
-	Keyword   string `json:"keyword" binding:"required"`
-	City      string `json:"city"`
-	Lng       float64 `json:"lng"`
-	Lat       float64 `json:"lat"`
-	HasCoord  bool   `json:"hasCoord"`
-	Limit     int    `json:"limit"`
+	AccountID string `form:"accountId"`
+	Keyword   string `form:"keyword" binding:"required"`
+	City      string `form:"city"`
+	Lng       float64 `form:"lng"`
+	Lat       float64 `form:"lat"`
+	HasCoord  bool   `form:"hasCoord"`
+	Limit     int    `form:"limit"`
 }
 
 // RecommendPickupRequest 是 GET /api/v1/passenger/poi/recommend 使用的查询参数。
 type RecommendPickupRequest struct {
-	AccountID string  `json:"accountId"`
-	Lng       float64 `json:"lng" binding:"required"`
-	Lat       float64 `json:"lat" binding:"required"`
-	Limit     int     `json:"limit"`
+	AccountID string  `form:"accountId"`
+	Lng       float64 `form:"lng" binding:"required"`
+	Lat       float64 `form:"lat" binding:"required"`
+	Limit     int     `form:"limit"`
 }
 
 // ListAddressesRequest 是 GET /api/v1/passenger/addresses 使用的查询参数。
 type ListAddressesRequest struct {
-	AccountID string `json:"accountId"`
-	Type      string `json:"type"`
+	AccountID string `form:"accountId"`
+	Type      string `form:"type"`
 }
 
 // SaveAddressRequest 是 POST /api/v1/passenger/addresses 使用的 JSON 载荷。
@@ -141,10 +141,10 @@ type PassengerCreateOrderRequest struct {
 
 // ListOrdersRequest 是 GET /api/v1/passenger/orders 使用的查询参数。
 type ListOrdersRequest struct {
-	AccountID string `json:"accountId"`
-	State     string `json:"state"`
-	PageNo    int    `json:"pageNo"`
-	PageSize  int    `json:"pageSize"`
+	AccountID string `form:"accountId"`
+	State     string `form:"state"`
+	PageNo    int    `form:"pageNo"`
+	PageSize  int    `form:"pageSize"`
 }
 
 // CancelOrderRequest 是 POST /api/v1/passenger/orders/cancel 使用的 JSON 载荷。
