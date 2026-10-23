@@ -242,4 +242,65 @@ type CancelQuoteDTO struct {
 	NeedConfirm bool  `json:"needConfirm"`
 	CancelFee   int64 `json:"cancelFee"`
 	State       string `json:"state"`
+	// ExpiresAt 为报价有效期，过期后需要重新取价。
+	ExpiresAt time.Time `json:"expiresAt,omitzero"`
+}
+
+// OrderListDTO 是订单列表的出参。
+type OrderListDTO struct {
+	Total int         `json:"total"`
+	List  []*OrderDTO `json:"list"`
+}
+
+// CouponDTO 是优惠券的出参。
+type CouponDTO struct {
+	CouponID string `json:"couponId"`
+	Name     string `json:"name"`
+	// FaceValue 与 Threshold 单位为分。
+	FaceValue int64     `json:"faceValue"`
+	Threshold int64     `json:"threshold"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// SaveAddressCommand 是新增或更新常用地址的入参。
+type SaveAddressCommand struct {
+	ID    string
+	AddrType string
+	Tag   string
+	Name  string
+	Addr  string
+	POIID string
+	Lng   float64
+	Lat   float64
+}
+
+// RecordHistoryCommand 是上报一次选中的地点的入参。
+type RecordHistoryCommand struct {
+	POIID string
+	Name  string
+	Addr  string
+	Lng   float64
+	Lat   float64
+}
+
+// BindPhoneDTO 是绑定手机号的出参。手机号一律脱敏返回。
+type BindPhoneDTO struct {
+	Phone string `json:"phone"`
+}
+
+// DriverLocationDTO 是司机实时位置的出参。
+type DriverLocationDTO struct {
+	DriverID   string `json:"driverId"`
+	DriverName string `json:"driverName"`
+	PlateNo    string `json:"plateNo"`
+	CarModel   string `json:"carModel"`
+	Rating     string `json:"rating"`
+	Lng        float64 `json:"lng"`
+	Lat        float64 `json:"lat"`
+	// ETAMin 为预计到达分钟数。
+	ETAMin int `json:"etaMin"`
+	// Delayed 为真时前端提示「位置更新延迟」。
+	Delayed bool `json:"delayed"`
+	// ReportedAt 为该位置的上报时间。
+	ReportedAt time.Time `json:"reportedAt"`
 }

@@ -70,6 +70,8 @@ type Service struct {
 	pois      entity.POIRepository
 	orders    entity.OrderRepository
 	quick     entity.QuickEntryRepository
+	coupons   entity.CouponRepository
+	drivers   entity.DriverRepository
 
 	issuer   TokenIssuer
 	hasher   PasswordHasher
@@ -80,7 +82,10 @@ type Service struct {
 	carTypes CarTypeProvider
 	// pricingProvider 由计价域提供试算；未配置时退回内置试算。
 	pricingProvider PricingProvider
-	now              func() time.Time
+	// cancelFeeAccepted 与 cancelFeeArrived 是取消费配置，单位分。
+	cancelFeeAccepted int64
+	cancelFeeArrived  int64
+	now               func() time.Time
 }
 
 // NewService 创建乘客端用例服务。
@@ -106,6 +111,29 @@ func NewService(
 		issuer: issuer, hasher: hasher, sender: sender, auth: auth, ids: ids,
 		now: time.Now,
 	}
+}
+
+// WithCouponRepository 注入优惠券仓储。
+func (s *Service) WithCouponRepository(repo entity.CouponRepository) *Service {
+	if repo != nil {
+		s.coupons = repo
+	}
+	return s
+}
+
+// WithDriverRepository 注入司机档案只读仓储。
+func (s *Service) WithDriverRepository(repo entity.DriverRepository) *Service {
+	if repo != nil {
+		s.drivers = repo
+	}
+	return s
+}
+
+// WithCancelFee 配置取消费金额，单位分。
+func (s *Service) WithCancelFee(accepted int64, arrived int64) *Service {
+	s.cancelFeeAccepted = accepted
+	s.cancelFeeArrived = arrived
+	return s
 }
 
 // WithClock 替换用例时钟，仅用于测试。

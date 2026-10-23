@@ -9,16 +9,19 @@ import (
 
 	notev1 "github.com/BwCloudWeGo/bw-cli/api/gen/note/v1"
 	orderv1 "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1"
+	passengerv1 "github.com/BwCloudWeGo/bw-cli/api/gen/passenger/v1"
 	userv1 "github.com/BwCloudWeGo/bw-cli/api/gen/user/v1"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 )
 
 // Clients 聚合 HTTP gateway 使用的所有 gRPC client。
 type Clients struct {
-	User   userv1.UserServiceClient
-	Note   notev1.NoteServiceClient
-	Order  orderv1.OrderServiceClient
-	Config *config.Config
+	User  userv1.UserServiceClient
+	Note  notev1.NoteServiceClient
+	Order orderv1.OrderServiceClient
+	// Passenger 为乘客端业务域的 gRPC client。
+	Passenger passengerv1.PassengerServiceClient
+	Config    *config.Config
 
 	conns []*grpc.ClientConn
 }
@@ -28,6 +31,7 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 	userTarget := cfg.ServiceTarget("user")
 	noteTarget := cfg.ServiceTarget("note")
 	orderTarget := cfg.ServiceTarget("order")
+	passengerTarget := cfg.ServiceTarget("passenger")
 	userConn, err := grpc.Dial(userTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("dial user service: %w", err)
@@ -43,18 +47,27 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		noteConn.Close()
 		return nil, fmt.Errorf("dial order service: %w", err)
 	}
+	passengerConn, err := grpc.Dial(passengerTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		userConn.Close()
+		noteConn.Close()
+		orderConn.Close()
+		return nil, fmt.Errorf("dial passenger service: %w", err)
+	}
 
 	log.Info("grpc clients initialized",
 		zap.String("user_target", userTarget),
 		zap.String("note_target", noteTarget),
 		zap.String("order_target", orderTarget),
+		zap.String("passenger_target", passengerTarget),
 	)
 	return &Clients{
-		User:   userv1.NewUserServiceClient(userConn),
-		Note:   notev1.NewNoteServiceClient(noteConn),
-		Order:  orderv1.NewOrderServiceClient(orderConn),
-		Config: cfg,
-		conns:  []*grpc.ClientConn{userConn, noteConn, orderConn},
+		User:      userv1.NewUserServiceClient(userConn),
+		Note:      notev1.NewNoteServiceClient(noteConn),
+		Order:     orderv1.NewOrderServiceClient(orderConn),
+		Passenger: passengerv1.NewPassengerServiceClient(passengerConn),
+		Config:    cfg,
+		conns:     []*grpc.ClientConn{userConn, noteConn, orderConn, passengerConn},
 	}, nil
 }
 

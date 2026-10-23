@@ -79,6 +79,26 @@ type QuickEntryRepository interface {
 	MarkUsed(ctx context.Context, accountID, entryID string, now time.Time) error
 }
 
+// CouponRepository 定义优惠券持久化行为。
+type CouponRepository interface {
+	// FindByID 按标识查券。
+	FindByID(ctx context.Context, id string) (*Coupon, error)
+	// ListUsable 列出该账号可用的券。
+	ListUsable(ctx context.Context, accountID string, now time.Time) ([]*Coupon, error)
+	// Lock 在原子条件更新下锁定券。已被其他订单锁定时返回 ErrCouponLocked。
+	Lock(ctx context.Context, id string, orderID string, now time.Time) error
+	// Unlock 释放锁定的券，用于订单取消或支付超时。
+	Unlock(ctx context.Context, id string, now time.Time) error
+}
+
+// DriverRepository 定义司机档案只读行为。乘客端不写司机域的数据。
+type DriverRepository interface {
+	// FindByAccountID 返回账号的司机档案。
+	FindByAccountID(ctx context.Context, accountID string) (*DriverProfile, error)
+	// FindByOrderID 返回订单当前分配到的司机档案。
+	FindByOrderID(ctx context.Context, orderID string) (*DriverProfile, error)
+}
+
 // OrderRepository 定义订单持久化行为。
 type OrderRepository interface {
 	Save(ctx context.Context, order *Order) error
@@ -87,6 +107,10 @@ type OrderRepository interface {
 	FindByIdempotencyKey(ctx context.Context, accountID, key string) (*Order, error)
 	// FindActive 返回该账号进行中的订单。
 	FindActive(ctx context.Context, accountID string) (*Order, error)
+	// ListByAccount 分页列出该账号的订单，可按状态过滤。
+	ListByAccount(ctx context.Context, accountID string, state OrderState, offset int, limit int) ([]*Order, error)
+	// CountByAccount 统计该账号符合条件的订单数。
+	CountByAccount(ctx context.Context, accountID string, state OrderState) (int, error)
 	// UpdateState 在乐观锁校验通过后更新状态。
 	UpdateState(ctx context.Context, order *Order) error
 	// AppendStatusLog 写一条状态留痕。

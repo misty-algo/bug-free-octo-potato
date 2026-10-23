@@ -1,0 +1,392 @@
+syntax = "proto3";
+
+package passenger.v1;
+
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/passenger/v1;passengerv1";
+
+// PassengerService 承载乘客端全部业务接口。
+//
+// 令牌按受众隔离：乘客端令牌只能调本服务，
+// 司机端与后台的令牌调过来直接被拒。
+service PassengerService {
+  // 登录相关
+  rpc SendCode(SendCodeRequest) returns (SendCodeResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc SetPassword(SetPasswordRequest) returns (SetPasswordResponse);
+  rpc BindPhone(BindPhoneRequest) returns (BindPhoneResponse);
+  rpc Refresh(RefreshRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc UnbindChannel(UnbindChannelRequest) returns (LogoutResponse);
+  rpc CancelAccount(CancelAccountRequest) returns (LogoutResponse);
+  rpc WithdrawCancelAccount(CancelAccountRequest) returns (LogoutResponse);
+
+  // 首页相关
+  rpc Home(HomeRequest) returns (HomeResponse);
+  rpc SearchPOI(SearchPOIRequest) returns (SearchPOIResponse);
+  rpc RecommendPickup(RecommendPickupRequest) returns (SearchPOIResponse);
+  rpc ListAddresses(ListAddressesRequest) returns (AddressListResponse);
+  rpc SaveAddress(SaveAddressRequest) returns (AddressResponse);
+  rpc DeleteAddress(DeleteAddressRequest) returns (LogoutResponse);
+  rpc RecordHistory(RecordHistoryRequest) returns (LogoutResponse);
+  rpc ClearHistory(ClearHistoryRequest) returns (LogoutResponse);
+  rpc UseQuickEntry(UseQuickEntryRequest) returns (LogoutResponse);
+  rpc ListCoupons(ListCouponsRequest) returns (CouponListResponse);
+
+  // 下单相关
+  rpc Estimate(EstimateRequest) returns (EstimateResponse);
+  rpc QuotePrice(EstimateRequest) returns (EstimateResponse);
+  rpc CreateOrder(CreateOrderRequest) returns (OrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (OrderResponse);
+  rpc CurrentOrder(CurrentOrderRequest) returns (OrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (OrderListResponse);
+  rpc CancelQuote(CancelQuoteRequest) returns (CancelQuoteResponse);
+  rpc CancelOrder(CancelOrderRequest) returns (CancelQuoteResponse);
+  rpc DriverLocation(DriverLocationRequest) returns (DriverLocationResponse);
+}
+
+message SendCodeRequest {
+  string phone = 1;
+  string device_id = 2;
+}
+
+message SendCodeResponse {
+  int32 expires_in_seconds = 1;
+  int32 resend_after_seconds = 2;
+  // 仅本地 Mock 通道回传，接入真实短信网关后为空。
+  string debug_code = 3;
+}
+
+message LoginRequest {
+  // channel: sms / wechat / qq
+  string channel = 1;
+  string phone = 2;
+  // code 为短信验证码或第三方授权码。
+  string code = 3;
+  string password = 4;
+  // role: passenger / driver
+  string role = 5;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  string account_id = 3;
+  bool is_new_user = 4;
+  bool has_password = 5;
+  // restore_target 为服务端计算的恢复目标。
+  string restore_target = 6;
+  bool need_driver_register = 7;
+  int32 expires_in_seconds = 8;
+}
+
+message SetPasswordRequest {
+  string account_id = 1;
+  string phone = 2;
+  string code = 3;
+  string password = 4;
+}
+
+message SetPasswordResponse {
+  bool success = 1;
+}
+
+message BindPhoneRequest {
+  string account_id = 1;
+  string phone = 2;
+}
+
+message BindPhoneResponse {
+  // phone 为掩码手机号。
+  string phone = 1;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
+  // audience: pax / drv / admin
+  string audience = 2;
+}
+
+message LogoutRequest {
+  string account_id = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+}
+
+message UnbindChannelRequest {
+  string account_id = 1;
+  string channel = 2;
+}
+
+message CancelAccountRequest {
+  string account_id = 1;
+}
+
+message HomeRequest {
+  string account_id = 1;
+  double lng = 2;
+  double lat = 3;
+  bool has_location = 4;
+}
+
+message CarType {
+  int32 car_type = 1;
+  string name = 2;
+  bool available = 3;
+  string unavailable_reason = 4;
+  // min_fee 单位为分。
+  int64 min_fee = 5;
+}
+
+message QuickEntry {
+  string entry_id = 1;
+  string title = 2;
+  string icon = 3;
+  string action = 4;
+  string target = 5;
+}
+
+message Address {
+  string id = 1;
+  string type = 2;
+  string tag = 3;
+  string name = 4;
+  string addr = 5;
+  string poi_id = 6;
+  double lng = 7;
+  double lat = 8;
+  int32 use_count = 9;
+}
+
+message HomeResponse {
+  repeated CarType car_types = 1;
+  repeated QuickEntry quick_entries = 2;
+  repeated Address common_addresses = 3;
+  repeated Address history_addresses = 4;
+  bool has_active_order = 5;
+  string active_order_id = 6;
+  string restore_target = 7;
+}
+
+message SearchPOIRequest {
+  string account_id = 1;
+  string keyword = 2;
+  string city = 3;
+  double lng = 4;
+  double lat = 5;
+  bool has_coord = 6;
+  int32 limit = 7;
+}
+
+message RecommendPickupRequest {
+  string account_id = 1;
+  double lng = 2;
+  double lat = 3;
+  int32 limit = 4;
+}
+
+message POI {
+  string id = 1;
+  string name = 2;
+  string addr = 3;
+  string city = 4;
+  double lng = 5;
+  double lat = 6;
+  bool has_distance = 7;
+  int64 distance_m = 8;
+}
+
+message SearchPOIResponse {
+  repeated POI list = 1;
+}
+
+message ListAddressesRequest {
+  string account_id = 1;
+  string type = 2;
+}
+
+message AddressListResponse {
+  repeated Address list = 1;
+}
+
+message SaveAddressRequest {
+  string account_id = 1;
+  string id = 2;
+  string type = 3;
+  string tag = 4;
+  string name = 5;
+  string addr = 6;
+  string poi_id = 7;
+  double lng = 8;
+  double lat = 9;
+}
+
+message AddressResponse {
+  Address address = 1;
+}
+
+message DeleteAddressRequest {
+  string account_id = 1;
+  string address_id = 2;
+}
+
+message RecordHistoryRequest {
+  string account_id = 1;
+  string poi_id = 2;
+  string name = 3;
+  string addr = 4;
+  double lng = 5;
+  double lat = 6;
+}
+
+message ClearHistoryRequest {
+  string account_id = 1;
+}
+
+message UseQuickEntryRequest {
+  string account_id = 1;
+  string entry_id = 2;
+}
+
+message Coupon {
+  string coupon_id = 1;
+  string name = 2;
+  // face_value 与 threshold 单位为分。
+  int64 face_value = 3;
+  int64 threshold = 4;
+  int64 expire_at = 5;
+}
+
+message ListCouponsRequest {
+  string account_id = 1;
+}
+
+message CouponListResponse {
+  repeated Coupon list = 1;
+}
+
+message EstimateRequest {
+  string account_id = 1;
+  int32 car_type = 2;
+  string start_name = 3;
+  string start_addr = 4;
+  double start_lng = 5;
+  double start_lat = 6;
+  string end_name = 7;
+  string end_addr = 8;
+  double end_lng = 9;
+  double end_lat = 10;
+  string coupon_id = 11;
+  string idempotency_key = 12;
+}
+
+message EstimateResponse {
+  // estimate_no 为空表示游客，游客拿不到估价单。
+  string estimate_no = 1;
+  int32 car_type = 2;
+  // 金额单位均为分。
+  int64 base_fee = 3;
+  int64 service_fee = 4;
+  int64 discount_fee = 5;
+  int64 pay_fee = 6;
+  int64 distance_m = 7;
+  int64 duration_s = 8;
+  int64 expires_at = 9;
+}
+
+message CreateOrderRequest {
+  string account_id = 1;
+  string estimate_no = 2;
+  int32 car_type = 3;
+  string start_name = 4;
+  string start_addr = 5;
+  double start_lng = 6;
+  double start_lat = 7;
+  string end_name = 8;
+  string end_addr = 9;
+  double end_lng = 10;
+  double end_lat = 11;
+  string remark = 12;
+  string idempotency_key = 13;
+}
+
+message Order {
+  string order_id = 1;
+  string order_no = 2;
+  string state = 3;
+  int32 car_type = 4;
+  string start_name = 5;
+  string start_addr = 6;
+  string end_name = 7;
+  string end_addr = 8;
+  // total_fee 与 cancel_fee 单位为分。
+  int64 total_fee = 9;
+  int64 cancel_fee = 10;
+  string remark = 11;
+  string driver_name = 12;
+  string driver_plate = 13;
+  int64 created_at = 14;
+}
+
+message OrderResponse {
+  Order order = 1;
+}
+
+message GetOrderRequest {
+  string account_id = 1;
+  string order_id = 2;
+}
+
+message CurrentOrderRequest {
+  string account_id = 1;
+}
+
+message ListOrdersRequest {
+  string account_id = 1;
+  string state = 2;
+  int32 page_no = 3;
+  int32 page_size = 4;
+}
+
+message OrderListResponse {
+  int32 total = 1;
+  repeated Order list = 2;
+}
+
+message CancelQuoteRequest {
+  string account_id = 1;
+  string order_id = 2;
+}
+
+message CancelOrderRequest {
+  string account_id = 1;
+  string order_id = 2;
+  string reason = 3;
+  bool confirm_fee = 4;
+}
+
+message CancelQuoteResponse {
+  bool need_confirm = 1;
+  int64 cancel_fee = 2;
+  string state = 3;
+  int64 expires_at = 4;
+}
+
+message DriverLocationRequest {
+  string account_id = 1;
+  string order_id = 2;
+}
+
+message DriverLocationResponse {
+  string driver_id = 1;
+  string driver_name = 2;
+  string plate_no = 3;
+  string car_model = 4;
+  string rating = 5;
+  double lng = 6;
+  double lat = 7;
+  int32 eta_min = 8;
+  bool delayed = 9;
+  int64 reported_at = 10;
+}

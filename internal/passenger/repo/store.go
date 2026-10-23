@@ -515,6 +515,16 @@ func (r *OrderRepository) FindActive(ctx context.Context, accountID string) (*en
 	return toOrderEntity(document), nil
 }
 
+// ListByAccount 分页列出该账号的订单，可按状态过滤。
+func (r *OrderRepository) ListByAccount(ctx context.Context, accountID string, state entity.OrderState, offset int, limit int) ([]*entity.Order, error) {
+	return r.store.listOrders(ctx, accountID, state, offset, limit)
+}
+
+// CountByAccount 统计该账号符合条件的订单数。
+func (r *OrderRepository) CountByAccount(ctx context.Context, accountID string, state entity.OrderState) (int, error) {
+	return r.store.countOrders(ctx, accountID, state)
+}
+
 // UpdateState 在乐观锁校验通过后更新状态。
 //
 // 用条件更新而不是先查后改：过滤条件带 version，

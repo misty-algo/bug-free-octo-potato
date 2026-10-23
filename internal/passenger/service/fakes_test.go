@@ -106,6 +106,14 @@ func (r *fakeChannelRepository) ListByAccount(ctx context.Context, accountID str
 	return list, nil
 }
 
+// seed 预置一条渠道绑定，供测试构造多渠道场景。
+func (r *fakeChannelRepository) seed(binding *entity.ChannelBinding) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	copied := *binding
+	r.bindings[binding.ID] = &copied
+}
+
 // fakeSessionRepository 是会话仓储的内存实现。
 type fakeSessionRepository struct {
 	mutex    sync.Mutex
@@ -373,6 +381,37 @@ func (r *fakeOrderRepository) FindActive(ctx context.Context, accountID string) 
 		}
 	}
 	return nil, entity.ErrOrderNotFound
+}
+
+func (r *fakeOrderRepository) ListByAccount(ctx context.Context, accountID string, state entity.OrderState, offset int, limit int) ([]*entity.Order, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	matched := make([]*entity.Order, 0, len(r.orders))
+	for _, order := range r.orders {
+		if order.AccountID != accountID {
+			continue
+		}
+		if state != "" && order.State != state {
+			continue
+		}
+		copied := *order
+		matched = append(matched, &copied)
+	}
+	if offset > 0 {
+		if offset >= len(matched) {
+			return nil, nil
+		}
+		matched = matched[offset:]
+	}
+	if limit > 0 && len(matched) > limit {
+		matched = matched[:limit]
+	}
+	return matched, nil
+}
+
+func (r *fakeOrderRepository) CountByAccount(ctx context.Context, accountID string, state entity.OrderState) (int, error) {
+	list, err := r.ListByAccount(ctx, accountID, state, 0, 0)
+	return len(list), err
 }
 
 func (r *fakeOrderRepository) UpdateState(ctx context.Context, order *entity.Order) error {
