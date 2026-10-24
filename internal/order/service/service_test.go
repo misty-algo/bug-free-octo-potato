@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewService(t *testing.T) {
-	svc := NewService(nil, zap.NewNop())
+	svc := NewService(nil, nil, zap.NewNop())
 
 	require.NotNil(t, svc)
 }
@@ -19,7 +19,7 @@ func TestNewService(t *testing.T) {
 func TestServiceCRUD(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeRepository()
-	svc := NewService(repo, zap.NewNop())
+	svc := NewService(repo, nil, zap.NewNop())
 
 	created, err := svc.Create(ctx, dto.CreateCommand{Name: "first", Description: "created from service test"})
 	require.NoError(t, err)

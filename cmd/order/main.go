@@ -20,6 +20,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/database"
 	"github.com/BwCloudWeGo/bw-cli/pkg/grpcx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/logger"
+	"github.com/BwCloudWeGo/bw-cli/pkg/rabbitmqx"
 )
 
 const serviceName = "order-service"
@@ -48,8 +49,15 @@ func main() {
 		log.Fatal("migrate order database failed", zap.Error(err))
 	}
 
+	// 连接本地 RabbitMQ，作为订单事件的消息队列。
+	mqClient, err := rabbitmqx.New(cfg.RabbitMQ.RabbitmqxConfig())
+	if err != nil {
+		log.Fatal("connect rabbitmq failed", zap.Error(err))
+	}
+	defer mqClient.Close()
+
 	repo := orderrepo.NewGormRepository(db, log)
-	svc := orderservice.NewService(repo, log)
+	svc := orderservice.NewService(repo, mqClient, log)
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
 	orderv1.RegisterOrderServiceServer(server, orderhandler.NewServer(svc, log))
 

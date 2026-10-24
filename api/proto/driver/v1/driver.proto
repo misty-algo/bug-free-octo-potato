@@ -1,0 +1,440 @@
+syntax = "proto3";
+
+package driver.v1;
+
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1;driverv1";
+
+// DriverService 是司机端业务 gRPC 边界：接单大厅（D01–D04）、
+// 首页收益对比（D09–D11）、收入结算（D12–D13）。
+//
+// 跨模块约定：
+//   - 金额一律整数分（*_fen），不传元；
+//   - 订单状态采用统一六态 WAITING/ACCEPTED/ARRIVED/IN_TRIP/ENDED/CANCELLED；
+//   - 司机四态 offline/idle/busy/pre_occupied；
+//   - 每个写命令可携带幂等键，服务端保证重复请求返回同一结果。
+service DriverService {
+  // ── 司机档案 / 状态 / 模式 / 区域 / 心跳 ──
+  rpc RegisterDriver(RegisterDriverRequest) returns (DriverProfileResponse);
+  rpc GetDriverProfile(GetDriverProfileRequest) returns (DriverProfileResponse);
+  rpc UpdateDriverStatus(UpdateDriverStatusRequest) returns (DriverProfileResponse);//司机登录后修改状态
+  rpc UpdateDriverMode(UpdateDriverModeRequest) returns (DriverProfileResponse);//听/抢单模式切换
+  rpc UpdateAreaConfig(UpdateAreaConfigRequest) returns (DriverProfileResponse);
+  rpc DriverHeartbeat(HeartbeatRequest) returns (DriverProfileResponse);
+  rpc UpdateOfflineAfterTrip(UpdateOfflineAfterTripRequest) returns (DriverProfileResponse);
+
+  // ── 接单大厅 ──
+  rpc CreateHallOrder(CreateHallOrderRequest) returns (HallOrderResponse);
+  rpc ListHallOrders(ListHallOrdersRequest) returns (ListHallOrdersResponse);
+  rpc GrabOrder(GrabOrderRequest) returns (HallOrderResponse);
+  rpc AcceptOrder(AcceptOrderRequest) returns (HallOrderResponse);
+  rpc ReleaseOrder(ReleaseOrderRequest) returns (HallOrderResponse);
+  rpc StartTrip(StartTripRequest) returns (HallOrderResponse);
+  rpc CompleteOrder(CompleteOrderRequest) returns (CompleteOrderResponse);
+  rpc CancelOrder(CancelOrderRequest) returns (HallOrderResponse);
+
+  // ── 首页收益对比 ──
+  rpc GetIncomeCompare(GetIncomeCompareRequest) returns (IncomeCompareResponse);
+
+  // ── 收入结算 ──
+  rpc ListIncomeFlows(ListIncomeFlowsRequest) returns (ListIncomeFlowsResponse);
+  rpc GetIncomeSummary(GetIncomeSummaryRequest) returns (IncomeSummaryResponse);
+  rpc RequestWithdraw(RequestWithdrawRequest) returns (WithdrawResponse);
+  rpc ListWithdrawals(ListWithdrawalsRequest) returns (ListWithdrawalsResponse);
+
+  // ── 跨模块资金接口（供支付域 / 财务域 / 后台调用）──
+  rpc ReportPaymentSucceeded(ReportPaymentRequest) returns (IncomeFlowResponse);
+  rpc ReportRefundSucceeded(ReportRefundRequest) returns (IncomeFlowResponse);
+  rpc SettleIncome(SettleIncomeRequest) returns (SettleIncomeResponse);
+  rpc ApproveWithdraw(ApproveWithdrawRequest) returns (WithdrawResponse);
+  rpc RejectWithdraw(RejectWithdrawRequest) returns (WithdrawResponse);
+  rpc CompleteWithdraw(CompleteWithdrawRequest) returns (WithdrawResponse);
+}
+
+// ── 司机档案 ──
+
+message RegisterDriverRequest {
+  string name = 1;
+  string phone = 2;
+}
+
+message GetDriverProfileRequest {
+  string driver_id = 1;
+}
+
+message UpdateDriverStatusRequest {
+  string driver_id = 1;
+  // offline=收车 idle=出车（忙碌/接单预占状态不得调用）
+  string status = 2;
+  int64 version = 3; // 乐观锁版本，可空表示不校验
+}
+
+message UpdateDriverModeRequest {
+  string driver_id = 1;
+  // listen=听单 grab=抢单
+  string mode = 2;
+  int64 version = 3;
+}
+
+message UpdateOfflineAfterTripRequest {
+  string driver_id = 1;
+  bool on = 2;
+  int64 version = 3;
+}
+
+message HeartbeatRequest {
+  string driver_id = 1;
+  double lat = 2;  // GCJ02
+  double lng = 3;
+}
+
+message AreaBoxMessage {
+  string name = 1;
+  double min_lat = 2;
+  double min_lng = 3;
+  double max_lat = 4;
+  double max_lng = 5;
+}
+
+message UpdateAreaConfigRequest {
+  string driver_id = 1;
+  bool area_limit_switch = 2;
+  repeated AreaBoxMessage areas = 3;
+  int64 version = 4;
+}
+
+message FundsMessage {
+  int64 pending_fen = 1;   // U 待结算
+  int64 available_fen = 2; // A 可用（可提现金额就是 A）
+  int64 frozen_fen = 3;    // Fz 冻结
+  int64 withdraw_fen = 4;  // W 提现预占
+  int64 debt_fen = 5;      // Debt 待追偿
+}
+
+message DriverProfileResponse {
+  string id = 1;
+  string driver_no = 2;
+  string name = 3;
+  string phone = 4;
+  // offline=收车 idle=空闲 busy=忙碌 pre_occupied=接单预占
+  string status = 5;
+  string mode = 6;
+  int64 mode_version = 7;
+  bool area_limit_switch = 8;
+  repeated AreaBoxMessage areas = 9;
+  string city_code = 10;
+  string car_type = 11;
+  int32 seats = 12;
+  bool qualified = 13;
+  bool can_accept = 14;
+  bool offline_after_trip = 15;
+  string last_heartbeat_at = 16;
+  string active_task_id = 17;
+  int64 monthly_income_fen = 18;
+  double rating = 19;
+  double success_rate = 20;
+  FundsMessage funds = 21;
+  int64 version = 22;
+  string created_at = 23;
+  string updated_at = 24;
+}
+
+// ── 接单大厅 ──
+
+message LocationMessage {
+  string name = 1;
+  double lat = 2;
+  double lng = 3;
+}
+
+message CreateHallOrderRequest {
+  string passenger_name = 1;
+  LocationMessage origin = 2;
+  LocationMessage destination = 3;
+  // 金额一律整数分
+  int64 passenger_paid_fen = 4;
+  int64 orig_fare_fen = 5;
+  int64 platform_coupon_fen = 6;
+  int64 driver_coupon_fen = 7;
+  int64 subsidy_fen = 8;
+  int32 passenger_count = 9;  // 拼车时两乘客算 2 单
+  string city_code = 10;
+  string order_type = 11;
+  int32 require_seats = 12;
+  string require_car_type = 13;
+  string order_id = 14; // 乘客域订单号（MQ 消费时由事件给出）
+}
+
+message HallOrderResponse {
+  string id = 1;
+  string task_id = 2;
+  string order_id = 3;
+  string passenger_name = 4;
+  int32 passenger_count = 5;
+  LocationMessage origin = 6;
+  LocationMessage destination = 7;
+  int64 orig_fare_fen = 8;
+  int64 passenger_paid_fen = 9;
+  int64 platform_coupon_fen = 10;
+  int64 driver_coupon_fen = 11;
+  int64 commission_fen = 12;
+  int64 subsidy_fen = 13;
+  int64 driver_income_fen = 14;
+  // WAITING/ACCEPTED/ARRIVED/IN_TRIP/ENDED/CANCELLED
+  string status = 15;
+  string driver_id = 16;
+  string driver_name = 17;
+  string dispatch_channel = 18; // listen / grab_pool
+  bool visible_in_pool = 19;
+  int64 pickup_distance_meters = 20;
+  int64 invite_round = 21;
+  string accept_deadline = 22;
+  string listen_deadline = 23;
+  string dispatch_deadline = 24;
+  string assigned_at = 25;
+  string accepted_at = 26;
+  string started_at = 27;
+  string ended_at = 28;
+  string cancelled_at = 29;
+  int64 distance_meters = 30;
+  int64 duration_sec = 31;
+  string cancel_reason = 32;
+  string responsible_party = 33;
+  int64 version = 34;
+  string created_at = 35;
+  string updated_at = 36;
+}
+
+message ListHallOrdersRequest {
+  string driver_id = 1;
+  int32 limit = 2;
+  double lat = 3;
+  double lng = 4;
+}
+
+message ListHallOrdersResponse {
+  repeated HallOrderResponse items = 1;
+  int64 total = 2;
+}
+
+message GrabOrderRequest {
+  string driver_id = 1;
+  string order_id = 2;
+  string idempotency_key = 3;
+}
+
+message AcceptOrderRequest {
+  string driver_id = 1;
+  string order_id = 2;
+  int64 version = 3;
+  string idempotency_key = 4;
+}
+
+message ReleaseOrderRequest {
+  string driver_id = 1;
+  string order_id = 2;
+  string reason = 3;
+  string responsible_party = 4;
+  string idempotency_key = 5;
+}
+
+message StartTripRequest {
+  string driver_id = 1;
+  string order_id = 2;
+  string idempotency_key = 3;
+}
+
+message CompleteOrderRequest {
+  string driver_id = 1;
+  string order_id = 2;
+  int64 distance_meters = 3;
+  int64 duration_sec = 4;
+  string idempotency_key = 5;
+}
+
+message CancelOrderRequest {
+  string order_id = 1;
+  string responsible_party = 2;
+  string reason = 3;
+}
+
+// ── 收入流水 ──
+
+message AmountMessage {
+  int64 orig_fare_fen = 1;
+  int64 passenger_paid_fen = 2;
+  int64 platform_coupon_fen = 3;
+  int64 driver_coupon_fen = 4;
+  int64 commission_fen = 5;
+  int64 subsidy_fen = 6;
+  int64 driver_income_fen = 7;
+}
+
+message IncomeFlowMessage {
+  string id = 1;
+  string driver_id = 2;
+  string order_id = 3;
+  string task_id = 4;
+  string flow_type = 5;      // income / subsidy / refund / punishment
+  string reverse_of = 6;     // 反向流水指向的原凭证
+  AmountMessage amount = 7;
+  string accounting_date = 8; // 记账日（Asia/Shanghai）
+  string bucket_from = 9;
+  string bucket_to = 10;
+  string event_id = 11;
+  string idempotency_key = 12;
+  string reason = 13;
+  string created_at = 14;
+}
+
+message IncomeFlowResponse {
+  IncomeFlowMessage flow = 1;
+}
+
+message CompleteOrderResponse {
+  HallOrderResponse order = 1;
+  IncomeFlowMessage flow = 2; // 课程模拟：自动记账生成
+}
+
+// ── 首页收益对比 ──
+
+message GetIncomeCompareRequest {
+  string driver_id = 1;
+}
+
+message DayIncomeMessage {
+  string date = 1;
+  int64 order_count = 2; // 按行程结束日 + 乘客数统计
+  int64 income_fen = 3;  // 按记账日统计
+  int64 refund_fen = 4;
+}
+
+message IncomeCompareResponse {
+  DayIncomeMessage today = 1;
+  DayIncomeMessage yesterday = 2;
+  int64 order_diff = 3;
+  int64 income_diff_fen = 4;
+  string percent_text = 5;   // 昨日 0 元时不展示百分比
+  string summary = 6;
+  int64 pending_income_fen = 7; // 待入账预估（U 桶）
+  string last_updated_at = 8;
+}
+
+// ── 收入结算 ──
+
+message ListIncomeFlowsRequest {
+  string driver_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListIncomeFlowsResponse {
+  repeated IncomeFlowMessage items = 1;
+  int64 total = 2;
+}
+
+message GetIncomeSummaryRequest {
+  string driver_id = 1;
+}
+
+message IncomeSummaryResponse {
+  int64 pending_fen = 1;
+  int64 available_fen = 2;
+  int64 frozen_fen = 3;
+  int64 withdraw_fen = 4;
+  int64 debt_fen = 5;
+  int64 monthly_income_fen = 6;
+  int64 min_withdraw_fen = 7;
+  int64 max_withdraw_fen = 8;
+  int64 daily_limit_fen = 9;
+  int32 daily_max_count = 10;
+  int64 dual_approval_fen = 11;
+  int64 withdrawn_today_fen = 12;
+  int64 withdraw_count_today = 13;
+  string updated_at = 14;
+}
+
+message RequestWithdrawRequest {
+  string driver_id = 1;
+  int64 amount_fen = 2;
+  string idempotency_key = 3;
+}
+
+message ApprovalMessage {
+  string approver_id = 1;
+  string comment = 2;
+  string approved_at = 3;
+}
+
+message WithdrawResponse {
+  string id = 1;
+  string driver_id = 2;
+  int64 amount_fen = 3;
+  // reviewing=待审核 approved=已核准 paying=打款中 success=成功 rejected=驳回
+  string status = 4;
+  bool dual_approval = 5;
+  repeated ApprovalMessage approvals = 6;
+  string idempotency_key = 7;
+  string reason = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}
+
+message ListWithdrawalsRequest {
+  string driver_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListWithdrawalsResponse {
+  repeated WithdrawResponse items = 1;
+  int64 total = 2;
+}
+
+// ── 跨模块资金接口（支付域 / 财务域 / 后台管理端）──
+
+message ReportPaymentRequest {
+  string order_id = 1;
+  string driver_id = 2;
+  string accounting_date = 3;
+  string event_id = 4;
+  string idempotency_key = 5;
+  AmountMessage amount = 6;
+}
+
+message ReportRefundRequest {
+  string order_id = 1;
+  int64 refund_fen = 2;
+  string responsible_party = 3;
+  string accounting_date = 4;
+  string reason = 5;
+  string event_id = 6;
+  string idempotency_key = 7;
+}
+
+message SettleIncomeRequest {
+  string driver_id = 1;
+  repeated string flow_ids = 2;
+  string event_id = 3;
+}
+
+message SettleIncomeResponse {
+  int32 settled_drivers = 1;
+}
+
+message ApproveWithdrawRequest {
+  string withdrawal_id = 1;
+  string approver_id = 2;
+  string comment = 3;
+}
+
+message RejectWithdrawRequest {
+  string withdrawal_id = 1;
+  string approver_id = 2;
+  string reason = 3;
+}
+
+message CompleteWithdrawRequest {
+  string withdrawal_id = 1;
+  bool success = 2;
+  string reason = 3;
+}
