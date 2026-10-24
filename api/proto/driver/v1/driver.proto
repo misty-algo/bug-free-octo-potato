@@ -16,8 +16,8 @@ service DriverService {
   // ── 司机档案 / 状态 / 模式 / 区域 / 心跳 ──
   rpc RegisterDriver(RegisterDriverRequest) returns (DriverProfileResponse);
   rpc GetDriverProfile(GetDriverProfileRequest) returns (DriverProfileResponse);
-  rpc UpdateDriverStatus(UpdateDriverStatusRequest) returns (DriverProfileResponse);
-  rpc UpdateDriverMode(UpdateDriverModeRequest) returns (DriverProfileResponse);
+  rpc UpdateDriverStatus(UpdateDriverStatusRequest) returns (DriverProfileResponse);//司机登录后修改状态
+  rpc UpdateDriverMode(UpdateDriverModeRequest) returns (DriverProfileResponse);//听/抢单模式切换
   rpc UpdateAreaConfig(UpdateAreaConfigRequest) returns (DriverProfileResponse);
   rpc DriverHeartbeat(HeartbeatRequest) returns (DriverProfileResponse);
   rpc UpdateOfflineAfterTrip(UpdateOfflineAfterTripRequest) returns (DriverProfileResponse);
