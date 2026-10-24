@@ -1,4 +1,4 @@
-﻿# 由测试结果文件生成 Markdown 测试报告
+# 由测试结果文件生成 Markdown 测试报告
 # 用法：powershell -File scripts/gen-test-report.ps1
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Src = Join-Path $Root "driver-api-test-results.txt"
@@ -27,7 +27,7 @@ Add-Line '| 被测接口 | 16 个 HTTP 接口 + 1 条 MQ 链路，共 17 组 |'
 Add-Line ('| 用例总数 | {0} 个（每个接口 10 个用例） |' -f $total)
 Add-Line ('| 通过 / 失败 | {0} / {1} |' -f $pass, $fail)
 Add-Line '| 测试方式 | PowerShell 自动化脚本 scripts/driver-api-test.ps1 |'
-Add-Line '| 环境 | 本地 MongoDB day1（执行前已清空测试数据）、本地 RabbitMQ、gateway:8080、driver:9101、order:9100 |'
+Add-Line '| 环境 | 本地 MongoDB（库名按各自环境配置）（执行前已清空测试数据）、本地 RabbitMQ、gateway:8080、driver:9101、order:9100 |'
 Add-Line '| 场景覆盖 | 正常流程、参数缺失、参数非法、边界值、状态冲突、规则限额（退单 3 次/天、提现 3 次/天）、并发抢单、超时回收、MQ 消费 |'
 Add-Line '| 原始数据 | driver-api-test-results.txt（每行：序号&#124;接口&#124;用例&#124;入参&#124;预期&#124;实际&#124;结论&#124;备注） |'
 Add-Line ''
@@ -110,7 +110,7 @@ Add-Line 'go run ./cmd/order'
 Add-Line 'go run ./cmd/gateway'
 Add-Line ''
 Add-Line '# 2.（可选）清空测试数据，保证结果可复现'
-Add-Line 'docker exec mongo mongosh -u dev -p dev123456 --quiet --eval "const d=db.getSiblingDB(''day1''); [''driver_profiles'',''hall_orders'',''income_flows'',''withdraw_requests''].forEach(c=>d[c].deleteMany({}))"'
+Add-Line 'docker exec mongo mongosh -u <mongo账号> -p <mongo口令> --quiet --eval "const d=db.getSiblingDB(''<库名>''); [''driver_profiles'',''hall_orders'',''income_flows'',''withdraw_requests''].forEach(c=>d[c].deleteMany({}))"'
 Add-Line ''
 Add-Line '# 3. 执行测试（约 2 分钟，含一次 16 秒的超时回收等待）'
 Add-Line 'powershell -File scripts/driver-api-test.ps1'

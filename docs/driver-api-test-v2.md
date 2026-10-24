@@ -11,7 +11,7 @@
 | 失败 | 0 |
 | 通过率 | 100% |
 | 服务地址 | http://127.0.0.1:8080/api/v1（gateway）→ driver-service gRPC 9101 |
-| 依赖环境 | MongoDB day1 库、RabbitMQ、order-service（事件链路） |
+| 依赖环境 | MongoDB（库名按各自环境配置）、RabbitMQ、order-service（事件链路） |
 
 结论：本轮全部用例通过。测试过程中发现并修复 3 个真实缺陷，另补 2 处业务校验（见第四节）。
 
@@ -459,7 +459,7 @@ go run ./cmd/order
 go run ./cmd/gateway
 
 # 2. 清空司机端测试数据（可选，保证计数类用例可复现）
-docker exec mongo mongosh -u dev -p dev123456 --quiet --eval "const d=db.getSiblingDB('day1'); ['driver_profiles','hall_orders','income_flows','withdraw_requests','ledger_entries','outbox_events','inbound_events'].forEach(function(c){d[c].deleteMany({})})"
+docker exec mongo mongosh -u <mongo账号> -p <mongo口令> --quiet --eval "const d=db.getSiblingDB('<库名>'); ['driver_profiles','hall_orders','income_flows','withdraw_requests','ledger_entries','outbox_events','inbound_events'].forEach(function(c){d[c].deleteMany({})})"
 
 # 3. 执行测试（约 3 分钟，含两处 65 秒心跳超时等待）
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/driver-api-test-v2.ps1
