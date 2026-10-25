@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package payment.v1;
+
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/payment/v1;paymentv1";
+
+// PaymentService 管理支付单：创建、状态流转、异步通知确认、查单、退款。
+service PaymentService {
+  // CreatePayment 创建支付单记录（支付前置）。
+  rpc CreatePayment(CreatePaymentRequest) returns (PaymentResponse);
+  // BeginPayment 渠道预支付受理回调：CREATED → PROCESSING（幂等）。
+  rpc BeginPayment(BeginPaymentRequest) returns (PaymentResponse);
+  // FailPayment 渠道支付失败通知：CREATED/PROCESSING → FAILED。
+  rpc FailPayment(FailPaymentRequest) returns (PaymentResponse);
+  // ClosePayment 关单：CREATED/PROCESSING → CLOSED（超时/主动关闭，幂等）。
+  rpc ClosePayment(ClosePaymentRequest) returns (PaymentResponse);
+  // NotifyPayment 接收异步支付成功通知，幂等可重试。
+  rpc NotifyPayment(NotifyPaymentRequest) returns (NotifyPaymentResponse);
+  // QueryPayment 按业务订单号查支付单（掉单补偿/对账）。
+  rpc QueryPayment(QueryPaymentRequest) returns (PaymentResponse);
+  // RefundPayment 对已支付订单发起退款（进入待审核）。
+  rpc RefundPayment(RefundPaymentRequest) returns (RefundPaymentResponse);
+  // ReviewRefund 审核退款单：通过后提交渠道 / 拒绝。
+  rpc ReviewRefund(ReviewRefundRequest) returns (RefundPaymentResponse);
+}
+
+message CreatePaymentRequest {
+  string order_no = 1;         // 业务订单号（必填）
+  string subject = 2;          // 订单标题
+  int64 amount = 3;            // 支付金额（分）
+  string channel = 4;          // 支付渠道，如 alipay
+  string user_id = 5;          // 支付用户 ID
+  string idempotent_key = 6;   // 幂等键（可选，默认取 order_no）
+}
+
+message BeginPaymentRequest {
+  string order_no = 1;         // 业务订单号（必填）
+  string prepay_id = 2;        // 渠道预支付 ID
+}
+
+message FailPaymentRequest {
+  string order_no = 1;         // 业务订单号（必填）
+  string fail_reason = 2;      // 失败原因
+}
+
+message ClosePaymentRequest {
+  string order_no = 1;         // 业务订单号（必填）
+  string reason = 2;           // 关单原因（如 15 分钟未支付）
+}
+
+message NotifyPaymentRequest {
+  string order_no = 1;         // 业务订单号（必填）
+  string trade_no = 2;         // 渠道交易号
+  string channel = 3;          // 支付渠道
+  int64 paid_amount = 4;       // 实际支付金额（分）
+  int64 paid_at_unix = 5;      // 支付完成时间（Unix 秒）
+}
+
+message NotifyPaymentResponse {
+  bool success = 1;            // 本次通知是否处理成功
+  string payment_no = 2;       // 支付单号
+  string status = 3;           // 处理后支付单状态
+  bool duplicate = 4;          // 是否为重复通知（幂等命中）
+}
+
+message QueryPaymentRequest {
+  string order_no = 1;         // 业务订单号（必填）
+}
+
+message PaymentResponse {
+  string payment_no = 1;
+  string order_no = 2;
+  string user_id = 3;
+  int64 amount = 4;            // 应付金额（分）
+  int64 paid_amount = 5;       // 实付金额（分）
+  string status = 6;           // CREATED / PROCESSING / SUCCESS / FAILED / CLOSED
+  string channel = 7;
+  string trade_no = 8;
+  int64 paid_at_unix = 9;
+  int64 refunded_amount = 10;  // 累计已退金额（分）
+  string prepay_id = 11;       // 渠道预支付 ID
+  int64 expire_at_unix = 12;   // 支付单过期时间（Unix 秒）
+  string fail_reason = 13;     // 失败/关单原因
+  int32 notify_count = 14;     // 渠道成功通知次数
+  string created_at = 15;
+  string updated_at = 16;
+}
+
+message RefundPaymentRequest {
+  string order_no = 1;         // 业务订单号（必填）
+  int64 refund_amount = 2;     // 退款金额（分）
+  string reason = 3;           // 退款原因
+  string out_request_no = 4;   // 退款请求号（幂等）
+}
+
+message ReviewRefundRequest {
+  string refund_no = 1;        // 退款单号（必填）
+  bool approved = 2;           // true=通过并提交渠道，false=拒绝
+  string reject_reason = 3;    // 拒绝原因
+}
+
+message RefundPaymentResponse {
+  bool success = 1;
+  string refund_no = 2;        // 退款单号
+  string payment_no = 3;
+  string order_no = 4;
+  int64 refund_amount = 5;
+  string status = 6;           // 退款单状态 REVIEW / PROCESSING / SUCCESS / FAILED / REJECTED
+  bool duplicate = 7;          // 是否命中退款幂等
+}

@@ -1,0 +1,486 @@
+syntax = "proto3";
+
+package shop.v1;
+
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/shop/v1;shopv1";
+
+// ShopService 是 shop 业务服务的 gRPC 边界。
+// 默认 CRUD 契约可直接调用；支付相关 RPC 复用 bw-cli-main pkg/gopay 逻辑，
+// 按 shop 自身字段设计（金额统一 int64 分）。
+service ShopService {
+  rpc CreateShop(CreateShopRequest) returns (ShopResponse);
+  rpc GetShop(GetShopRequest) returns (ShopResponse);
+  rpc ListShops(ListShopsRequest) returns (ListShopsResponse);
+  rpc UpdateShop(UpdateShopRequest) returns (ShopResponse);
+  rpc DeleteShop(DeleteShopRequest) returns (DeleteShopResponse);
+
+  // Pay 发起 WAP/PC 网页支付，scene 取 wap / page。
+  rpc Pay(PayRequest) returns (PayResponse);
+  // ScanPay 发起扫码支付（当面付），返回二维码链接。
+  rpc ScanPay(ScanPayRequest) returns (ScanPayResponse);
+  // BarCodePay 发起付款码支付（商家扫用户付款码），同步扣款。
+  rpc BarCodePay(BarCodePayRequest) returns (BarCodePayResponse);
+  // Refund 发起退款。
+  rpc Refund(RefundRequest) returns (RefundResponse);
+  // NotifyPayment 处理支付渠道异步通知回调（支付宝表单 / 微信 JSON）。
+  rpc NotifyPayment(NotifyPaymentRequest) returns (NotifyPaymentResponse);
+  // QueryPayment 按 order_no 查询本地支付单，并可选调渠道查单接口刷新状态。
+  rpc QueryPayment(QueryPaymentRequest) returns (QueryPaymentResponse);
+
+  // P08：AppendTrajectory 上报单个行程轨迹点（append-only，含质量校验）。
+  rpc AppendTrajectory(AppendTrajectoryRequest) returns (TrajectoryResponse);
+  // P08：ListTrajectories 按订单查询轨迹点（上报时间升序）。
+  rpc ListTrajectories(ListTrajectoriesRequest) returns (ListTrajectoriesResponse);
+
+  // P09：BindVirtualNumber 绑定订单虚拟号（仅可联系状态允许）。
+  rpc BindVirtualNumber(BindVirtualNumberRequest) returns (VirtualNumberResponse);
+  // P09：GetVirtualNumber 按订单查询虚拟号。
+  rpc GetVirtualNumber(GetVirtualNumberRequest) returns (VirtualNumberResponse);
+  // P09：ReleaseVirtualNumber 行程结束/取消时释放虚拟号。
+  rpc ReleaseVirtualNumber(ReleaseVirtualNumberRequest) returns (VirtualNumberResponse);
+
+  // P10：RequestDestinationChange 乘客发起中途改点（最多 2 次）。
+  rpc RequestDestinationChange(RequestDestinationChangeRequest) returns (DestinationChangeResponse);
+  // P10：ConfirmDestinationChange 司机确认改点。
+  rpc ConfirmDestinationChange(ConfirmDestinationChangeRequest) returns (DestinationChangeResponse);
+  // P10：RejectDestinationChange 司机拒绝改点。
+  rpc RejectDestinationChange(RejectDestinationChangeRequest) returns (DestinationChangeResponse);
+  // P10：CancelDestinationChange 乘客撤销改点申请。
+  rpc CancelDestinationChange(CancelDestinationChangeRequest) returns (DestinationChangeResponse);
+  // P10：ListDestinationChanges 按订单查询全部改点申请。
+  rpc ListDestinationChanges(ListDestinationChangesRequest) returns (ListDestinationChangesResponse);
+
+  // P11：CreateTripShare 创建行程分享（生成不可推导令牌）。
+  rpc CreateTripShare(CreateTripShareRequest) returns (TripShareResponse);
+  // P11：AccessTripShare 通过令牌访问行程分享。
+  rpc AccessTripShare(AccessTripShareRequest) returns (TripShareResponse);
+  // P11：RevokeTripShare 撤销行程分享。
+  rpc RevokeTripShare(RevokeTripShareRequest) returns (TripShareResponse);
+
+  // P12：QuoteCancelFee 生成取消报价（免费窗口判定 + 绑定订单版本）。
+  rpc QuoteCancelFee(QuoteCancelFeeRequest) returns (CancelQuoteResponse);
+  // P12：GetLatestCancelQuote 查询订单最新取消报价。
+  rpc GetLatestCancelQuote(GetLatestCancelQuoteRequest) returns (CancelQuoteResponse);
+  // P12：ConsumeCancelQuote 消费取消报价（校验未使用/未过期/版本一致）。
+  rpc ConsumeCancelQuote(ConsumeCancelQuoteRequest) returns (CancelQuoteResponse);
+
+  // P14：IssueUserCoupon 发券（券码唯一，初始 AVAILABLE）。
+  rpc IssueUserCoupon(IssueUserCouponRequest) returns (UserCouponResponse);
+  // P14：GetUserCoupon 按券码查询单张券。
+  rpc GetUserCoupon(GetUserCouponRequest) returns (UserCouponResponse);
+  // P14：ListUserCoupons 按用户查询券列表（可按状态过滤）。
+  rpc ListUserCoupons(ListUserCouponsRequest) returns (ListUserCouponsResponse);
+  // P14：CountUsableCoupons 统计用户可用券数（下单页角标）。
+  rpc CountUsableCoupons(CountUsableCouponsRequest) returns (CountUsableCouponsResponse);
+  // P14：LockUserCoupon 下单锁券 AVAILABLE → LOCKED。
+  rpc LockUserCoupon(LockUserCouponRequest) returns (UserCouponResponse);
+  // P14：UseUserCoupon 支付成功核销 LOCKED → USED。
+  rpc UseUserCoupon(UseUserCouponRequest) returns (UserCouponResponse);
+  // P14：ReleaseUserCoupon 支付失败/取消订单解锁 LOCKED → AVAILABLE。
+  rpc ReleaseUserCoupon(ReleaseUserCouponRequest) returns (UserCouponResponse);
+  // P14：ExpireUserCoupons 过期扫描，批量把超期未用券标记 EXPIRED。
+  rpc ExpireUserCoupons(ExpireUserCouponsRequest) returns (ExpireUserCouponsResponse);
+  // P14：VoidUserCoupon 作废券（风控/运营介入 AVAILABLE/LOCKED → VOID）。
+  rpc VoidUserCoupon(VoidUserCouponRequest) returns (UserCouponResponse);
+}
+
+message CreateShopRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message GetShopRequest {
+  string id = 1;
+}
+
+message ListShopsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message UpdateShopRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message DeleteShopRequest {
+  string id = 1;
+}
+
+message ShopResponse {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string created_at = 4;
+  string updated_at = 5;
+}
+
+message ListShopsResponse {
+  repeated ShopResponse items = 1;
+  int64 total = 2;
+}
+
+message DeleteShopResponse {
+  bool success = 1;
+}
+
+// PayRequest 支付下单入参。order_no 为空时由服务端生成。
+message PayRequest {
+  string order_no = 1;      // 商户订单号（唯一）
+  string subject = 2;       // 订单标题
+  int64 total_amount = 3;   // 订单金额，单位分
+  string body = 4;          // 订单描述（可选）
+  string scene = 5;         // 支付场景：wap / page
+}
+
+message PayResponse {
+  string order_no = 1;
+  string pay_url = 2;       // 跳转支付链接
+}
+
+message ScanPayRequest {
+  string order_no = 1;
+  string subject = 2;
+  int64 total_amount = 3;
+  string body = 4;
+  string channel = 5;       // 支付渠道：alipay / wechat，空值默认 alipay
+}
+
+message ScanPayResponse {
+  string order_no = 1;
+  string qr_code = 2;       // 二维码链接
+  int64 total_amount = 3;
+}
+
+message BarCodePayRequest {
+  string order_no = 1;
+  string subject = 2;
+  int64 total_amount = 3;
+  string auth_code = 4;     // 用户付款码
+  string body = 5;
+}
+
+message BarCodePayResponse {
+  string trade_no = 1;      // 支付宝交易号
+  string order_no = 2;
+  int64 total_amount = 3;
+  string buyer_logon_id = 4;
+}
+
+message RefundRequest {
+  string order_no = 1;      // 商户订单号（与 trade_no 二选一）
+  string trade_no = 2;      // 支付宝交易号
+  int64 refund_amount = 3;  // 退款金额，单位分
+  string refund_reason = 4; // 退款原因（可选）
+  string out_request_no = 5;// 退款请求号（空则自动生成，用于幂等）
+  string channel = 6;       // 支付渠道：alipay / wechat，空值默认 alipay
+}
+
+message RefundResponse {
+  bool success = 1;
+  string trade_no = 2;
+  string order_no = 3;
+  int64 refund_amount = 4;
+}
+
+// NotifyPaymentRequest 透传支付渠道异步通知原文。
+// alipay 回调为 x-www-form-urlencoded 表单，填写 form；
+// wechat 回调为 JSON 原文，填写 payload 并携带 Wechatpay-* 验签请求头。
+message NotifyPaymentRequest {
+  string channel = 1;              // 支付渠道：alipay / wechat
+  string form = 2;                 // 支付宝原始表单字符串
+  string payload = 3;              // 微信回调 JSON 原文
+  map<string, string> headers = 4; // 微信验签所需请求头（Wechatpay-Timestamp/Nonce/Signature/Serial 等）
+}
+
+message NotifyPaymentResponse {
+  bool success = 1;
+  string order_no = 2;
+  string trade_no = 3;
+  string status = 4;               // pending / success / refunded / failed
+  string message = 5;
+}
+
+message QueryPaymentRequest {
+  string order_no = 1;             // 商户订单号
+}
+
+message QueryPaymentResponse {
+  string order_no = 1;
+  string status = 2;               // pending / success / refunded / failed
+  string channel = 3;              // alipay / wechat
+  string trade_no = 4;
+  int64 total_amount = 5;          // 金额，单位分
+  int64 paid_at_unix = 6;          // 支付完成时间戳（秒），未支付为 0
+  string message = 7;
+}
+
+// ===== P08 轨迹 =====
+
+message AppendTrajectoryRequest {
+  string order_id = 1;
+  string driver_id = 2;
+  GeoPoint location = 3;          // GeoJSON Point，coordinates 为 [lng, lat]
+  double speed = 4;               // 车速 km/h
+  double bearing = 5;             // 方向角 0-360
+  double accuracy = 6;            // 定位精度（米）
+  double mileage = 7;             // 累计里程（米）
+  string point_type = 8;          // pickup / service
+  int64 reported_at_unix = 9;     // 司机端上报时间戳（秒）
+  string source = 10;             // app / device
+}
+
+message ListTrajectoriesRequest {
+  string order_id = 1;
+  int32 limit = 2;                // <=0 返回全部
+}
+
+message TrajectoryResponse {
+  string id = 1;
+  string order_id = 2;
+  string driver_id = 3;
+  GeoPoint location = 4;
+  double speed = 5;
+  double bearing = 6;
+  double accuracy = 7;
+  double mileage = 8;
+  string point_type = 9;
+  int64 reported_at_unix = 10;
+  int64 collected_at_unix = 11;
+  string source = 12;
+  string quality = 13;            // normal / delay / jump
+}
+
+message ListTrajectoriesResponse {
+  repeated TrajectoryResponse items = 1;
+  int64 total = 2;
+}
+
+// ===== P09 虚拟号 =====
+
+message BindVirtualNumberRequest {
+  string order_id = 1;
+  string passenger_id = 2;
+  string driver_id = 3;
+  string virtual_no = 4;
+  string order_status = 5;        // ACCEPTED / ARRIVED / IN_TRIP 允许绑定
+  int64 expire_at_unix = 6;       // 有效期截止时间戳（秒）
+}
+
+message GetVirtualNumberRequest {
+  string order_id = 1;
+}
+
+message ReleaseVirtualNumberRequest {
+  string order_id = 1;
+}
+
+message VirtualNumberResponse {
+  string id = 1;
+  string order_id = 2;
+  string passenger_id = 3;
+  string driver_id = 4;
+  string virtual_no = 5;
+  string status = 6;              // bound / released / expired
+  int64 bound_at_unix = 7;
+  int64 released_at_unix = 8;
+  int64 expire_at_unix = 9;
+}
+
+// ===== P10 中途改点 =====
+
+message RequestDestinationChangeRequest {
+  string order_id = 1;
+  GeoPoint new_end_location = 2;
+  string new_end_address = 3;
+  string new_end_poi_id = 4;
+  int64 new_estimate_fee = 5;     // 变更后预估金额（分）
+}
+
+message ConfirmDestinationChangeRequest {
+  string id = 1;
+}
+
+message RejectDestinationChangeRequest {
+  string id = 1;
+}
+
+message CancelDestinationChangeRequest {
+  string id = 1;
+}
+
+message ListDestinationChangesRequest {
+  string order_id = 1;
+}
+
+message DestinationChangeResponse {
+  string id = 1;
+  string order_id = 2;
+  GeoPoint new_end_location = 3;
+  string new_end_address = 4;
+  string new_end_poi_id = 5;
+  int64 new_estimate_fee = 6;
+  string status = 7;              // pending / accepted / rejected / timeout / cancelled
+  int64 requested_at_unix = 8;
+  int64 confirmed_at_unix = 9;
+  int64 expires_at_unix = 10;
+  int64 version = 11;             // 乐观锁版本
+}
+
+message ListDestinationChangesResponse {
+  repeated DestinationChangeResponse items = 1;
+  int64 total = 2;
+}
+
+// ===== P11 行程分享 =====
+
+message CreateTripShareRequest {
+  string order_id = 1;
+  string creator_id = 2;
+  int64 order_ended_at_unix = 3;  // 行程结束时间（秒）；0 表示行程进行中
+}
+
+message AccessTripShareRequest {
+  string share_token = 1;
+}
+
+message RevokeTripShareRequest {
+  string share_token = 1;
+}
+
+message TripShareResponse {
+  string id = 1;
+  string order_id = 2;
+  string share_token = 3;
+  string creator_id = 4;
+  int64 expire_at_unix = 5;
+  bool revoked = 6;
+  int64 access_count = 7;
+  int64 created_at_unix = 8;
+}
+
+// ===== P12 取消报价 =====
+
+message QuoteCancelFeeRequest {
+  string order_id = 1;
+  string quote_no = 2;            // 空则服务端生成
+  int64 order_version = 3;        // 绑定订单版本
+  int64 accepted_at_unix = 4;     // 司机接单时间戳（秒），用于免费窗口判定
+  string reason_code = 5;
+}
+
+message GetLatestCancelQuoteRequest {
+  string order_id = 1;
+}
+
+message ConsumeCancelQuoteRequest {
+  string quote_no = 1;
+  int64 order_version = 2;
+}
+
+message CancelQuoteResponse {
+  string id = 1;
+  string order_id = 2;
+  string quote_no = 3;
+  int64 cancel_fee = 4;           // 取消报价金额（分）
+  int64 bound_version = 5;
+  string reason_code = 6;
+  int64 expires_at_unix = 7;
+  bool used = 8;
+  int64 created_at_unix = 9;
+}
+
+// GeoPoint 表示 GeoJSON Point，coordinates 为 [lng, lat]。
+message GeoPoint {
+  string type = 1;                // 固定 Point
+  repeated double coordinates = 2;
+}
+
+// ===== P14 用户券 =====
+
+message IssueUserCouponRequest {
+  string coupon_no = 1;           // 券码（唯一）
+  string user_id = 2;
+  string template_id = 3;
+  string batch_id = 4;
+  int64 valid_start_unix = 5;     // 有效期开始（秒）
+  int64 valid_end_unix = 6;       // 有效期结束（秒）
+  string source = 7;              // new_user / activity / invite / manual / exchange / compensate
+  int64 face_value = 8;           // 模板快照：面值（分）
+  int64 min_charge = 9;           // 模板快照：使用门槛（分）
+  int64 max_discount = 10;        // 模板快照：单笔封顶（分）
+}
+
+message GetUserCouponRequest {
+  string coupon_no = 1;
+}
+
+message ListUserCouponsRequest {
+  string user_id = 1;
+  string status = 2;              // 空表示全部；AVAILABLE / LOCKED / USED / EXPIRED / VOID
+  int32 limit = 3;                // <=0 返回全部
+}
+
+message CountUsableCouponsRequest {
+  string user_id = 1;
+}
+
+message LockUserCouponRequest {
+  string coupon_no = 1;
+  string order_id = 2;            // 锁单订单号
+}
+
+message UseUserCouponRequest {
+  string coupon_no = 1;
+  string order_id = 2;
+  int64 discount_amount = 3;      // 实际抵扣（分）
+}
+
+message ReleaseUserCouponRequest {
+  string coupon_no = 1;
+  string order_id = 2;
+}
+
+message ExpireUserCouponsRequest {
+  int32 limit = 1;                // 单批处理上限，<=0 默认 200
+}
+
+message VoidUserCouponRequest {
+  string coupon_no = 1;           // 券码（必填）
+}
+
+message UserCouponResponse {
+  string id = 1;
+  string coupon_no = 2;
+  string user_id = 3;
+  string template_id = 4;
+  string batch_id = 5;
+  string status = 6;              // AVAILABLE / LOCKED / USED / EXPIRED / VOID
+  int64 obtain_at_unix = 7;
+  int64 valid_start_unix = 8;
+  int64 valid_end_unix = 9;
+  int64 used_at_unix = 10;        // 未使用为 0
+  string order_id = 11;
+  string lock_order_id = 12;
+  int64 discount_amount = 13;
+  string source = 14;
+  int64 face_value = 15;
+  int64 min_charge = 16;
+  int64 max_discount = 17;
+  int64 version = 18;             // 乐观锁版本
+}
+
+message ListUserCouponsResponse {
+  repeated UserCouponResponse items = 1;
+  int64 total = 2;
+}
+
+message CountUsableCouponsResponse {
+  string user_id = 1;
+  int64 count = 2;
+}
+
+message ExpireUserCouponsResponse {
+  int64 expired_count = 1;        // 本次标记过期数量
+}

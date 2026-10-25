@@ -1,0 +1,275 @@
+﻿app:
+  name: huaxiaozhu
+  env: local
+
+http:
+  host: 0.0.0.0
+  port: 8080
+  read_timeout_seconds: 5
+  write_timeout_seconds: 10
+
+grpc:
+  host: 0.0.0.0
+
+services:
+  shop:
+    name: shop-service
+    port: 9101
+    target: 127.0.0.1:9101
+  gateway:
+    name: gateway
+  user:
+    name: user-service
+    port: 9001
+    target: 127.0.0.1:9001
+  note:
+    name: note-service
+    port: 9002
+    target: 127.0.0.1:9002
+  order:
+    name: order-service
+    port: 9100
+    target: 127.0.0.1:9100
+  payment:
+    name: payment-service
+    port: 9102
+    target: 127.0.0.1:9102
+  settlement:
+    name: settlement-service
+    port: 9103
+    target: 127.0.0.1:9103
+
+database:
+  driver: postgres
+  dsn: "host=127.0.0.1 user=bw password=bw-secret dbname=huaxiaozhu port=5432 sslmode=disable"
+
+mysql:
+  dsn: "root:root123456@tcp(127.0.0.1:3306)/huaxiaozhu?charset=utf8mb4&parseTime=True&loc=Local"
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime_seconds: 3600
+
+postgresql:
+  dsn: "host=127.0.0.1 user=bw password=bw-secret dbname=huaxiaozhu port=5432 sslmode=disable"
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime_seconds: 3600
+
+mongodb:
+  uri: mongodb://127.0.0.1:27017
+  username: "root"
+  password: "Root@123456"
+  database: huaxiaozhu
+  app_name: bw-cli
+  min_pool_size: 0
+  max_pool_size: 100
+  connect_timeout_seconds: 10
+  server_selection_timeout_seconds: 5
+
+file_storage:
+  provider: minio
+  max_size_mb: 100
+  object_prefix: uploads
+  public_base_url: ""
+  allowed_extensions:
+    - .doc
+    - .docx
+    - .pdf
+    - .jpg
+    - .jpeg
+    - .png
+    - .gif
+    - .webp
+    - .bmp
+    - .svg
+    - .mp4
+    - .mov
+    - .avi
+    - .mkv
+    - .webm
+    - .mp3
+    - .wav
+    - .ogg
+    - .m4a
+    - .flac
+    - .aac
+  allowed_content_types:
+    - application/msword
+    - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    - application/pdf
+    - image/jpeg
+    - image/png
+    - image/gif
+    - image/webp
+    - image/bmp
+    - image/svg+xml
+    - video/mp4
+    - video/quicktime
+    - video/x-msvideo
+    - video/x-matroska
+    - video/webm
+    - audio/mpeg
+    - audio/wav
+    - audio/x-wav
+    - audio/ogg
+    - audio/mp4
+    - audio/flac
+    - audio/aac
+  minio:
+    endpoint: ""
+    access_key_id: ""
+    secret_access_key: ""
+    bucket: ""
+    region: ""
+    use_ssl: false
+  oss:
+    endpoint: ""
+    access_key_id: ""
+    access_key_secret: ""
+    bucket: ""
+  qiniu:
+    access_key: ""
+    secret_key: ""
+    bucket: ""
+    region: ""
+    use_https: true
+    use_cdn_domains: false
+  cos:
+    secret_id: ""
+    secret_key: ""
+    bucket: ""
+    region: ""
+    bucket_url: ""
+
+redis:
+  addr: 127.0.0.1:6379
+  username: ""
+  password: "root123456"
+  db: 0
+  pool_size: 10
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+  lock:
+    key_prefix: huaxiaozhu
+    default_ttl: 30s
+
+elasticsearch:
+  addresses:
+    - http://127.0.0.1:9200
+  username: ""
+  password: ""
+  cloud_id: ""
+  api_key: ""
+
+kafka:
+  brokers:
+    - 127.0.0.1:9092
+  topic: huaxiaozhu-events
+  group_id: huaxiaozhu-consumer
+  client_id: huaxiaozhu
+  required_acks: all
+  dial_timeout: 5s
+  producer:
+    max_attempts: 10
+    batch_size: 100
+    batch_bytes: 1048576
+    batch_timeout: 10ms
+    read_timeout: 10s
+    write_timeout: 10s
+    async: false
+    compression: none
+    allow_auto_topic_creation: false
+  consumer:
+    queue_capacity: 100
+    min_bytes: 1
+    max_bytes: 10485760
+    max_wait: 10s
+    read_batch_timeout: 10s
+    commit_interval: 0s
+    heartbeat_interval: 3s
+    session_timeout: 30s
+    rebalance_timeout: 30s
+    start_offset: first
+    watch_partition_changes: true
+    max_attempts: 3
+  sasl:
+    enable: false
+    mechanism: plain
+    username: ""
+    password: ""
+  tls:
+    enable: false
+    insecure_skip_verify: false
+    server_name: ""
+
+rocketmq:
+  name_servers:
+    - 127.0.0.1:9876
+  group_name: huaxiaozhu-producer
+  consumer_group: huaxiaozhu-consumer
+  namespace: ""
+  access_key: ""
+  secret_key: ""
+  retry_times: 2
+  send_timeout: 3s
+  consume_message_batch_max_size: 1
+
+alipay:
+  app_id: "9021000158651622"
+  private_key: "MIIEpAIBAAKCAQEAiXuMF1CLTkYfMGe8xKF3lOYO1YvUfk8tBpRRZNfQPFjt1agCA7Tgo/Oav//G6PiIVuhCqFjP8PT2g/JWUfeFaSBXSxsNXj7UbNSE4m+D+3jGtxlD7308CUlnix1Zdq0yOX1MbymkVn+XioUjgtqZWbCVdfKBfIrF+eEcVhble9WhgB/KnGZAlKtRTijxfEGwhlvwBb8X6dZerqjC68SWg4UUR7kebHQCH1FzpswUkCU+Rc0CIdbTJN3Gs3FKjrZz+NMmH/brl14/YZX8vJOXC66fAkXiO27DY9Qa7jFIiQqnAduDlN87Toz3c1ZukmNtBED7ZQNBSzXfXoBvjOZPFwIDAQABAoIBAFccTh5zrWCyM47jHAtm17MjteB+0ewaVMgncA86YznpiwDmjCg3EmMvtizTbwAsgY63aYzrgQ4G2K+v/BvBfummUUlIYccGfmham7wxtmm/FAHt40q6ijDELvRJa2czxHACwUxqETOxcp6VT3PY+HOI3Jq4Rm1YLKrwhJjTtyInuFgSdaadO6SHZ6NpIzMevK/W0HXeqiZBbg6kjtkEcNBQDJbC7vVg7nI7GOYEW+6DZ8Az+HBHopB01GxCS1woqVEVOfkCXQImIRFtiXeyqLmEfLV8qPJVXdojyOyeJUZB26cFES8lzbVMhR7hCEZ2pn6cc/RtUtoEL3OA9tL8yJkCgYEA/qlFJ3JZnoGKaAXYIp7fu/4FFk+KoV6HMjZDAEBLsv/K144WVO57OX6gfCf9IaI1pioIS7TdQAS4aTmtao58sDA73r8/+AjI5nVCOY529f+rEWmVqCgkawHX0atjTgE5rO2lnGgKS+faqG98LyQnKDp1yHizBNded8zAv7/i8cMCgYEAijSTMxKOLpgZrcE31H3mbdfW6c92Rh5wS85s/SjPbWU68yp+nnVvG99GTMGMdczNp4keN7v0Ka+Iy1v/DHQgdGYggrB+S5h6MHpCZXilOszKeGhaUlWiwxB0xIIkmmj/MjYv+JiSGgmSyNzwN/+vkOldZcECTy+LtubnHzhwpB0CgYEAkmtesISF1KXkn1Sk5Zr1RtCRujc3nPqNvygFs/JD1AJQbUlru592yCLvQRN47kqmkAhgxq6R+4n7Qb0A4WBVfrPs6HCL5h+e6yqGTjOEYIKEqDlN6+ZQshnYLdxd926q66uj6d7D9Mq1JN0cyLn/rZiXOhFz1JfD4Bugw18frCMCgYAW1y+InkVvP+XmiGtAq/n8J1K2W3oRhpBKhvgOMsNtMfC3JUu9xmyxb4n/v3EGOu22BXw/+8kTZpY1/aM+HKcMdaBj2OVWewGep2X3vSOZfyTrF1vuBYcbs8mIfHWuKzIZy0jMTfK/aNugZJsytgf+7AJqgaZvDc2KUcjaqQo8pQKBgQCP5E+dUW8aUuTHD8aJocpwrW5975R2Bhi9oSNPL1BKKLeLPICuAvOHbgqJ0WFXEGZgM+vWoXJT/E5YyWqTgeJ9sCxjVyJuck7Om19dsrZ5FMQP0rQjbk8K5qt6gZKd7iPIXo7qrnc/EWzlMaLJ7SPsol4kLoUj8FpRzZetlR4omA=="
+  alipay_public_key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqJGGGClTvH3mftcvq5OWShaqKDviW+mw8JzdpwPQ8kxourd2ct1CjBjf1K3zbM/WUI1ceeOzXfs2JR+jb55K9dP48TQiWnm/Y50/Dii69bqUdtGQxY3JQvcmOV8RbzxXwHw912nBpKFAeRIxpLMIPVcETrITkM6T0OaeTunLaWEJ73fyB+e3BDZYnvra/kdK6SW/0Yb8VWYYHrciBz594PJsifXlVhvknqKv0jrH99g5lppdkeBrHgt4ehazMOzC7XWfAuk2XR2xV/GdDB5k22SrsBZ94thQC/orh7puBTOopGMAjJszL1lO5NBOyIJHGQ5loUY5fFyIRSR5ihsg0QIDAQAB"
+  production: false
+  notify_url: "http://3c8b49b3.r21.cpolar.top/aLiPay"
+  return_url: "https://openapi-sandbox.dl.alipaydev.com/gateway.do"
+  encrypt_key: ""
+  app_cert_public_key_path: ""
+  alipay_root_cert_path: ""
+  alipay_cert_public_key_path: ""
+
+wechat_pay:
+  mch_id: ""
+  app_id: ""
+  api_v3_key: ""
+  serial_no: ""
+  private_key: ""
+  platform_public_key: ""
+  notify_url: ""
+  production: false
+
+middleware:
+  cors:
+    allow_origins:
+      - "*"
+    allow_methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allow_headers:
+      - Origin
+      - Content-Type
+      - Authorization
+      - X-Request-ID
+    allow_credentials: false
+  jwt:
+    secret: ""
+    issuer: huaxiaozhu
+    expire_seconds: 7200
+
+log:
+  service: huaxiaozhu
+  environment: local
+  level: info
+  encoding: json
+  file:
+    enabled: true
+    filename: logs/app.log
+    max_size_mb: 128
+    max_backups: 14
+    max_age_days: 7
+    compress: true
+
+

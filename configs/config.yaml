@@ -1,5 +1,5 @@
-app:
-  name: xiaolanshu
+﻿app:
+  name: huaxiaozhu
   env: local
 
 http:
@@ -12,6 +12,10 @@ grpc:
   host: 0.0.0.0
 
 services:
+  shop:
+    name: shop-service
+    port: 9101
+    target: 127.0.0.1:9101
   gateway:
     name: gateway
   user:
@@ -26,28 +30,36 @@ services:
     name: order-service
     port: 9100
     target: 127.0.0.1:9100
+  payment:
+    name: payment-service
+    port: 9102
+    target: 127.0.0.1:9102
+  settlement:
+    name: settlement-service
+    port: 9103
+    target: 127.0.0.1:9103
 
 database:
-  driver: mysql
-  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
+  driver: postgres
+  dsn: "host=127.0.0.1 user=bw password=bw-secret dbname=huaxiaozhu port=5432 sslmode=disable"
 
 mysql:
-  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "root:root123456@tcp(127.0.0.1:3306)/huaxiaozhu?charset=utf8mb4&parseTime=True&loc=Local"
   max_idle_conns: 10
   max_open_conns: 100
   conn_max_lifetime_seconds: 3600
 
 postgresql:
-  dsn: ""
+  dsn: "host=127.0.0.1 user=bw password=bw-secret dbname=huaxiaozhu port=5432 sslmode=disable"
   max_idle_conns: 10
   max_open_conns: 100
   conn_max_lifetime_seconds: 3600
 
 mongodb:
   uri: mongodb://127.0.0.1:27017
-  username: ""
-  password: ""
-  database: xiaolanshu
+  username: "root"
+  password: "Root@123456"
+  database: huaxiaozhu
   app_name: bw-cli
   min_pool_size: 0
   max_pool_size: 100
@@ -132,14 +144,14 @@ file_storage:
 redis:
   addr: 127.0.0.1:6379
   username: ""
-  password: ""
+  password: "root123456"
   db: 0
   pool_size: 10
   dial_timeout: 5s
   read_timeout: 3s
   write_timeout: 3s
   lock:
-    key_prefix: xiaolanshu
+    key_prefix: huaxiaozhu
     default_ttl: 30s
 
 elasticsearch:
@@ -153,9 +165,9 @@ elasticsearch:
 kafka:
   brokers:
     - 127.0.0.1:9092
-  topic: xiaolanshu-events
-  group_id: xiaolanshu-consumer
-  client_id: xiaolanshu
+  topic: huaxiaozhu-events
+  group_id: huaxiaozhu-consumer
+  client_id: huaxiaozhu
   required_acks: all
   dial_timeout: 5s
   producer:
@@ -194,8 +206,8 @@ kafka:
 rocketmq:
   name_servers:
     - 127.0.0.1:9876
-  group_name: xiaolanshu-producer
-  consumer_group: xiaolanshu-consumer
+  group_name: huaxiaozhu-producer
+  consumer_group: huaxiaozhu-consumer
   namespace: ""
   access_key: ""
   secret_key: ""
@@ -204,16 +216,26 @@ rocketmq:
   consume_message_batch_max_size: 1
 
 alipay:
-  app_id: ""
-  private_key: ""
-  alipay_public_key: ""
+  app_id: "9021000158651622"
+  private_key: "MIIEpAIBAAKCAQEAiXuMF1CLTkYfMGe8xKF3lOYO1YvUfk8tBpRRZNfQPFjt1agCA7Tgo/Oav//G6PiIVuhCqFjP8PT2g/JWUfeFaSBXSxsNXj7UbNSE4m+D+3jGtxlD7308CUlnix1Zdq0yOX1MbymkVn+XioUjgtqZWbCVdfKBfIrF+eEcVhble9WhgB/KnGZAlKtRTijxfEGwhlvwBb8X6dZerqjC68SWg4UUR7kebHQCH1FzpswUkCU+Rc0CIdbTJN3Gs3FKjrZz+NMmH/brl14/YZX8vJOXC66fAkXiO27DY9Qa7jFIiQqnAduDlN87Toz3c1ZukmNtBED7ZQNBSzXfXoBvjOZPFwIDAQABAoIBAFccTh5zrWCyM47jHAtm17MjteB+0ewaVMgncA86YznpiwDmjCg3EmMvtizTbwAsgY63aYzrgQ4G2K+v/BvBfummUUlIYccGfmham7wxtmm/FAHt40q6ijDELvRJa2czxHACwUxqETOxcp6VT3PY+HOI3Jq4Rm1YLKrwhJjTtyInuFgSdaadO6SHZ6NpIzMevK/W0HXeqiZBbg6kjtkEcNBQDJbC7vVg7nI7GOYEW+6DZ8Az+HBHopB01GxCS1woqVEVOfkCXQImIRFtiXeyqLmEfLV8qPJVXdojyOyeJUZB26cFES8lzbVMhR7hCEZ2pn6cc/RtUtoEL3OA9tL8yJkCgYEA/qlFJ3JZnoGKaAXYIp7fu/4FFk+KoV6HMjZDAEBLsv/K144WVO57OX6gfCf9IaI1pioIS7TdQAS4aTmtao58sDA73r8/+AjI5nVCOY529f+rEWmVqCgkawHX0atjTgE5rO2lnGgKS+faqG98LyQnKDp1yHizBNded8zAv7/i8cMCgYEAijSTMxKOLpgZrcE31H3mbdfW6c92Rh5wS85s/SjPbWU68yp+nnVvG99GTMGMdczNp4keN7v0Ka+Iy1v/DHQgdGYggrB+S5h6MHpCZXilOszKeGhaUlWiwxB0xIIkmmj/MjYv+JiSGgmSyNzwN/+vkOldZcECTy+LtubnHzhwpB0CgYEAkmtesISF1KXkn1Sk5Zr1RtCRujc3nPqNvygFs/JD1AJQbUlru592yCLvQRN47kqmkAhgxq6R+4n7Qb0A4WBVfrPs6HCL5h+e6yqGTjOEYIKEqDlN6+ZQshnYLdxd926q66uj6d7D9Mq1JN0cyLn/rZiXOhFz1JfD4Bugw18frCMCgYAW1y+InkVvP+XmiGtAq/n8J1K2W3oRhpBKhvgOMsNtMfC3JUu9xmyxb4n/v3EGOu22BXw/+8kTZpY1/aM+HKcMdaBj2OVWewGep2X3vSOZfyTrF1vuBYcbs8mIfHWuKzIZy0jMTfK/aNugZJsytgf+7AJqgaZvDc2KUcjaqQo8pQKBgQCP5E+dUW8aUuTHD8aJocpwrW5975R2Bhi9oSNPL1BKKLeLPICuAvOHbgqJ0WFXEGZgM+vWoXJT/E5YyWqTgeJ9sCxjVyJuck7Om19dsrZ5FMQP0rQjbk8K5qt6gZKd7iPIXo7qrnc/EWzlMaLJ7SPsol4kLoUj8FpRzZetlR4omA=="
+  alipay_public_key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqJGGGClTvH3mftcvq5OWShaqKDviW+mw8JzdpwPQ8kxourd2ct1CjBjf1K3zbM/WUI1ceeOzXfs2JR+jb55K9dP48TQiWnm/Y50/Dii69bqUdtGQxY3JQvcmOV8RbzxXwHw912nBpKFAeRIxpLMIPVcETrITkM6T0OaeTunLaWEJ73fyB+e3BDZYnvra/kdK6SW/0Yb8VWYYHrciBz594PJsifXlVhvknqKv0jrH99g5lppdkeBrHgt4ehazMOzC7XWfAuk2XR2xV/GdDB5k22SrsBZ94thQC/orh7puBTOopGMAjJszL1lO5NBOyIJHGQ5loUY5fFyIRSR5ihsg0QIDAQAB"
   production: false
-  notify_url: ""
-  return_url: ""
+  notify_url: "http://3c8b49b3.r21.cpolar.top/aLiPay"
+  return_url: "https://openapi-sandbox.dl.alipaydev.com/gateway.do"
   encrypt_key: ""
   app_cert_public_key_path: ""
   alipay_root_cert_path: ""
   alipay_cert_public_key_path: ""
+
+wechat_pay:
+  mch_id: ""
+  app_id: ""
+  api_v3_key: ""
+  serial_no: ""
+  private_key: ""
+  platform_public_key: ""
+  notify_url: ""
+  production: false
 
 middleware:
   cors:
@@ -234,11 +256,11 @@ middleware:
     allow_credentials: false
   jwt:
     secret: ""
-    issuer: xiaolanshu
+    issuer: huaxiaozhu
     expire_seconds: 7200
 
 log:
-  service: xiaolanshu
+  service: huaxiaozhu
   environment: local
   level: info
   encoding: json
@@ -249,3 +271,5 @@ log:
     max_backups: 14
     max_age_days: 7
     compress: true
+
+

@@ -1,0 +1,4 @@
+
+2026/10/25 18:39:47 [35mD:/gopath/2307a/huaxiaozhu/bug-free-octo-potato/pkg/postgresx/postgresx.go:36
+[0m[31m[error] [0mfailed to initialize database, got error failed to connect to `user=bw database=huaxiaozhu`: 127.0.0.1:5432 (127.0.0.1): dial error: dial tcp 127.0.0.1:5432: connectex: No connection could be made because the target machine actively refused it.
+{"level":"fatal","ts":"2026-10-25T18:39:47.797+0800","caller":"shop/main.go:58","msg":"open database failed","service":"shop-service","env":"local","error":"failed to connect to `user=bw database=huaxiaozhu`: 127.0.0.1:5432 (127.0.0.1): dial error: dial tcp 127.0.0.1:5432: connectex: No connection could be made because the target machine actively refused it.","stacktrace":"main.main\n\tD:/gopath/2307a/huaxiaozhu/bug-free-octo-potato/cmd/shop/main.go:58\nruntime.main\n\tD:/golang/go1.26.3/src/runtime/proc.go:290"}
