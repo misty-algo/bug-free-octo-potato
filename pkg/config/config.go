@@ -1,8 +1,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -374,10 +376,9 @@ func loadNacosConfig(configPath string) (nacosx.Config, error) {
 }
 
 func isConfigFileNotFound(err error) bool {
-	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-		return true
-	}
-	return strings.Contains(err.Error(), "no such file or directory")
+	var notFound viper.ConfigFileNotFoundError
+	return errors.As(err, &notFound) ||
+		errors.Is(err, fs.ErrNotExist)
 }
 
 func decodeHook() mapstructure.DecodeHookFunc {

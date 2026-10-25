@@ -1,0 +1,13 @@
+.git
+.codex
+.agents
+.superpowers
+tmp
+bin
+logs
+data
+configs
+*.env
+**/*.env
+*.log
+**/*.log

@@ -221,6 +221,11 @@ func TestAddServiceWithTableGeneratesModelFromDatabaseColumns(t *testing.T) {
 	dbPath := filepath.Join(root, "data", "shop.db")
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, sqlDB.Close())
+	})
 	require.NoError(t, db.Exec(`create table product_spu (
 		id text primary key,
 		spu_no text not null,
