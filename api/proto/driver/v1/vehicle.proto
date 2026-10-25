@@ -1,0 +1,189 @@
+syntax = "proto3";
+package driver.v1;
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1;driverv1";
+
+// 司机车辆资料与审核域（D14/D15）。
+// Identity is always obtained from a verified authorization metadata token.
+// 审核状态只能经由受控命令推进，每次推进都带 revision + review_version 双凭据。
+service VehicleService {
+  rpc SaveDraft(SaveDraftRequest) returns (DraftResult);
+  rpc SaveDocument(SaveDocumentRequest) returns (DocumentItem);
+  rpc SubmitApplication(SubmitApplicationRequest) returns (ApplicationResult);
+  rpc WithdrawApplication(WithdrawApplicationRequest) returns (ApplicationResult);
+  rpc ApplicationDetail(ApplicationDetailRequest) returns (ApplicationDetailResponse);
+  rpc CurrentBinding(CurrentBindingRequest) returns (BindingView);
+  rpc BindingSnapshot(BindingSnapshotRequest) returns (VehicleSnapshot);
+
+  // 审核侧受控命令。旧 review_version 的请求无法操作新版本。
+  rpc ClaimApplication(ReviewCommandRequest) returns (ApplicationResult);
+  rpc TransferApplication(TransferApplicationRequest) returns (ApplicationResult);
+  rpc ApproveApplication(ReviewCommandRequest) returns (ApplicationResult);
+  rpc RejectApplication(RejectApplicationRequest) returns (ApplicationResult);
+  rpc PendingAudits(PendingAuditsRequest) returns (PendingAuditsResponse);
+  rpc DrainOutbox(DrainOutboxRequest) returns (DrainOutboxResponse);
+
+  // 准入资格：全部由权威事实实时计算，不读缓存投影。
+  rpc CheckEligibility(CheckEligibilityRequest) returns (EligibilityView);
+  // 到期提醒调度：租约领取 + 发送前重验 + 档位合并。
+  rpc TickReminders(TickRemindersRequest) returns (TickRemindersResponse);
+  // 任务分配的权威入口：锁内校验准入并绑定 source_revision。
+  rpc AssignTask(AssignTaskRequest) returns (AssignTaskResponse);
+}
+
+message SaveDraftRequest {
+  string vin = 1; string plate = 2; string city_code = 3; string model_code = 4;
+  int32 seats = 5; string color = 6; repeated string file_ids = 7;
+  int64 expected_draft_version = 8;
+}
+message DraftResult {
+  string draft_id = 1; int64 version = 2; string vehicle_id = 3; string vin_mask = 4;
+  string plate = 5; string city_code = 6; string model_code = 7; int32 seats = 8;
+  string color = 9; repeated string file_ids = 10;
+}
+
+// 首次提交 expected_revision/expected_review_version 均为 0；
+// 被驳回或撤回后追加 revision 时，两者必须与当前申请一致。
+message SubmitApplicationRequest {
+  string application_id = 1;
+  int64 expected_draft_version = 2;
+  int64 expected_revision = 3;
+  int64 expected_review_version = 4;
+}
+message WithdrawApplicationRequest {
+  string application_id = 1;
+  int64 revision = 2;
+  int64 expected_review_version = 3;
+}
+message ApplicationResult {
+  string application_id = 1; int64 revision = 2; string state = 3; string vehicle_id = 4;
+  repeated string file_ids = 5; repeated string document_ids = 6;
+  int64 review_version = 7; string reviewer_id = 8; string payload_digest = 9;
+  int64 active_revision = 10; repeated string flags = 11;
+}
+
+message SaveDocumentRequest {
+  string doc_type = 1; string doc_no = 2; int64 issued_at = 3; int64 valid_until = 4;
+  repeated string file_ids = 5; int64 expected_version = 6;
+  // valid_until_date 是"最后有效自然日"（YYYY-MM-DD，Asia/Shanghai）。
+  // 服务端存 exclusive expires_at = 当地次日 00:00；valid_until 秒字段降级为兼容输入。
+  string valid_until_date = 7;
+  string issued_on = 8;
+}
+// doc_no_mask 是脱敏后的证件号；完整证件号不会出现在任何响应里。
+message DocumentItem {
+  string document_id = 1; string doc_type = 2; string doc_no_mask = 3;
+  int64 issued_at = 4; int64 valid_until = 5; repeated string file_ids = 6;
+  int64 version = 7; string state = 8;
+  string valid_until_date = 9; int64 expires_at = 10;
+}
+
+message ReviewCommandRequest {
+  string application_id = 1;
+  int64 revision = 2;
+  int64 expected_review_version = 3;
+}
+message TransferApplicationRequest {
+  string application_id = 1;
+  int64 revision = 2;
+  int64 expected_review_version = 3;
+  string to_reviewer_id = 4;
+  string reason = 5;
+}
+message RejectItemInput {
+  string target_type = 1; string target_key = 2; string code = 3; string reason = 4;
+}
+message RejectApplicationRequest {
+  string application_id = 1;
+  int64 revision = 2;
+  int64 expected_review_version = 3;
+  repeated RejectItemInput items = 4;
+  string summary = 5;
+}
+
+message RejectItemView {
+  string target_type = 1; string target_key = 2; string code = 3; string reason = 4;
+}
+message DecisionView {
+  string action = 1; string actor_id = 2; int64 review_version = 3;
+  string summary = 4; repeated RejectItemView items = 5; int64 at = 6;
+}
+message AssignmentView {
+  string action = 1; string from_id = 2; string to_id = 3;
+  string reason = 4; int64 review_version = 5; int64 at = 6;
+}
+message RevisionView {
+  int64 revision = 1; string state = 2; string payload_digest = 3;
+  string vehicle_id = 4; string vin_mask = 5; string plate = 6; string city_code = 7;
+  string model_code = 8; int32 seats = 9; string color = 10;
+  repeated string file_ids = 11; repeated string document_ids = 12; int64 created_at = 13;
+  repeated DecisionView decisions = 14; repeated AssignmentView assignments = 15;
+}
+message ApplicationDetailRequest { string application_id = 1; }
+message ApplicationDetailResponse {
+  string application_id = 1; string driver_id = 2; string vehicle_id = 3;
+  string state = 4; int64 active_revision = 5; int64 revision = 6;
+  int64 review_version = 7; string reviewer_id = 8; repeated string review_flags = 9;
+  repeated RevisionView revisions = 10;
+}
+
+message BindingResult {
+  string driver_id = 1; string vehicle_id = 2; string active_vehicle_revision_id = 3;
+  int64 qualification_version = 4; int64 binding_version = 5; string state = 6;
+  VehicleSnapshot snapshot = 7;
+}
+
+// VehicleSnapshot 是分配任务时锁定的车辆版本快照。
+message VehicleSnapshot {
+  string vehicle_id = 1; string revision_id = 2; string plate = 3; string model_code = 4;
+  int32 seats = 5; string color = 6; int64 binding_version = 7;
+}
+
+message CurrentBindingRequest {}
+message BindingView { BindingResult binding = 1; VehicleSnapshot snapshot = 2; repeated BindingResult history = 3; }
+
+message BindingSnapshotRequest { string driver_id = 1; }
+
+// state 取值：pending（未指派）、reviewing（全部在审）、mine（我领取的）。
+message PendingAuditsRequest { string state = 1; }
+message PendingAuditItem {
+  string application_id = 1; int64 revision = 2; string driver_id = 3; string vehicle_id = 4;
+  string plate = 5; repeated string file_ids = 6; int64 created_at = 7;
+  int64 review_version = 8; string reviewer_id = 9; string state = 10;
+}
+message PendingAuditsResponse { repeated PendingAuditItem items = 1; }
+
+message DrainOutboxRequest { int64 limit = 1; }
+message DrainOutboxResponse { int32 delivered = 1; int32 failed = 2; }
+
+// 限制原因：source 取值 doc_type | account | vehicle | binding。
+message RestrictionView {
+  string code = 1; string source = 2; string target_key = 3;
+  string detail = 4; int64 until = 5;
+}
+// EligibilityView 是实时计算结果：调用方不得把它当长期缓存使用。
+message EligibilityView {
+  string driver_id = 1; bool can_accept_new_task = 2;
+  repeated RestrictionView restrictions = 3;
+  int64 source_revision = 4;
+  // valid_until 不晚于最近一张必需证件的 expires_at。
+  int64 valid_until = 5;
+  repeated string allowed_actions = 6;
+  repeated string blocked_actions = 7;
+}
+message CheckEligibilityRequest { string driver_id = 1; }
+
+// now 用于演练/补跑；为 0 时取服务器时间。
+message TickRemindersRequest { int64 now = 1; int64 limit = 2; }
+message TickRemindersResponse {
+  int32 claimed = 1; int32 sent = 2; int32 merged = 3;
+  int32 cancelled = 4; int32 failed = 5;
+}
+
+message AssignTaskRequest {
+  string driver_id = 1; repeated string order_ids = 2;
+  int64 expected_source_revision = 3; string task_no = 4;
+}
+message AssignTaskResponse {
+  string task_id = 1; string task_no = 2; int64 source_revision = 3;
+  string vehicle_id = 4; VehicleSnapshot snapshot = 5;
+}

@@ -2,8 +2,10 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -100,19 +102,59 @@ func writer(cfg FileConfig) zapcore.WriteSyncer {
 	return writerWithConsole(cfg, zapcore.AddSync(os.Stdout))
 }
 
-func writerWithConsole(cfg FileConfig, console zapcore.WriteSyncer) zapcore.WriteSyncer {
+// ownedWriter closes only resources it creates, never the borrowed console.
+type ownedWriter struct {
+	mu       sync.Mutex
+	sink     zapcore.WriteSyncer
+	file     io.Closer
+	closed   bool
+	closeErr error
+}
+
+func (w *ownedWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.closed {
+		return 0, os.ErrClosed
+	}
+	return w.sink.Write(p)
+}
+
+func (w *ownedWriter) Sync() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.closed {
+		return os.ErrClosed
+	}
+	return w.sink.Sync()
+}
+
+func (w *ownedWriter) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.closed {
+		return w.closeErr
+	}
+	w.closed = true
+	if w.file != nil {
+		w.closeErr = w.file.Close()
+	}
+	return w.closeErr
+}
+
+func writerWithConsole(cfg FileConfig, console zapcore.WriteSyncer) *ownedWriter {
 	if console == nil {
 		console = zapcore.AddSync(os.Stdout)
 	}
 	if !cfg.Enabled {
-		return console
+		return &ownedWriter{sink: console}
 	}
-	file := zapcore.AddSync(&lumberjack.Logger{
+	file := &lumberjack.Logger{
 		Filename:   cfg.Filename,
 		MaxSize:    cfg.MaxSizeMB,
 		MaxBackups: cfg.MaxBackups,
 		MaxAge:     cfg.MaxAgeDays,
 		Compress:   cfg.Compress,
-	})
-	return zapcore.NewMultiWriteSyncer(console, file)
+	}
+	return &ownedWriter{sink: zapcore.NewMultiWriteSyncer(console, zapcore.AddSync(file)), file: file}
 }

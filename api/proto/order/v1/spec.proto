@@ -1,0 +1,28 @@
+syntax = "proto3";
+package order.v1;
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1;orderv1";
+
+// 服务规范（D08）：行程页与司机中心的只读入口。
+// 后台内容来自 A18 已发布版本；本服务只有读，没有任何草稿/创建/编辑/发布路径。
+// Identity is always obtained from a verified authorization metadata token.
+service ServiceSpecService {
+  rpc GetManifest(GetManifestRequest) returns (GetManifestResponse);
+  rpc GetContent(GetContentRequest) returns (GetContentResponse);
+}
+
+message GetManifestRequest {}
+
+message ManifestItem { string guide_id=1; string category=2; int64 version=3; int64 published_at=4; string etag=5; }
+message GetManifestResponse { string guide_id=1; repeated ManifestItem items=2; }
+
+// mode: brief 行驶短提示，full 停车后全文。category 为空返回全部已发布分类。
+message GetContentRequest { string category=1; string mode=2; }
+
+message SpecBlock { string type=1; string text=2; repeated string items=3; }
+message ContentItem { string category=1; int64 version=2; int64 published_at=3; repeated SpecBlock blocks=4; }
+// etag 是弱校验器：版本 + 正文摘要，配合 HTTP 304 与 max-age=60。
+message GetContentResponse {
+  string guide_id=1; int64 version=2; int64 published_at=3; string etag=4;
+  repeated ContentItem categories=5;
+  repeated SpecBlock content=6;
+}

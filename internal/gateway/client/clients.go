@@ -14,11 +14,21 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 )
 
+// 资料上传单文件可达 5MB，gRPC 默认 4MB 收发上限必须放宽。
+const maxMaterialMessageBytes = 8 * 1024 * 1024
+
 // Clients 聚合 HTTP gateway 使用的所有 gRPC client。
 type Clients struct {
-	User   userv1.UserServiceClient
-	Note   notev1.NoteServiceClient
-	Order  orderv1.OrderServiceClient
+	User    userv1.UserServiceClient
+	Note    notev1.NoteServiceClient
+	Order   orderv1.OrderServiceClient
+	Arrival orderv1.ArrivalServiceClient
+	Contact orderv1.ContactServiceClient
+	Spec    orderv1.ServiceSpecServiceClient
+	Vehicle driverv1.VehicleServiceClient
+	File    driverv1.FileServiceClient
+	Safety  driverv1.SafetyServiceClient
+	// Driver 指向独立部署的 driver-service（D01–D04 接单大厅、D09–D13 收益结算）。
 	Driver driverv1.DriverServiceClient
 	Config *config.Config
 
@@ -40,7 +50,12 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		userConn.Close()
 		return nil, fmt.Errorf("dial note service: %w", err)
 	}
-	orderConn, err := grpc.Dial(orderTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	orderConn, err := grpc.Dial(orderTarget,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallSendMsgSize(maxMaterialMessageBytes),
+			grpc.MaxCallRecvMsgSize(maxMaterialMessageBytes),
+		))
 	if err != nil {
 		userConn.Close()
 		noteConn.Close()
@@ -62,12 +77,20 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		zap.String("driver_target", driverTarget),
 	)
 	return &Clients{
-		User:   userv1.NewUserServiceClient(userConn),
-		Note:   notev1.NewNoteServiceClient(noteConn),
-		Order:  orderv1.NewOrderServiceClient(orderConn),
-		Driver: driverv1.NewDriverServiceClient(driverConn),
-		Config: cfg,
-		conns:  []*grpc.ClientConn{userConn, noteConn, orderConn, driverConn},
+		User:    userv1.NewUserServiceClient(userConn),
+		Note:    notev1.NewNoteServiceClient(noteConn),
+		Order:   orderv1.NewOrderServiceClient(orderConn),
+		Arrival: orderv1.NewArrivalServiceClient(orderConn),
+		Contact: orderv1.NewContactServiceClient(orderConn),
+		Spec:    orderv1.NewServiceSpecServiceClient(orderConn),
+		// D14/D15/D17 的车辆资料、文件与安全服务由李嘉峰注册在 order-service 进程内，
+		// 因此复用 orderConn；司机端本体服务走独立的 driverConn。
+		Vehicle: driverv1.NewVehicleServiceClient(orderConn),
+		File:    driverv1.NewFileServiceClient(orderConn),
+		Safety:  driverv1.NewSafetyServiceClient(orderConn),
+		Driver:  driverv1.NewDriverServiceClient(driverConn),
+		Config:  cfg,
+		conns:   []*grpc.ClientConn{userConn, noteConn, orderConn, driverConn},
 	}, nil
 }
 

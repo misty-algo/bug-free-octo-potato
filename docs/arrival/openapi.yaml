@@ -1,0 +1,370 @@
+openapi: 3.0.3
+info:
+  title: Driver Arrival API
+  version: 1.0.0
+  description: MongoDB transactional arrival backend. UTC millisecond timestamps; uint64 versions are decimal strings. Original request/key must be retained after timeout. All writes require Idempotency-Key except location samples (deduplicated by sample ID).
+servers:
+  - url: http://127.0.0.1:8080/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /ride-tasks:
+    post:
+      operationId: createTask
+      summary: Dispatcher creates a READY task with 1–100 ACCEPTED orders
+      parameters:
+        - $ref: '#/components/parameters/CommandKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [task_id, pickup, orders]
+              properties:
+                task_id: {type: string, minLength: 1, maxLength: 64}
+                pickup: {$ref: '#/components/schemas/Coordinate'}
+                orders:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [order_id, passenger_id]
+                    properties:
+                      order_id: {type: string, minLength: 1, maxLength: 64}
+                      passenger_id: {type: string, minLength: 1, maxLength: 64}
+      responses:
+        '200': {$ref: '#/components/responses/Task'}
+        default: {$ref: '#/components/responses/Error'}
+  /ride-tasks/{id}/assignments:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    post:
+      operationId: assignTask
+      summary: Dispatcher assigns a READY task
+      parameters: [{$ref: '#/components/parameters/CommandKey'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [expected_task_version, driver_id]
+              properties:
+                expected_task_version: {$ref: '#/components/schemas/Version'}
+                driver_id: {type: string, minLength: 1, maxLength: 64}
+      responses:
+        '200': {$ref: '#/components/responses/Task'}
+        default: {$ref: '#/components/responses/Error'}
+  /ride-tasks/{id}/reassignments:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    post:
+      operationId: reassignTask
+      summary: Dispatcher changes driver before arrival
+      parameters: [{$ref: '#/components/parameters/CommandKey'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/AssignmentCommand'
+                - type: object
+                  required: [driver_id]
+                  properties:
+                    driver_id: {type: string, minLength: 1, maxLength: 64}
+      responses:
+        '200': {$ref: '#/components/responses/Task'}
+        default: {$ref: '#/components/responses/Error'}
+  /ride-orders/{id}/cancellations:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    post:
+      operationId: cancelRideOrder
+      summary: Passenger cancels their own ACCEPTED order
+      parameters: [{$ref: '#/components/parameters/CommandKey'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AssignmentCommand'}
+      responses:
+        '200': {$ref: '#/components/responses/Task'}
+        default: {$ref: '#/components/responses/Error'}
+  /ride-tasks/{id}/location-samples:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    post:
+      operationId: recordLocation
+      summary: Current driver records an immutable GCJ02 sample
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [assignment_id, assignment_version, sample_id, sample_seq, coordinate, collected_at]
+              properties:
+                assignment_id: {type: string}
+                assignment_version: {$ref: '#/components/schemas/Version'}
+                sample_id: {type: string, minLength: 1, maxLength: 64}
+                sample_seq: {$ref: '#/components/schemas/Version'}
+                coordinate: {$ref: '#/components/schemas/Coordinate'}
+                collected_at: {type: string, format: date-time}
+      responses:
+        '200':
+          description: Original receipt on identical sample replay; received_at is server-generated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          sample_id: {type: string}
+                          received_at: {type: string, format: date-time}
+                          updated_head: {type: boolean}
+        default: {$ref: '#/components/responses/Error'}
+  /ride-tasks/{id}/arrivals:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    post:
+      operationId: arrive
+      summary: Current driver atomically arrives all active orders
+      description: NORMAL requires latest sample within 200m and 30s. EXCEPTION immediately arrives and creates PENDING review; requires reason. Nonempty attachments rejected. Same key/content replays original data even with old task version, but authorization is always rechecked first.
+      parameters: [{$ref: '#/components/parameters/CommandKey'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/AssignmentCommand'
+                - type: object
+                  required: [mode]
+                  properties:
+                    mode: {type: string, enum: [NORMAL, EXCEPTION]}
+                    sample_id: {type: string, nullable: true}
+                    exception_reason: {type: string, maxLength: 500}
+                    evidence_ids: {type: array, maxItems: 0, items: {type: string}}
+            examples:
+              normal:
+                value: {expected_task_version: '3', assignment_id: 'assignment-id', assignment_version: '1', mode: NORMAL, sample_id: 'sample-1', evidence_ids: []}
+              exception:
+                value: {expected_task_version: '3', assignment_id: 'assignment-id', assignment_version: '1', mode: EXCEPTION, exception_reason: '定位不可用，已到达约定地点', evidence_ids: []}
+      responses:
+        '200':
+          description: Committed or replayed original arrival
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: {$ref: '#/components/schemas/ArrivalResult'}
+        default: {$ref: '#/components/responses/Error'}
+  /ride-tasks/{id}/arrival:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    get:
+      operationId: getTaskArrival
+      summary: Current driver or dispatcher reads task arrival
+      responses:
+        '200': {$ref: '#/components/responses/View'}
+        default: {$ref: '#/components/responses/Error'}
+  /ride-orders/{id}/arrival:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    get:
+      operationId: getOrderArrival
+      summary: Passenger reads only their order; driver/dispatcher also permitted
+      description: Cancelled orders have arrival null. Passenger view never includes location or other order results.
+      responses:
+        '200': {$ref: '#/components/responses/View'}
+        default: {$ref: '#/components/responses/Error'}
+  /ride-orders/{id}/events:
+    parameters: [{$ref: '#/components/parameters/ID'}]
+    get:
+      operationId: listOrderEvents
+      summary: Owner, current driver or dispatcher reads event facts
+      parameters: [{$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Cursor'}]
+      responses:
+        '200':
+          description: Event page; use next_cursor until empty
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Page'
+                          - type: object
+                            properties:
+                              items: {type: array, items: {$ref: '#/components/schemas/Event'}}
+        default: {$ref: '#/components/responses/Error'}
+  /arrival-reviews:
+    get:
+      operationId: listArrivalReviews
+      summary: Reviewer reads exception reviews; no state-changing review commands
+      parameters: [{$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Cursor'}]
+      responses:
+        '200':
+          description: Review page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Page'
+                          - type: object
+                            properties:
+                              items: {type: array, items: {$ref: '#/components/schemas/Review'}}
+        default: {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+  parameters:
+    ID: {name: id, in: path, required: true, schema: {type: string}}
+    CommandKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 128, pattern: '^[!-~]+$'}}
+    Limit: {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+    Cursor: {name: cursor, in: query, schema: {type: string, maxLength: 64}}
+  schemas:
+    Version: {type: string, pattern: '^[0-9]+$', maxLength: 20, description: 'Unsigned integer <=18446744073709551615; JSON number is not accepted.'}
+    Coordinate:
+      type: object
+      additionalProperties: false
+      required: [latitude, longitude, crs]
+      properties:
+        latitude: {type: number, minimum: -90, maximum: 90}
+        longitude: {type: number, minimum: -180, maximum: 180}
+        crs: {type: string, enum: [GCJ02]}
+    AssignmentCommand:
+      type: object
+      required: [expected_task_version, assignment_id, assignment_version]
+      properties:
+        expected_task_version: {$ref: '#/components/schemas/Version'}
+        assignment_id: {type: string}
+        assignment_version: {$ref: '#/components/schemas/Version'}
+    Envelope:
+      type: object
+      properties:
+        request_id: {type: string}
+    TaskResult:
+      type: object
+      properties:
+        task_id: {type: string}
+        task_version: {$ref: '#/components/schemas/Version'}
+        assignment_id: {type: string}
+        assignment_version: {$ref: '#/components/schemas/Version'}
+        status: {type: string, enum: [READY, ACCEPTED, CANCELLED, ARRIVED]}
+        command_id: {type: string}
+    ArrivalResult:
+      type: object
+      nullable: true
+      properties:
+        arrival_id: {type: string}
+        task_id: {type: string}
+        assignment_id: {type: string}
+        task_version: {$ref: '#/components/schemas/Version'}
+        arrived_at: {type: string, format: date-time}
+        mode: {type: string, enum: [NORMAL, EXCEPTION]}
+        review_status: {type: string, enum: [NOT_REQUIRED, PENDING]}
+        review_id: {type: string, nullable: true}
+        order_results:
+          type: array
+          items:
+            type: object
+            properties:
+              order_id: {type: string}
+              status: {type: string, enum: [ARRIVED]}
+              arrived_at: {type: string, format: date-time}
+    ArrivalView:
+      type: object
+      properties:
+        arrival: {$ref: '#/components/schemas/ArrivalResult'}
+        task_id: {type: string}
+        task_version: {$ref: '#/components/schemas/Version'}
+        status: {type: string}
+        server_time: {type: string, format: date-time}
+        exception_reason: {type: string}
+        location:
+          type: object
+          nullable: true
+          properties:
+            sample_id: {type: string}
+            coordinate: {$ref: '#/components/schemas/Coordinate'}
+            collected_at: {type: string, format: date-time}
+            received_at: {type: string, format: date-time}
+    Page:
+      type: object
+      properties:
+        next_cursor: {type: string}
+        server_time: {type: string, format: date-time}
+    Event:
+      type: object
+      properties:
+        event_id: {type: string}
+        arrival_id: {type: string}
+        task_id: {type: string}
+        order_id: {type: string}
+        task_version: {$ref: '#/components/schemas/Version'}
+        assignment_id: {type: string}
+        occurred_at: {type: string, format: date-time}
+        mode: {type: string, enum: [NORMAL, EXCEPTION]}
+        review_id: {type: string}
+        event_type: {type: string, enum: [ARRIVED]}
+    Review:
+      type: object
+      properties:
+        review_id: {type: string}
+        arrival_id: {type: string}
+        task_id: {type: string}
+        status: {type: string, enum: [PENDING]}
+        reason: {type: string}
+        created_at: {type: string, format: date-time}
+  responses:
+    Task:
+      description: Original successful command result
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                properties:
+                  data: {$ref: '#/components/schemas/TaskResult'}
+    View:
+      description: Authorized view of committed facts
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                properties:
+                  data: {$ref: '#/components/schemas/ArrivalView'}
+    Error:
+      description: '400 validation; 401 authentication; 403 ownership/role; 404 absent; 409 conflict; 429 rate limit; 503 unavailable; 504 deadline. Do not replace the command key after ambiguous timeout.'
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    required: [code, message]
+                    properties:
+                      code: {type: string}
+                      message: {type: string}
