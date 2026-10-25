@@ -141,7 +141,7 @@ func (s *ArrivalService) Arrive(ctx context.Context, cmd dto.ArriveCommand) (*dt
 		return nil, err
 	}
 
-	task, err := s.repo.TaskByNo(ctx, cmd.TaskID)
+	task, err := loadTaskByRef(ctx, s.repo, cmd.TaskID)
 	if err != nil {
 		return nil, err
 	}

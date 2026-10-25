@@ -59,6 +59,17 @@ func (r *MongoArrivalRepository) TaskByNo(ctx context.Context, taskNo string) (*
 	return &task, mongoArrivalError(err)
 }
 
+func (r *MongoArrivalRepository) TaskByID(ctx context.Context, id bson.ObjectID) (*entity.DispatchTask, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	var task entity.DispatchTask
+	err := r.db.Collection(tasksCollection).FindOne(ctx, bson.M{"_id": id}).Decode(&task)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, apperrors.NotFound("TASK_NOT_FOUND", "task does not exist")
+	}
+	return &task, mongoArrivalError(err)
+}
+
 func (r *MongoArrivalRepository) OrdersByIDs(ctx context.Context, ids []bson.ObjectID) ([]entity.RideOrder, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()

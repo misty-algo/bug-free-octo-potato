@@ -11,6 +11,8 @@ import (
 // 落唯一意图，再对订单文档做 version 守卫的单文档原子更新，最后落幂等命令记录。
 type ContactRepository interface {
 	OrderByNo(context.Context, string) (*RideOrder, error)
+	// OrderByID 按订单主键加载：对外参数名是 order_id，传入订单 ObjectId 时也应命中。
+	OrderByID(context.Context, bson.ObjectID) (*RideOrder, error)
 	TaskByID(context.Context, bson.ObjectID) (*DispatchTask, error)
 	FindCommand(context.Context, CommandKey) (*CommandResult, error)
 

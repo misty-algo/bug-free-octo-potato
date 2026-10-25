@@ -59,6 +59,17 @@ func (r *MongoTripRepository) OrderByNo(ctx context.Context, orderNo string) (*e
 	return &order, mongoArrivalError(err)
 }
 
+func (r *MongoTripRepository) OrderByID(ctx context.Context, id bson.ObjectID) (*entity.RideOrder, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	var order entity.RideOrder
+	err := r.db.Collection(ordersCollection).FindOne(ctx, bson.M{"_id": id}).Decode(&order)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, apperrors.NotFound("ORDER_NOT_FOUND", "order does not exist")
+	}
+	return &order, mongoArrivalError(err)
+}
+
 func (r *MongoTripRepository) OrdersByIDs(ctx context.Context, ids []bson.ObjectID) ([]entity.RideOrder, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()

@@ -96,7 +96,7 @@ func (s *TripService) Verify(ctx context.Context, cmd dto.VerifyCommand) (*dto.V
 	if err != nil {
 		return nil, err
 	}
-	order, err := s.repo.OrderByNo(ctx, cmd.OrderID)
+	order, err := loadOrderByRef(ctx, s.repo, cmd.OrderID)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func (s *TripService) Start(ctx context.Context, cmd dto.StartCommand) (*dto.Sta
 	if err != nil {
 		return nil, err
 	}
-	task, err := s.repo.TaskByNo(ctx, cmd.TaskID)
+	task, err := loadTaskByRef(ctx, s.repo, cmd.TaskID)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +283,7 @@ func (s *TripService) End(ctx context.Context, cmd dto.EndCommand) (*dto.EndResu
 	if err != nil {
 		return nil, err
 	}
-	order, err := s.repo.OrderByNo(ctx, cmd.OrderID)
+	order, err := loadOrderByRef(ctx, s.repo, cmd.OrderID)
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +394,7 @@ func (s *TripService) RecordSample(ctx context.Context, cmd dto.SampleCommand) (
 	if cmd.TaskID == "" || cmd.SessionID == "" || cmd.Seq < 1 {
 		return nil, apperrors.InvalidArgument("INVALID_ARGUMENT", "task_id, session_id and a positive seq are required")
 	}
-	task, err := s.repo.TaskByNo(ctx, cmd.TaskID)
+	task, err := loadTaskByRef(ctx, s.repo, cmd.TaskID)
 	if err != nil {
 		return nil, err
 	}

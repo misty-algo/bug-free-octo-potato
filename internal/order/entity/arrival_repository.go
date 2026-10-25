@@ -15,6 +15,9 @@ import (
 // command record instead of a transaction.
 type ArrivalRepository interface {
 	TaskByNo(context.Context, string) (*DispatchTask, error)
+	// TaskByID 按任务主键加载。对外接口的参数名是 task_id，调用方按字面含义
+	// 传入任务 ObjectId 时必须能命中，见服务层的 loadTaskByRef。
+	TaskByID(context.Context, bson.ObjectID) (*DispatchTask, error)
 	OrdersByIDs(context.Context, []bson.ObjectID) ([]RideOrder, error)
 	DriverByID(context.Context, bson.ObjectID) (*Driver, error)
 	// Pickup resolves the boarding coordinate from the embedded GeoJSON point,

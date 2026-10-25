@@ -14,6 +14,8 @@ type TripRepository interface {
 	TaskByNo(context.Context, string) (*DispatchTask, error)
 	TaskByID(context.Context, bson.ObjectID) (*DispatchTask, error)
 	OrderByNo(context.Context, string) (*RideOrder, error)
+	// OrderByID 按订单主键加载：对外参数名是 order_id，传入订单 ObjectId 时也应命中。
+	OrderByID(context.Context, bson.ObjectID) (*RideOrder, error)
 	OrdersByIDs(context.Context, []bson.ObjectID) ([]RideOrder, error)
 	FindCommand(context.Context, CommandKey) (*CommandResult, error)
 

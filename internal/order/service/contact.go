@@ -77,7 +77,7 @@ func (s *ContactService) SendMessage(ctx context.Context, cmd dto.SendMessageCom
 	if err != nil {
 		return nil, err
 	}
-	order, err := s.repo.OrderByNo(ctx, cmd.OrderID)
+	order, err := loadOrderByRef(ctx, s.repo, cmd.OrderID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (s *ContactService) ListMessages(ctx context.Context, cmd dto.ListMessagesC
 	if cmd.OrderID == "" {
 		return nil, apperrors.InvalidArgument("INVALID_ARGUMENT", "order_id is required")
 	}
-	order, err := s.repo.OrderByNo(ctx, cmd.OrderID)
+	order, err := loadOrderByRef(ctx, s.repo, cmd.OrderID)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (s *ContactService) RequestVirtualCall(ctx context.Context, cmd dto.Virtual
 	if err != nil {
 		return nil, err
 	}
-	order, err := s.repo.OrderByNo(ctx, cmd.OrderID)
+	order, err := loadOrderByRef(ctx, s.repo, cmd.OrderID)
 	if err != nil {
 		return nil, err
 	}

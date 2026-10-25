@@ -1,3 +1,15 @@
+# 注意：本文件描述的是到达域的「目标契约」，即 /ride-tasks 生命周期
+# （任务创建 → 分配 → 改派 → 取消 → 位置样本 → 到达 → 复核队列）。
+#
+# 网关当前实际挂载的是 /api/drv/trip/*、/api/drv/order/*、/api/drv/safety/*、
+# /api/drv/vehicle/* 与 /api/admin/*，端点清单见：
+#   internal/gateway/router/arrival_routes.go
+#   internal/gateway/router/vehicle_routes.go
+#   internal/gateway/router/safety_routes.go
+#
+# 因此本契约里的 ride-tasks 系列端点尚未实现。落成前的验收请用：
+#   scripts/arrival-e2e.ps1          按真实路由编写，当前可运行
+#   scripts/arrival-e2e-contract.ps1 按本契约编写，待 ride-tasks 实现后启用
 openapi: 3.0.3
 info:
   title: Driver Arrival API

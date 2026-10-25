@@ -10,6 +10,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/biztime"
 	"github.com/BwCloudWeGo/bw-cli/pkg/contracts"
 	"github.com/BwCloudWeGo/bw-cli/pkg/geo"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // 司机四态（与统一技术底座一致：收车 / 空闲 / 忙碌 / 接单预占）。
@@ -154,6 +155,14 @@ type Driver struct {
 	UpdatedAt   time.Time
 }
 
+// newDriverID 生成司机档案标识。
+//
+// 司机标识要与行程域、派单域共用同一个取值：那两个域以 Mongo ObjectId 作为
+// 司机主键（dispatch_tasks.driverId、drivers._id），并在入口按 ObjectId 格式
+// 校验令牌里的司机号。因此这里直接产出 24 位十六进制的 ObjectId 串，避免
+// 司机档案与行程数据各用一套标识而对接不上。
+func newDriverID() string { return bson.NewObjectID().Hex() }
+
 // NewDriver 注册司机，默认空闲 + 抢单模式。
 func NewDriver(name, phone string) (*Driver, error) {
 	name = strings.TrimSpace(name)
@@ -162,7 +171,7 @@ func NewDriver(name, phone string) (*Driver, error) {
 	}
 	now := biztime.UTC()
 	return &Driver{
-		ID:              newID(),
+		ID:              newDriverID(),
 		DriverNo:        newDriverNo(),
 		Name:            name,
 		Phone:           strings.TrimSpace(phone),
