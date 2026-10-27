@@ -24,7 +24,7 @@ func DefaultCORSConfig() CORSConfig {
 	return CORSConfig{
 		AllowOrigins:  []string{"*"},
 		AllowMethods:  []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
-		AllowHeaders:  []string{"Origin", "Content-Type", "Authorization", HeaderRequestID},
+		AllowHeaders:  []string{"Origin", "Content-Type", "Authorization", HeaderRequestID, HeaderAccountID},
 		ExposeHeaders: []string{HeaderRequestID},
 		MaxAge:        12 * time.Hour,
 	}

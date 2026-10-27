@@ -9,6 +9,7 @@ import (
 
 	driverv1 "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1"
 	orderv1 "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1"
+	passengerv1 "github.com/BwCloudWeGo/bw-cli/api/gen/passenger/v1"
 	paymentv1 "github.com/BwCloudWeGo/bw-cli/api/gen/payment/v1"
 	settlementv1 "github.com/BwCloudWeGo/bw-cli/api/gen/settlement/v1"
 	shopv1 "github.com/BwCloudWeGo/bw-cli/api/gen/shop/v1"
@@ -30,7 +31,10 @@ type Clients struct {
 	File    driverv1.FileServiceClient
 	Safety  driverv1.SafetyServiceClient
 	// Driver 指向独立部署的 driver-service（D01–D04 接单大厅、D09–D13 收益结算）。
-	Driver     driverv1.DriverServiceClient
+	Driver driverv1.DriverServiceClient
+	// Passenger 为乘客端业务域的 gRPC client（dev 主干的登录/首页/下单）。
+	Passenger passengerv1.PassengerServiceClient
+	// Shop/Payment/Settlement 为行程域使用的 gRPC client。
 	Shop       shopv1.ShopServiceClient
 	Payment    paymentv1.PaymentServiceClient
 	Settlement settlementv1.SettlementServiceClient
@@ -47,6 +51,7 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 	shopTarget := cfg.ServiceTarget("shop")
 	paymentTarget := cfg.ServiceTarget("payment")
 	settlementTarget := cfg.ServiceTarget("settlement")
+	passengerTarget := cfg.ServiceTarget("passenger")
 	userConn, err := grpc.Dial(userTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("dial user service: %w", err)
@@ -89,6 +94,16 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		orderConn.Close()
 		return nil, fmt.Errorf("dial driver service: %w", err)
 	}
+	passengerConn, err := grpc.Dial(passengerTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		userConn.Close()
+		orderConn.Close()
+		shopConn.Close()
+		paymentConn.Close()
+		settlementConn.Close()
+		driverConn.Close()
+		return nil, fmt.Errorf("dial passenger service: %w", err)
+	}
 
 	log.Info("grpc clients initialized",
 		zap.String("user_target", userTarget),
@@ -97,6 +112,7 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		zap.String("shop_target", shopTarget),
 		zap.String("payment_target", paymentTarget),
 		zap.String("settlement_target", settlementTarget),
+		zap.String("passenger_target", passengerTarget),
 	)
 	return &Clients{
 		User:    userv1.NewUserServiceClient(userConn),
@@ -106,15 +122,20 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		Spec:    orderv1.NewServiceSpecServiceClient(orderConn),
 		// D14/D15/D17 的车辆资料、文件与安全服务由李嘉峰注册在 order-service 进程内，
 		// 因此复用 orderConn；司机端本体服务走独立的 driverConn。
-		Vehicle:    driverv1.NewVehicleServiceClient(orderConn),
-		File:       driverv1.NewFileServiceClient(orderConn),
-		Safety:     driverv1.NewSafetyServiceClient(orderConn),
-		Driver:     driverv1.NewDriverServiceClient(driverConn),
-		Shop:       shopv1.NewShopServiceClient(shopConn),
+		Vehicle:   driverv1.NewVehicleServiceClient(orderConn),
+		File:      driverv1.NewFileServiceClient(orderConn),
+		Safety:    driverv1.NewSafetyServiceClient(orderConn),
+		Driver:    driverv1.NewDriverServiceClient(driverConn),
+		Passenger: passengerv1.NewPassengerServiceClient(passengerConn),
+		Shop:      shopv1.NewShopServiceClient(shopConn),
+		// Payment/Settlement 供行程支付与对账接口使用。
 		Payment:    paymentv1.NewPaymentServiceClient(paymentConn),
 		Settlement: settlementv1.NewSettlementServiceClient(settlementConn),
 		Config:     cfg,
-		conns:      []*grpc.ClientConn{userConn, orderConn, driverConn, shopConn, paymentConn, settlementConn},
+		conns: []*grpc.ClientConn{
+			userConn, orderConn, driverConn,
+			shopConn, paymentConn, settlementConn, passengerConn,
+		},
 	}, nil
 }
 

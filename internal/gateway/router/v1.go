@@ -19,6 +19,7 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 
 	registerUserRoutes(v1, handler.NewUserHandler(clients.User, middlewareCfg.JWT, log), middlewareCfg.JWT)
 	registerOrderRoutes(v1, handler.NewOrderHandler(clients.Order, log))
+	registerPassengerRoutes(v1, handler.NewPassengerHandler(clients.Passenger, log))
 	registerDriverRoutes(v1, handler.NewDriverHandler(clients.Driver, log))
 	writes := strings.EqualFold(os.Getenv("ARRIVAL_ENABLED"), "true")
 	if writes || strings.EqualFold(os.Getenv("ARRIVAL_READ_ENABLED"), "true") {

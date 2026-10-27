@@ -5,22 +5,16 @@ logs/
 *.log
 bin/
 tmp/
-temp/
 docs/superpowers/
 
-# 编译产物：历史中曾提交 6 个 .exe（共 238 MB），禁止再入库
-*.exe
-*.msi
-*.zip
-*.dll
-*.so
-*.dylib
+# 本地密钥文件，MUST NOT 提交。见 .env.example
+.env
+.env.*
+!.env.example
 
 # Local agent/runtime files
 /.codex/
 /graphify-out/
 /AGENTS.md
 /CLAUDE.md
-
-# 注意：此处禁止添加全局 "*.md"
-# agent/ 与 docs/ 下的 SSOT 约束文档必须随仓库提交，见 agent/AGENTS.md
+*.md

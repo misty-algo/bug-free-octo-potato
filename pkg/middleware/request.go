@@ -11,6 +11,13 @@ import (
 // HeaderRequestID 是用于请求关联的公开 HTTP 头。
 const HeaderRequestID = "X-Request-ID"
 
+// HeaderAccountID 是携带账号标识的公开 HTTP 头。
+//
+// gateway 侧的乘客端接口用它识别当前账号。带自定义头的请求会触发
+// CORS 预检，所以这个头必须出现在 CORS 的允许头列表里，
+// 否则浏览器会直接拒绝请求，前端表现为 Failed to fetch。
+const HeaderAccountID = "X-Account-Id"
+
 // RequestID 确保每个请求都有稳定的关联 ID。
 func RequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
