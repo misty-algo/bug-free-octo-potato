@@ -10,6 +10,9 @@ import (
 	driverv1 "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1"
 	notev1 "github.com/BwCloudWeGo/bw-cli/api/gen/note/v1"
 	orderv1 "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1"
+	paymentv1 "github.com/BwCloudWeGo/bw-cli/api/gen/payment/v1"
+	settlementv1 "github.com/BwCloudWeGo/bw-cli/api/gen/settlement/v1"
+	shopv1 "github.com/BwCloudWeGo/bw-cli/api/gen/shop/v1"
 	userv1 "github.com/BwCloudWeGo/bw-cli/api/gen/user/v1"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 )
@@ -19,18 +22,21 @@ const maxMaterialMessageBytes = 8 * 1024 * 1024
 
 // Clients 聚合 HTTP gateway 使用的所有 gRPC client。
 type Clients struct {
-	User    userv1.UserServiceClient
-	Note    notev1.NoteServiceClient
-	Order   orderv1.OrderServiceClient
-	Arrival orderv1.ArrivalServiceClient
-	Contact orderv1.ContactServiceClient
-	Spec    orderv1.ServiceSpecServiceClient
-	Vehicle driverv1.VehicleServiceClient
-	File    driverv1.FileServiceClient
-	Safety  driverv1.SafetyServiceClient
+	User       userv1.UserServiceClient
+	Note       notev1.NoteServiceClient
+	Order      orderv1.OrderServiceClient
+	Arrival    orderv1.ArrivalServiceClient
+	Contact    orderv1.ContactServiceClient
+	Spec       orderv1.ServiceSpecServiceClient
+	Vehicle    driverv1.VehicleServiceClient
+	File       driverv1.FileServiceClient
+	Safety     driverv1.SafetyServiceClient
 	// Driver 指向独立部署的 driver-service（D01–D04 接单大厅、D09–D13 收益结算）。
-	Driver driverv1.DriverServiceClient
-	Config *config.Config
+	Driver     driverv1.DriverServiceClient
+	Shop       shopv1.ShopServiceClient
+	Payment    paymentv1.PaymentServiceClient
+	Settlement settlementv1.SettlementServiceClient
+	Config     *config.Config
 
 	conns []*grpc.ClientConn
 }
@@ -41,6 +47,9 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 	noteTarget := cfg.ServiceTarget("note")
 	orderTarget := cfg.ServiceTarget("order")
 	driverTarget := cfg.ServiceTarget("driver")
+	shopTarget := cfg.ServiceTarget("shop")
+	paymentTarget := cfg.ServiceTarget("payment")
+	settlementTarget := cfg.ServiceTarget("settlement")
 	userConn, err := grpc.Dial(userTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("dial user service: %w", err)
@@ -61,6 +70,30 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		noteConn.Close()
 		return nil, fmt.Errorf("dial order service: %w", err)
 	}
+	shopConn, err := grpc.Dial(shopTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		userConn.Close()
+		noteConn.Close()
+		orderConn.Close()
+		return nil, fmt.Errorf("dial shop service: %w", err)
+	}
+	paymentConn, err := grpc.Dial(paymentTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		userConn.Close()
+		noteConn.Close()
+		orderConn.Close()
+		shopConn.Close()
+		return nil, fmt.Errorf("dial payment service: %w", err)
+	}
+	settlementConn, err := grpc.Dial(settlementTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		userConn.Close()
+		noteConn.Close()
+		orderConn.Close()
+		shopConn.Close()
+		paymentConn.Close()
+		return nil, fmt.Errorf("dial settlement service: %w", err)
+	}
 
 	driverConn, err := grpc.Dial(driverTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -75,6 +108,9 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		zap.String("note_target", noteTarget),
 		zap.String("order_target", orderTarget),
 		zap.String("driver_target", driverTarget),
+		zap.String("shop_target", shopTarget),
+		zap.String("payment_target", paymentTarget),
+		zap.String("settlement_target", settlementTarget),
 	)
 	return &Clients{
 		User:    userv1.NewUserServiceClient(userConn),
@@ -89,8 +125,11 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		File:    driverv1.NewFileServiceClient(orderConn),
 		Safety:  driverv1.NewSafetyServiceClient(orderConn),
 		Driver:  driverv1.NewDriverServiceClient(driverConn),
+		Shop:    shopv1.NewShopServiceClient(shopConn),
+		Payment: paymentv1.NewPaymentServiceClient(paymentConn),
+		Settlement: settlementv1.NewSettlementServiceClient(settlementConn),
 		Config:  cfg,
-		conns:   []*grpc.ClientConn{userConn, noteConn, orderConn, driverConn},
+		conns:   []*grpc.ClientConn{userConn, noteConn, orderConn, driverConn, shopConn, paymentConn, settlementConn},
 	}, nil
 }
 

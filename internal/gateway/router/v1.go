@@ -37,4 +37,10 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 	registerSafetyRoutes(api,
 		handler.NewSafetyHandler(clients.Safety, authn.Config{Secret: middlewareCfg.JWT.Secret, Issuer: middlewareCfg.JWT.Issuer}),
 	)
+	registerShopRoutes(v1, handler.NewShopHandler(clients.Shop, log))
+	registerPaymentRoutes(v1, handler.NewPaymentHandler(clients.Payment, log))
+	registerSettlementRoutes(v1, handler.NewSettlementHandler(clients.Settlement, log))
+
+	// 支付宝异步通知公网回调：cpolar 穿透路径 /aLiPay 原样透传，固定在根路径注册。
+	r.POST("/aLiPay", handler.NewShopHandler(clients.Shop, log).AlipayNotify)
 }

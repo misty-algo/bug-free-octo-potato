@@ -7,7 +7,7 @@ export PROTOC
 export PROTO_PATH
 export PROTO_OUT
 
-.PHONY: proto test tidy run-gateway run-user run-note run-cli install-cli install-bw-cli tools run-order run-driver mint-token
+.PHONY: proto test tidy run-gateway run-user run-note run-cli install-cli install-bw-cli tools run-order run-driver mint-token run-shop
 
 tools:
 	$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -49,3 +49,6 @@ run-driver:
 # 例：make mint-token ARGS="6ad9adcc77e161c8570967b3 driver"
 mint-token:
 	$(GO) run ./cmd/mint-token $(ARGS)
+
+run-shop:
+	$(GO) run ./cmd/shop

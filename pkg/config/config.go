@@ -26,6 +26,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/rabbitmqx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/redisx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/rocketmqx"
+	"github.com/BwCloudWeGo/bw-cli/pkg/wechatpayx"
 )
 
 var remoteConfigLoader = nacosx.LoadConfig
@@ -219,6 +220,7 @@ type Config struct {
 	RabbitMQ      RabbitMQConfig           `mapstructure:"rabbitmq" yaml:"rabbitmq"`
 	Driver        DriverConfig             `mapstructure:"driver" yaml:"driver"`
 	Alipay        alipayx.Config           `mapstructure:"alipay" yaml:"alipay"`
+	WechatPay     wechatpayx.Config        `mapstructure:"wechat_pay" yaml:"wechat_pay"`
 	Nacos         nacosx.Config            `mapstructure:"nacos" yaml:"nacos"`
 	Middleware    MiddlewareConfig         `mapstructure:"middleware" yaml:"middleware"`
 	Log           logger.Config            `mapstructure:"log" yaml:"log"`
@@ -529,6 +531,14 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("alipay.app_cert_public_key_path", alipayx.DefaultConfig().AppCertPublicKeyPath)
 	v.SetDefault("alipay.alipay_root_cert_path", alipayx.DefaultConfig().AlipayRootCertPath)
 	v.SetDefault("alipay.alipay_cert_public_key_path", alipayx.DefaultConfig().AlipayCertPublicKeyPath)
+	v.SetDefault("wechat_pay.mch_id", wechatpayx.DefaultConfig().MchID)
+	v.SetDefault("wechat_pay.app_id", wechatpayx.DefaultConfig().AppID)
+	v.SetDefault("wechat_pay.api_v3_key", wechatpayx.DefaultConfig().APIv3Key)
+	v.SetDefault("wechat_pay.serial_no", wechatpayx.DefaultConfig().SerialNo)
+	v.SetDefault("wechat_pay.private_key", wechatpayx.DefaultConfig().PrivateKey)
+	v.SetDefault("wechat_pay.platform_public_key", wechatpayx.DefaultConfig().PlatformPublicKey)
+	v.SetDefault("wechat_pay.notify_url", wechatpayx.DefaultConfig().NotifyURL)
+	v.SetDefault("wechat_pay.production", wechatpayx.DefaultConfig().Production)
 	v.SetDefault("middleware.jwt.secret", middleware.DefaultJWTConfig().Secret)
 	v.SetDefault("middleware.jwt.issuer", middleware.DefaultJWTConfig().Issuer)
 	v.SetDefault("middleware.jwt.expire_seconds", middleware.DefaultJWTConfig().ExpireSeconds)

@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package settlement.v1;
+
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/settlement/v1;settlementv1";
+
+// SettlementService 负责行程账单生成与分账：乘客实付 = 平台佣金 + 司机收入 + 平台补贴。
+service SettlementService {
+  // CreateBill 行程结束生成不可变乘客账单。
+  rpc CreateBill(CreateBillRequest) returns (BillResponse);
+  // SplitBill 分账：按佣金比例拆分司机收入与平台佣金，幂等可重试。
+  rpc SplitBill(SplitBillRequest) returns (SplitBillResponse);
+  // GetWalletBalance 查询司机钱包余额。
+  rpc GetWalletBalance(GetWalletBalanceRequest) returns (WalletBalanceResponse);
+  // MarkBillPaid 支付成功回调：账单 UNPAID → PAID，幂等可重试。
+  rpc MarkBillPaid(MarkBillPaidRequest) returns (BillResponse);
+  // VoidBill 作废账单：CALCULATING/UNPAID → VOID（取消/关单），幂等可重试。
+  rpc VoidBill(VoidBillRequest) returns (BillResponse);
+  // ListUnpaidBills 查询用户全部待支付账单。
+  rpc ListUnpaidBills(ListUnpaidBillsRequest) returns (ListUnpaidBillsResponse);
+  // CheckUnpaidBan 未付禁叫车校验：存在待支付账单则禁止发起新行程。
+  rpc CheckUnpaidBan(CheckUnpaidBanRequest) returns (CheckUnpaidBanResponse);
+  // ApplyRefund 退款冲正：幂等可重试，双方结算后扣减司机钱包并记入冲正流水。
+  rpc ApplyRefund(ApplyRefundRequest) returns (ApplyRefundResponse);
+}
+
+message CreateBillRequest {
+  string order_no = 1;           // 行程订单号（必填）
+  string bill_no = 2;            // 账单号（可选，默认生成）
+  string user_id = 3;            // 乘客 ID
+  string driver_id = 4;          // 司机 ID
+  int64 total_amount = 5;        // 乘客实付金额（分）
+  int64 platform_subsidy = 6;    // 平台补贴（分，默认 0）
+  string remark = 7;             // 备注
+  int64 discount_fee = 8;        // 优惠总额（分，默认 0）
+}
+
+message BillResponse {
+  string bill_no = 1;
+  string order_no = 2;
+  string user_id = 3;
+  string driver_id = 4;
+  int64 total_amount = 5;        // 乘客实付（分）
+  int64 platform_subsidy = 6;    // 平台补贴（分）
+  string status = 7;             // CALCULATING / UNPAID / PAID / VOID
+  string created_at = 8;
+  int64 pay_fee = 9;             // 乘客实付（分）
+  int64 discount_fee = 10;       // 优惠总额（分）
+  int64 refund_fee = 11;         // 已退金额（分）
+  int64 driver_income = 12;      // 司机应得（分）
+  int64 commission_fee = 13;     // 平台佣金（分）
+  int64 subsidy_fee = 14;        // 平台补贴（分）
+  bool settled = 15;             // 是否已结算给司机
+}
+
+message SplitBillRequest {
+  string bill_no = 1;                        // 账单号（与 order_no 二选一）
+  string order_no = 2;                       // 行程订单号（与 bill_no 二选一）
+  int64 commission_rate_bps = 3;             // 平台佣金比例，万分比，默认 1000（10%）
+  int64 platform_subsidy = 4;                // 平台补贴（分，默认 0，须与账单一致）
+  string idempotent_key = 5;                 // 分账幂等键（可选，默认取 bill_no）
+}
+
+message SplitBillResponse {
+  string bill_no = 1;
+  int64 passenger_amount = 2;                // 乘客实付（分）
+  int64 platform_commission = 3;             // 平台佣金（分）
+  int64 driver_income = 4;                   // 司机收入（分）
+  int64 platform_subsidy = 5;                // 平台补贴（分）
+  string status = 6;                         // split
+  bool duplicate = 7;                        // 是否为重复分账（幂等命中）
+  repeated BillTransactionItem transactions = 8;
+}
+
+message BillTransactionItem {
+  string tx_no = 1;
+  string category = 2;                       // platform_commission / driver_income / platform_subsidy
+  int64 amount = 3;                          // 金额（分）
+  string owner_type = 4;                     // platform / driver
+  string owner_id = 5;
+}
+
+message GetWalletBalanceRequest {
+  string driver_id = 1;                      // 司机 ID（必填）
+}
+
+message WalletBalanceResponse {
+  string driver_id = 1;
+  int64 balance = 2;                         // 可用余额（分）
+  int64 frozen_balance = 3;                  // 冻结金额（分）
+  int64 total_income = 4;                    // 累计入账（分）
+  int64 total_withdraw = 5;                  // 累计提现（分）
+  int64 version = 6;                         // 乐观锁版本
+}
+
+message MarkBillPaidRequest {
+  string bill_no = 1;                        // 账单号（与 order_no 二选一）
+  string order_no = 2;                       // 行程订单号（与 bill_no 二选一）
+  int64 pay_fee = 3;                         // 实际支付金额（分，可选，默认沿用账单）
+  int64 discount_fee = 4;                    // 优惠总额（分，可选，默认沿用账单）
+  int64 refund_fee = 5;                      // 已退金额（分，可选，默认沿用账单）
+}
+
+message VoidBillRequest {
+  string bill_no = 1;                        // 账单号（与 order_no 二选一）
+  string order_no = 2;                       // 行程订单号（与 bill_no 二选一）
+  string reason = 3;                         // 作废原因
+}
+
+message ListUnpaidBillsRequest {
+  string user_id = 1;                        // 乘客 ID（必填）
+}
+
+message ListUnpaidBillsResponse {
+  repeated BillResponse bills = 1;
+}
+
+message CheckUnpaidBanRequest {
+  string user_id = 1;                        // 乘客 ID（必填）
+}
+
+message CheckUnpaidBanResponse {
+  bool banned = 1;                           // 是否存在未付账单
+  int32 unpaid_count = 2;                    // 未付账单数
+  int64 unpaid_amount_sum = 3;               // 未付总金额（分）
+}
+
+message ApplyRefundRequest {
+  string order_no = 1;                        // 行程订单号（必填）
+  string refund_no = 2;                       // 退款单号（必填，幂等锚点）
+  int64 refund_amount = 3;                    // 退款金额（分，必填，正数）
+}
+
+message ApplyRefundResponse {
+  string bill_no = 1;                         // 账单号
+  string order_no = 2;                        // 行程订单号
+  int64 reversed_amount = 3;                  // 实际冲正金额（分）
+  bool repeated = 4;                          // 是否幂等命中（重复退款）
+}
