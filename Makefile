@@ -7,7 +7,7 @@ export PROTOC
 export PROTO_PATH
 export PROTO_OUT
 
-.PHONY: proto test tidy run-gateway run-user run-note run-cli install-cli install-bw-cli tools run-order run-driver mint-token run-shop
+.PHONY: proto test tidy run-gateway run-user run-cli install-cli install-bw-cli tools run-order run-driver mint-token run-shop
 
 tools:
 	$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -24,9 +24,6 @@ tidy:
 
 run-user:
 	$(GO) run ./cmd/user
-
-run-note:
-	$(GO) run ./cmd/note
 
 run-gateway:
 	$(GO) run ./cmd/gateway

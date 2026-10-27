@@ -3,7 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sort"
 	"testing"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -58,6 +61,27 @@ func (f *fakeRepo) ListUnpaidBillsByUser(ctx context.Context, userID string) ([]
 		}
 	}
 	return out, nil
+}
+
+// ListPendingSettleBills 按创建时间升序返回已支付未结算的账单，最多 limit 条。
+// 与 Mongo 实现保持一致的老单先补语义。
+func (f *fakeRepo) ListPendingSettleBills(ctx context.Context, limit int64) ([]*entity.Bill, error) {
+	pending := make([]*entity.Bill, 0, len(f.bills))
+	for _, bill := range f.bills {
+		if bill.Status == entity.BillStatusPaid && !bill.Settled {
+			pending = append(pending, bill)
+		}
+	}
+	sort.Slice(pending, func(i, j int) bool {
+		if !pending[i].CreatedAt.Equal(pending[j].CreatedAt) {
+			return pending[i].CreatedAt.Before(pending[j].CreatedAt)
+		}
+		return pending[i].ID < pending[j].ID
+	})
+	if int64(len(pending)) > limit {
+		pending = pending[:limit]
+	}
+	return pending, nil
 }
 
 func (f *fakeRepo) AppendTransaction(ctx context.Context, tx *entity.BillTransaction) error {
@@ -136,6 +160,10 @@ func TestSplitBillEquation(t *testing.T) {
 	if bill.Status != entity.BillStatusUnpaid {
 		t.Fatalf("bill status = %s, want UNPAID", bill.Status)
 	}
+	// 分账只接受已支付账单：按真实链路先置 PAID。
+	if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: "ORDER-1001"}); err != nil {
+		t.Fatalf("MarkBillPaid failed: %v", err)
+	}
 
 	result, err := svc.SplitBill(ctx, dto.SplitBillCommand{
 		OrderNo:        "ORDER-1001",
@@ -193,6 +221,9 @@ func TestSplitBillEquationNoSubsidy(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateBill failed: %v", err)
 	}
+	if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: "ORDER-1002"}); err != nil {
+		t.Fatalf("MarkBillPaid failed: %v", err)
+	}
 
 	result, err := svc.SplitBill(ctx, dto.SplitBillCommand{OrderNo: "ORDER-1002", CommissionRate: 1500})
 	if err != nil {
@@ -219,6 +250,9 @@ func TestSplitBillIdempotent(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateBill failed: %v", err)
 	}
+	if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: "ORDER-1003"}); err != nil {
+		t.Fatalf("MarkBillPaid failed: %v", err)
+	}
 
 	first, err := svc.SplitBill(ctx, dto.SplitBillCommand{OrderNo: "ORDER-1003", CommissionRate: 1000})
 	if err != nil {
@@ -244,6 +278,58 @@ func TestSplitBillIdempotent(t *testing.T) {
 	secondWallet, _ := svc.GetWalletBalance(ctx, "DRIVER-3")
 	if secondWallet.Balance != firstWallet.Balance || secondWallet.TotalIncome != firstWallet.TotalIncome {
 		t.Fatalf("wallet mutated on repeated split: %+v -> %+v", firstWallet, secondWallet)
+	}
+}
+
+// TestSplitBillUsesLockedRate 自动分账不传费率时，必须按建账锁定的费率分账。
+func TestSplitBillUsesLockedRate(t *testing.T) {
+	ctx := context.Background()
+	svc := newTestService()
+
+	if _, err := svc.CreateBill(ctx, dto.CreateBillCommand{
+		OrderNo:          "ORDER-1005",
+		DriverID:         "DRIVER-5",
+		TotalAmount:      10000,
+		CommissionRateBP: 2000, // 建账锁定 20%
+	}); err != nil {
+		t.Fatalf("CreateBill failed: %v", err)
+	}
+	// 锁定值必须落库，否则自动分账读到的还是零值。
+	stored, err := svc.repo.FindBillByOrderNo(ctx, "ORDER-1005")
+	if err != nil {
+		t.Fatalf("FindBillByOrderNo failed: %v", err)
+	}
+	if stored.CommissionRateBP != 2000 {
+		t.Fatalf("locked commission rate = %d, want 2000", stored.CommissionRateBP)
+	}
+
+	if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: "ORDER-1005"}); err != nil {
+		t.Fatalf("MarkBillPaid failed: %v", err)
+	}
+	// 模拟支付成功后的自动分账：调用方不掌握费率。
+	got, err := svc.SplitBill(ctx, dto.SplitBillCommand{OrderNo: "ORDER-1005", UseBillRate: true})
+	if err != nil {
+		t.Fatalf("SplitBill failed: %v", err)
+	}
+	if got.PlatformCommission != 2000 || got.DriverIncome != 8000 {
+		t.Fatalf("commission=%d driver=%d, want 2000/8000", got.PlatformCommission, got.DriverIncome)
+	}
+}
+
+// TestCreateBillRejectsOutOfRangeRate 非法费率在建账时就被拒绝，不进入资金链路。
+func TestCreateBillRejectsOutOfRangeRate(t *testing.T) {
+	ctx := context.Background()
+	svc := newTestService()
+
+	for _, bad := range []int64{-1, 10001} {
+		if _, err := svc.CreateBill(ctx, dto.CreateBillCommand{
+			OrderNo:          "ORDER-1006",
+			DriverID:         "DRIVER-6",
+			TotalAmount:      1000,
+			CommissionRateBP: bad,
+		}); err == nil || !errors.Is(err, entity.ErrInvalidSplitRequest) {
+			t.Fatalf("CreateBill with rate %d: err = %v, want ErrInvalidSplitRequest", bad, err)
+		}
 	}
 }
 
@@ -398,6 +484,9 @@ func TestApplyRefundReversal(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateBill failed: %v", err)
 	}
+	if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: "ORDER-5001"}); err != nil {
+		t.Fatalf("MarkBillPaid failed: %v", err)
+	}
 	split, err := svc.SplitBill(ctx, dto.SplitBillCommand{OrderNo: "ORDER-5001", CommissionRate: 2000})
 	if err != nil {
 		t.Fatalf("SplitBill failed: %v", err)
@@ -463,6 +552,9 @@ func TestApplyRefundExceedsSettled(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateBill failed: %v", err)
 	}
+	if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: "ORDER-5002"}); err != nil {
+		t.Fatalf("MarkBillPaid failed: %v", err)
+	}
 	if _, err := svc.SplitBill(ctx, dto.SplitBillCommand{OrderNo: "ORDER-5002", CommissionRate: 2000}); err != nil {
 		t.Fatalf("SplitBill failed: %v", err)
 	}
@@ -505,6 +597,9 @@ func TestSplitBillWalletVersion(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateBill failed: %v", err)
 	}
+	if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: "ORDER-6001"}); err != nil {
+		t.Fatalf("MarkBillPaid failed: %v", err)
+	}
 
 	// 两次分账（第二次幂等命中），钱包版本只应前进一次。
 	first, err := svc.SplitBill(ctx, dto.SplitBillCommand{OrderNo: "ORDER-6001", CommissionRate: 1000})
@@ -537,5 +632,140 @@ func TestSplitBillWalletVersion(t *testing.T) {
 	wallet, _ = svc.repo.GetWallet(ctx, "DRIVER-60")
 	if wallet.Balance != 18100 || wallet.Version != 2 {
 		t.Fatalf("wallet balance=%d version=%d, want 18100/2", wallet.Balance, wallet.Version)
+	}
+}
+
+// TestReconcilePendingSettlements 掉单补偿：把已支付但未结算的账单按锁定费率补分账。
+func TestReconcilePendingSettlements(t *testing.T) {
+	ctx := context.Background()
+	svc := newTestService()
+
+	// 三单：两单已支付未结算（掉单），一单未支付（不该被动）。
+	for _, tc := range []struct {
+		orderNo string
+		driver  string
+		rate    int64
+		paid    bool
+	}{
+		{"ORDER-7001", "DRIVER-70", 2000, true},
+		{"ORDER-7002", "DRIVER-71", 1000, true},
+		{"ORDER-7003", "DRIVER-72", 2000, false},
+	} {
+		if _, err := svc.CreateBill(ctx, dto.CreateBillCommand{
+			OrderNo:          tc.orderNo,
+			DriverID:         tc.driver,
+			TotalAmount:      10000,
+			CommissionRateBP: tc.rate,
+		}); err != nil {
+			t.Fatalf("CreateBill failed: %v", err)
+		}
+		if tc.paid {
+			if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: tc.orderNo}); err != nil {
+				t.Fatalf("MarkBillPaid failed: %v", err)
+			}
+		}
+	}
+
+	compensated, err := svc.ReconcilePendingSettlements(ctx, 100)
+	if err != nil {
+		t.Fatalf("ReconcilePendingSettlements failed: %v", err)
+	}
+	if compensated != 2 {
+		t.Fatalf("compensated = %d, want 2", compensated)
+	}
+
+	// 掉单的两单已按锁定费率入司机钱包。
+	// ORDER-7001: C = floor(10000*2000/10000) = 2000，D = 8000
+	if w, _ := svc.GetWalletBalance(ctx, "DRIVER-70"); w.Balance != 8000 {
+		t.Fatalf("DRIVER-70 balance = %d, want 8000", w.Balance)
+	}
+	// ORDER-7002: C = floor(10000*1000/10000) = 1000，D = 9000
+	if w, _ := svc.GetWalletBalance(ctx, "DRIVER-71"); w.Balance != 9000 {
+		t.Fatalf("DRIVER-71 balance = %d, want 9000", w.Balance)
+	}
+	// 未支付的不被动。
+	if w, _ := svc.GetWalletBalance(ctx, "DRIVER-72"); w.Balance != 0 {
+		t.Fatalf("DRIVER-72 balance = %d, want 0", w.Balance)
+	}
+
+	// 再跑一次：幂等，不会再补。
+	again, err := svc.ReconcilePendingSettlements(ctx, 100)
+	if err != nil {
+		t.Fatalf("second reconcile failed: %v", err)
+	}
+	if again != 0 {
+		t.Fatalf("second compensated = %d, want 0", again)
+	}
+	if w, _ := svc.GetWalletBalance(ctx, "DRIVER-70"); w.Balance != 8000 {
+		t.Fatalf("DRIVER-70 balance mutated on second reconcile: %d", w.Balance)
+	}
+}
+
+// TestReconcileWorkerLifecycle 补偿工人启动即扫一批，且停止时能干净退出不挂死。
+func TestReconcileWorkerLifecycle(t *testing.T) {
+	ctx := context.Background()
+	svc := newTestService()
+
+	if _, err := svc.CreateBill(ctx, dto.CreateBillCommand{
+		OrderNo:          "ORDER-9001",
+		DriverID:         "DRIVER-90",
+		TotalAmount:      10000,
+		CommissionRateBP: 2000,
+	}); err != nil {
+		t.Fatalf("CreateBill failed: %v", err)
+	}
+	if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: "ORDER-9001"}); err != nil {
+		t.Fatalf("MarkBillPaid failed: %v", err)
+	}
+
+	worker := NewReconcileWorker(svc, zap.NewNop(), 10*time.Millisecond, 100)
+	worker.Start()
+
+	// 启动即扫一批：轮询等待补偿落地（补偿是异步的）。
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		w, err := svc.GetWalletBalance(ctx, "DRIVER-90")
+		if err == nil && w.Balance == 8000 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("reconcile worker did not compensate within 2s")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	worker.Stop()
+	// 停止后可再次停止（幂等），不应 panic 或挂死。
+	worker.Stop()
+}
+
+// TestReconcileRespectsBatchLimit 补偿按批次上限处理，避免一次扫全表。
+func TestReconcileRespectsBatchLimit(t *testing.T) {
+	ctx := context.Background()
+	svc := newTestService()
+
+	for i := 0; i < 5; i++ {
+		orderNo := fmt.Sprintf("ORDER-800%d", i)
+		if _, err := svc.CreateBill(ctx, dto.CreateBillCommand{
+			OrderNo:          orderNo,
+			DriverID:         fmt.Sprintf("DRIVER-80%d", i),
+			TotalAmount:      10000,
+			CommissionRateBP: 2000,
+		}); err != nil {
+			t.Fatalf("CreateBill failed: %v", err)
+		}
+		if _, err := svc.MarkBillPaid(ctx, dto.MarkBillPaidCommand{OrderNo: orderNo}); err != nil {
+			t.Fatalf("MarkBillPaid failed: %v", err)
+		}
+	}
+
+	if got, err := svc.ReconcilePendingSettlements(ctx, 2); err != nil || got != 2 {
+		t.Fatalf("ReconcilePendingSettlements(2) = %d, err = %v; want 2", got, err)
+	}
+	if got, err := svc.ReconcilePendingSettlements(ctx, 2); err != nil || got != 2 {
+		t.Fatalf("ReconcilePendingSettlements(2) = %d, err = %v; want 2", got, err)
+	}
+	if got, err := svc.ReconcilePendingSettlements(ctx, 2); err != nil || got != 1 {
+		t.Fatalf("ReconcilePendingSettlements(2) = %d, err = %v; want 1", got, err)
 	}
 }

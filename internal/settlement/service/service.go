@@ -51,6 +51,9 @@ func (s *Service) CreateBill(ctx context.Context, cmd dto.CreateBillCommand) (*d
 	if cmd.TotalAmount <= 0 {
 		return nil, fmt.Errorf("%w: positive total_amount is required", entity.ErrInvalidSplitRequest)
 	}
+	if cmd.CommissionRateBP < 0 || cmd.CommissionRateBP > 10000 {
+		return nil, fmt.Errorf("%w: commission_rate_bp must be within [0, 10000]", entity.ErrInvalidSplitRequest)
+	}
 	if existing, err := s.repo.FindBillByOrderNo(ctx, cmd.OrderNo); err == nil {
 		return toBillDTO(existing), nil
 	} else if !errors.Is(err, entity.ErrBillNotFound) {
@@ -59,18 +62,19 @@ func (s *Service) CreateBill(ctx context.Context, cmd dto.CreateBillCommand) (*d
 
 	now := time.Now()
 	bill := &entity.Bill{
-		ID:              "BILL-" + cmd.OrderNo,
-		OrderNo:         cmd.OrderNo,
-		UserID:          cmd.UserID,
-		DriverID:        cmd.DriverID,
-		TotalAmount:     cmd.TotalAmount,
-		PayFee:          cmd.TotalAmount,
-		DiscountFee:     cmd.DiscountFee,
-		PlatformSubsidy: cmd.PlatformSubsidy,
-		Status:          entity.BillStatusUnpaid,
-		Remark:          cmd.Remark,
-		CreatedAt:       now,
-		UpdatedAt:       now,
+		ID:               "BILL-" + cmd.OrderNo,
+		OrderNo:          cmd.OrderNo,
+		UserID:           cmd.UserID,
+		DriverID:         cmd.DriverID,
+		TotalAmount:      cmd.TotalAmount,
+		PayFee:           cmd.TotalAmount,
+		DiscountFee:      cmd.DiscountFee,
+		PlatformSubsidy:  cmd.PlatformSubsidy,
+		CommissionRateBP: cmd.CommissionRateBP,
+		Status:           entity.BillStatusUnpaid,
+		Remark:           cmd.Remark,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 	if err := s.repo.SaveBill(ctx, bill); err != nil {
 		return nil, err
@@ -104,12 +108,17 @@ func (s *Service) SplitBill(ctx context.Context, cmd dto.SplitBillCommand) (*dto
 	if cmd.OrderNo == "" {
 		return nil, fmt.Errorf("%w: order_no is required", entity.ErrInvalidSplitRequest)
 	}
-	if cmd.CommissionRate < 0 || cmd.CommissionRate > 10000 {
-		return nil, fmt.Errorf("%w: commission_rate must be in [0,10000]", entity.ErrInvalidSplitRequest)
-	}
 	bill, err := s.repo.FindBillByOrderNo(ctx, cmd.OrderNo)
 	if err != nil {
 		return nil, err
+	}
+	// 费率取值：自动分账按建账时锁定的值，手动分账沿用命令传入的值。
+	// 两者区间相同，只是来源不同——不锁定的话规则变更会让分账漂移。
+	if cmd.UseBillRate {
+		cmd.CommissionRate = bill.CommissionRateBP
+	}
+	if cmd.CommissionRate < 0 || cmd.CommissionRate > 10000 {
+		return nil, fmt.Errorf("%w: commission_rate must be in [0,10000]", entity.ErrInvalidSplitRequest)
 	}
 	// 账单状态机前置校验：只有已支付账单才可分账（资金安全收紧）。
 	// 原实现允许 UNPAID 直接分账，存在"未收款先分账"的资金风险；
@@ -282,10 +291,12 @@ func (s *Service) ApplyRefund(ctx context.Context, cmd dto.ApplyRefundCommand) (
 		// 幂等命中：返回历史冲正结果。
 		s.log.Info("refund settlement repeated", zap.String("bill_no", bill.ID), zap.String("order_no", bill.OrderNo),
 			zap.Int64("amount", existing.Amount))
+		// 冲正流水以负数存储（扣减语义），对外统一暴露为正的冲正金额，
+		// 与首次冲正的返回口径一致——否则调用方会拿到 -3000 这种反向值。
 		return &dto.RefundSettlementResult{
 			BillNo:         bill.ID,
 			OrderNo:        bill.OrderNo,
-			ReversedAmount: existing.Amount,
+			ReversedAmount: -existing.Amount,
 			Repeated:       true,
 		}, nil
 	}
@@ -447,6 +458,38 @@ func (s *Service) CheckUnpaidBan(ctx context.Context, query dto.ListUnpaidBillsQ
 	}
 	result.Banned = result.UnpaidCount > 0
 	return result, nil
+}
+
+// ReconcilePendingSettlements 掉单补偿：扫描已支付但未结算的账单并补分账，返回本批补偿成功的单数。
+//
+// 补偿的是支付链路 MarkBillPaid 成功但 SplitBill 失败/未执行的账单——
+// 该链路是 fire-and-forget，失败只记日志，没有它钱就会永远滞留在账单里。
+// 每单按建账锁定的费率分账（UseBillRate），与在线链路口径一致。
+//
+// 单笔失败不中断整批：跳过并记日志，下一轮继续扫。分账本身幂等，重复补偿不会重复入账。
+func (s *Service) ReconcilePendingSettlements(ctx context.Context, limit int64) (int, error) {
+	if limit <= 0 {
+		return 0, fmt.Errorf("%w: positive limit is required", entity.ErrInvalidSplitRequest)
+	}
+	bills, err := s.repo.ListPendingSettleBills(ctx, limit)
+	if err != nil {
+		return 0, err
+	}
+	compensated := 0
+	for _, bill := range bills {
+		if _, err := s.SplitBill(ctx, dto.SplitBillCommand{
+			OrderNo:     bill.OrderNo,
+			UseBillRate: true,
+		}); err != nil {
+			// 单笔失败不阻断整批：记录后继续，下一轮扫描会再带到它。
+			s.log.Warn("reconcile split bill failed", zap.String("bill_no", bill.ID),
+				zap.String("order_no", bill.OrderNo), zap.Error(err))
+			continue
+		}
+		compensated++
+		s.log.Info("reconcile split bill compensated", zap.String("bill_no", bill.ID), zap.String("order_no", bill.OrderNo))
+	}
+	return compensated, nil
 }
 
 // findBill 按账单号或订单号查询账单，二者必传其一。

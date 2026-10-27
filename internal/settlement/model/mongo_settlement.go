@@ -4,23 +4,25 @@ import "time"
 
 // BillDocument 是 bills 集合的 MongoDB 文档模型。
 type BillDocument struct {
-	ID              string    `bson:"_id"` // 账单号
-	OrderNo         string    `bson:"order_no"`
-	UserID          string    `bson:"user_id"`
-	DriverID        string    `bson:"driver_id"`
-	TotalAmount     int64     `bson:"total_amount"`
-	PayFee          int64     `bson:"pay_fee"`
-	DiscountFee     int64     `bson:"discount_fee"`
-	RefundFee       int64     `bson:"refund_fee"`
-	DriverIncome    int64     `bson:"driver_income"`
-	CommissionFee   int64     `bson:"commission_fee"`
-	SubsidyFee      int64     `bson:"subsidy_fee"`
-	Settled         bool      `bson:"settled"`
-	PlatformSubsidy int64     `bson:"platform_subsidy"`
-	Status          string    `bson:"status"`
-	Remark          string    `bson:"remark"`
-	CreatedAt       time.Time `bson:"created_at"`
-	UpdatedAt       time.Time `bson:"updated_at"`
+	ID              string `bson:"_id"` // 账单号
+	OrderNo         string `bson:"order_no"`
+	UserID          string `bson:"user_id"`
+	DriverID        string `bson:"driver_id"`
+	TotalAmount     int64  `bson:"total_amount"`
+	PayFee          int64  `bson:"pay_fee"`
+	DiscountFee     int64  `bson:"discount_fee"`
+	RefundFee       int64  `bson:"refund_fee"`
+	DriverIncome    int64  `bson:"driver_income"`
+	CommissionFee   int64  `bson:"commission_fee"`
+	SubsidyFee      int64  `bson:"subsidy_fee"`
+	Settled         bool   `bson:"settled"`
+	PlatformSubsidy int64  `bson:"platform_subsidy"`
+	// CommissionRateBP 建账时锁定的佣金率，万分比（2000 = 20%）。
+	CommissionRateBP int64     `bson:"commission_rate_bp"`
+	Status           string    `bson:"status"`
+	Remark           string    `bson:"remark"`
+	CreatedAt        time.Time `bson:"created_at"`
+	UpdatedAt        time.Time `bson:"updated_at"`
 }
 
 func (BillDocument) MongoCollectionName() string {

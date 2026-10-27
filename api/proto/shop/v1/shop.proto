@@ -82,6 +82,19 @@ service ShopService {
   rpc ExpireUserCoupons(ExpireUserCouponsRequest) returns (ExpireUserCouponsResponse);
   // P14：VoidUserCoupon 作废券（风控/运营介入 AVAILABLE/LOCKED → VOID）。
   rpc VoidUserCoupon(VoidUserCouponRequest) returns (UserCouponResponse);
+
+  // ===== 乘客行程：下单 → 接单 → 到达 → 上车 → 送达（计价+建账） =====
+  rpc CreateTrip(CreateTripRequest) returns (TripResponse);
+  rpc GetTrip(GetTripRequest) returns (TripResponse);
+  rpc ListTrips(ListTripsRequest) returns (ListTripsResponse);
+  rpc AssignDriver(AssignDriverRequest) returns (TripResponse);
+  rpc DriverArrived(TripActionRequest) returns (TripResponse);
+  rpc BoardTrip(TripActionRequest) returns (TripResponse);
+  rpc CancelTrip(TripActionRequest) returns (TripResponse);
+  // EndTrip 送达：先按规则快照计价，再按锁定的佣金率建账。
+  rpc EndTrip(EndTripRequest) returns (TripResponse);
+  // PayTrip 乘客为已结束行程付款：金额取计价结果，支付单号复用行程号。
+  rpc PayTrip(PayTripRequest) returns (PayTripResponse);
 }
 
 message CreateShopRequest {
@@ -483,4 +496,79 @@ message CountUsableCouponsResponse {
 
 message ExpireUserCouponsResponse {
   int64 expired_count = 1;        // 本次标记过期数量
+}
+
+// ===== 乘客行程 =====
+
+message CreateTripRequest {
+  string trip_id = 1;             // 行程号，调用方生成，作为幂等锚点
+  string passenger_id = 2;
+  GeoPoint origin = 3;            // 上车点
+  GeoPoint destination = 4;       // 目的地
+}
+
+message GetTripRequest {
+  string trip_id = 1;
+}
+
+message ListTripsRequest {
+  string passenger_id = 1;
+  int32 limit = 2;
+}
+
+message AssignDriverRequest {
+  string trip_id = 1;
+  string driver_id = 2;
+}
+
+// TripActionRequest 针对单个行程的简单动作：到达 / 上车 / 取消。
+message TripActionRequest {
+  string trip_id = 1;
+  string driver_id = 2;
+}
+
+message EndTripRequest {
+  string trip_id = 1;
+  string driver_id = 2;
+  int64 distance_m = 3;           // 行驶里程（米）
+  int64 duration_sec = 4;         // 行驶时长（秒）
+  int64 wait_sec = 5;             // 等待时长（秒）
+}
+
+message TripResponse {
+  string trip_id = 1;
+  string passenger_id = 2;
+  string driver_id = 3;
+  string status = 4;              // WAITING/ACCEPTED/ARRIVED/IN_TRIP/ENDED/CANCELLED
+  GeoPoint origin = 5;
+  GeoPoint destination = 6;
+  int64 distance_m = 7;
+  int64 duration_sec = 8;
+  int64 wait_sec = 9;
+  string started_at = 10;
+  string ended_at = 11;
+  string billing_request_id = 12;
+  int64 passenger_paid = 13;      // 乘客实付（分）
+  int64 commission_rate_bp = 14;  // 行程结束时锁定的佣金率（万分比）
+  bool bill_created = 15;         // 账单是否已创建
+  string created_at = 16;
+  string updated_at = 17;
+}
+
+message ListTripsResponse {
+  repeated TripResponse items = 1;
+}
+
+// PayTripRequest 行程支付入参。刻意不含金额字段——
+// 金额必须等于计价结果，否则调用方可以自己定价。
+message PayTripRequest {
+  string trip_id = 1;
+  string scene = 2;               // wap（手机网站）/ page（电脑网站）
+}
+
+message PayTripResponse {
+  string trip_id = 1;
+  string order_no = 2;            // 与行程号同值，支付回调据此关联回账单
+  int64 amount = 3;               // 实付金额（分），来自计价结果
+  string pay_url = 4;             // 可直接跳转的支付宝支付链接
 }

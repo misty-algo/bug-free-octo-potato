@@ -5,6 +5,34 @@ import (
 	"errors"
 )
 
+// TripRepository 定义乘客行程聚合的持久化行为。
+// trips 集合 orderId 唯一；状态流转频繁且存在并发（司机接单 vs 乘客取消），
+// 因此 Save 携带 version 乐观锁，版本冲突返回 ErrTripVersionConflict。
+type TripRepository interface {
+	// Save 新增或更新行程（携带乐观锁，成功时 Version 自增）。
+	Save(ctx context.Context, t *Trip) error
+	// FindByID 按行程号查询；不存在返回 ErrTripNotFound。
+	FindByID(ctx context.Context, id string) (*Trip, error)
+	// ListByPassenger 按创建时间倒序返回乘客的行程列表。
+	ListByPassenger(ctx context.Context, passengerID string, limit int) ([]*Trip, error)
+	// ListPendingBillTrips 查询已结束但尚未建账的行程（建账补偿扫描用），最多返回 limit 条。
+	// 结果按创建时间升序，保证老单先补。
+	ListPendingBillTrips(ctx context.Context, limit int) ([]*Trip, error)
+}
+
+// OutboxRepository 定义出站可靠事件（派单通知）的持久化行为。
+// 事件与业务写入同事务落地，由后台投递器异步发布，保证 broker 抖动不丢事件。
+type OutboxRepository interface {
+	// EnqueueEvent 写入待投递事件；event_id 为主键，重复落地忽略（天然幂等）。
+	EnqueueEvent(ctx context.Context, e *OutboxEvent) error
+	// FetchPendingEvents 按创建时间升序返回待投递事件，最多 limit 条。
+	FetchPendingEvents(ctx context.Context, limit int) ([]*OutboxEvent, error)
+	// MarkPublished 标记事件已成功投递。
+	MarkPublished(ctx context.Context, eventID string) error
+	// MarkFailed 记录一次投递失败：重试次数 +1，达到 maxRetries 才置 failed。
+	MarkFailed(ctx context.Context, eventID, errMsg string, maxRetries int) error
+}
+
 // TrajectoryRepository 定义实时轨迹点（P08）的持久化行为。
 // trajectories 集合 append-only，不允许覆盖历史点。
 type TrajectoryRepository interface {
@@ -60,9 +88,9 @@ type CancelQuoteRepository interface {
 
 // 仓储层领域错误。
 var (
-	ErrTrajectoryNotFound            = errors.New("trajectory not found")
-	ErrDestinationChangeNotFound     = errors.New("destination change not found")
+	ErrTrajectoryNotFound               = errors.New("trajectory not found")
+	ErrDestinationChangeNotFound        = errors.New("destination change not found")
 	ErrDestinationChangeVersionConflict = errors.New("destination change version conflict")
-	ErrTripShareNotFound             = errors.New("trip share not found")
-	ErrCancelQuoteNotFound           = errors.New("cancel quote not found")
+	ErrTripShareNotFound                = errors.New("trip share not found")
+	ErrCancelQuoteNotFound              = errors.New("cancel quote not found")
 )

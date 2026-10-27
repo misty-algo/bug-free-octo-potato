@@ -55,6 +55,15 @@ const (
 	ShopService_ReleaseUserCoupon_FullMethodName        = "/shop.v1.ShopService/ReleaseUserCoupon"
 	ShopService_ExpireUserCoupons_FullMethodName        = "/shop.v1.ShopService/ExpireUserCoupons"
 	ShopService_VoidUserCoupon_FullMethodName           = "/shop.v1.ShopService/VoidUserCoupon"
+	ShopService_CreateTrip_FullMethodName               = "/shop.v1.ShopService/CreateTrip"
+	ShopService_GetTrip_FullMethodName                  = "/shop.v1.ShopService/GetTrip"
+	ShopService_ListTrips_FullMethodName                = "/shop.v1.ShopService/ListTrips"
+	ShopService_AssignDriver_FullMethodName             = "/shop.v1.ShopService/AssignDriver"
+	ShopService_DriverArrived_FullMethodName            = "/shop.v1.ShopService/DriverArrived"
+	ShopService_BoardTrip_FullMethodName                = "/shop.v1.ShopService/BoardTrip"
+	ShopService_CancelTrip_FullMethodName               = "/shop.v1.ShopService/CancelTrip"
+	ShopService_EndTrip_FullMethodName                  = "/shop.v1.ShopService/EndTrip"
+	ShopService_PayTrip_FullMethodName                  = "/shop.v1.ShopService/PayTrip"
 )
 
 // ShopServiceClient is the client API for ShopService service.
@@ -132,6 +141,18 @@ type ShopServiceClient interface {
 	ExpireUserCoupons(ctx context.Context, in *ExpireUserCouponsRequest, opts ...grpc.CallOption) (*ExpireUserCouponsResponse, error)
 	// P14：VoidUserCoupon 作废券（风控/运营介入 AVAILABLE/LOCKED → VOID）。
 	VoidUserCoupon(ctx context.Context, in *VoidUserCouponRequest, opts ...grpc.CallOption) (*UserCouponResponse, error)
+	// ===== 乘客行程：下单 → 接单 → 到达 → 上车 → 送达（计价+建账） =====
+	CreateTrip(ctx context.Context, in *CreateTripRequest, opts ...grpc.CallOption) (*TripResponse, error)
+	GetTrip(ctx context.Context, in *GetTripRequest, opts ...grpc.CallOption) (*TripResponse, error)
+	ListTrips(ctx context.Context, in *ListTripsRequest, opts ...grpc.CallOption) (*ListTripsResponse, error)
+	AssignDriver(ctx context.Context, in *AssignDriverRequest, opts ...grpc.CallOption) (*TripResponse, error)
+	DriverArrived(ctx context.Context, in *TripActionRequest, opts ...grpc.CallOption) (*TripResponse, error)
+	BoardTrip(ctx context.Context, in *TripActionRequest, opts ...grpc.CallOption) (*TripResponse, error)
+	CancelTrip(ctx context.Context, in *TripActionRequest, opts ...grpc.CallOption) (*TripResponse, error)
+	// EndTrip 送达：先按规则快照计价，再按锁定的佣金率建账。
+	EndTrip(ctx context.Context, in *EndTripRequest, opts ...grpc.CallOption) (*TripResponse, error)
+	// PayTrip 乘客为已结束行程付款：金额取计价结果，支付单号复用行程号。
+	PayTrip(ctx context.Context, in *PayTripRequest, opts ...grpc.CallOption) (*PayTripResponse, error)
 }
 
 type shopServiceClient struct {
@@ -502,6 +523,96 @@ func (c *shopServiceClient) VoidUserCoupon(ctx context.Context, in *VoidUserCoup
 	return out, nil
 }
 
+func (c *shopServiceClient) CreateTrip(ctx context.Context, in *CreateTripRequest, opts ...grpc.CallOption) (*TripResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TripResponse)
+	err := c.cc.Invoke(ctx, ShopService_CreateTrip_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) GetTrip(ctx context.Context, in *GetTripRequest, opts ...grpc.CallOption) (*TripResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TripResponse)
+	err := c.cc.Invoke(ctx, ShopService_GetTrip_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) ListTrips(ctx context.Context, in *ListTripsRequest, opts ...grpc.CallOption) (*ListTripsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTripsResponse)
+	err := c.cc.Invoke(ctx, ShopService_ListTrips_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) AssignDriver(ctx context.Context, in *AssignDriverRequest, opts ...grpc.CallOption) (*TripResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TripResponse)
+	err := c.cc.Invoke(ctx, ShopService_AssignDriver_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) DriverArrived(ctx context.Context, in *TripActionRequest, opts ...grpc.CallOption) (*TripResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TripResponse)
+	err := c.cc.Invoke(ctx, ShopService_DriverArrived_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) BoardTrip(ctx context.Context, in *TripActionRequest, opts ...grpc.CallOption) (*TripResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TripResponse)
+	err := c.cc.Invoke(ctx, ShopService_BoardTrip_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) CancelTrip(ctx context.Context, in *TripActionRequest, opts ...grpc.CallOption) (*TripResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TripResponse)
+	err := c.cc.Invoke(ctx, ShopService_CancelTrip_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) EndTrip(ctx context.Context, in *EndTripRequest, opts ...grpc.CallOption) (*TripResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TripResponse)
+	err := c.cc.Invoke(ctx, ShopService_EndTrip_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) PayTrip(ctx context.Context, in *PayTripRequest, opts ...grpc.CallOption) (*PayTripResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PayTripResponse)
+	err := c.cc.Invoke(ctx, ShopService_PayTrip_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ShopServiceServer is the server API for ShopService service.
 // All implementations must embed UnimplementedShopServiceServer
 // for forward compatibility.
@@ -577,6 +688,18 @@ type ShopServiceServer interface {
 	ExpireUserCoupons(context.Context, *ExpireUserCouponsRequest) (*ExpireUserCouponsResponse, error)
 	// P14：VoidUserCoupon 作废券（风控/运营介入 AVAILABLE/LOCKED → VOID）。
 	VoidUserCoupon(context.Context, *VoidUserCouponRequest) (*UserCouponResponse, error)
+	// ===== 乘客行程：下单 → 接单 → 到达 → 上车 → 送达（计价+建账） =====
+	CreateTrip(context.Context, *CreateTripRequest) (*TripResponse, error)
+	GetTrip(context.Context, *GetTripRequest) (*TripResponse, error)
+	ListTrips(context.Context, *ListTripsRequest) (*ListTripsResponse, error)
+	AssignDriver(context.Context, *AssignDriverRequest) (*TripResponse, error)
+	DriverArrived(context.Context, *TripActionRequest) (*TripResponse, error)
+	BoardTrip(context.Context, *TripActionRequest) (*TripResponse, error)
+	CancelTrip(context.Context, *TripActionRequest) (*TripResponse, error)
+	// EndTrip 送达：先按规则快照计价，再按锁定的佣金率建账。
+	EndTrip(context.Context, *EndTripRequest) (*TripResponse, error)
+	// PayTrip 乘客为已结束行程付款：金额取计价结果，支付单号复用行程号。
+	PayTrip(context.Context, *PayTripRequest) (*PayTripResponse, error)
 	mustEmbedUnimplementedShopServiceServer()
 }
 
@@ -694,6 +817,33 @@ func (UnimplementedShopServiceServer) ExpireUserCoupons(context.Context, *Expire
 }
 func (UnimplementedShopServiceServer) VoidUserCoupon(context.Context, *VoidUserCouponRequest) (*UserCouponResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VoidUserCoupon not implemented")
+}
+func (UnimplementedShopServiceServer) CreateTrip(context.Context, *CreateTripRequest) (*TripResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateTrip not implemented")
+}
+func (UnimplementedShopServiceServer) GetTrip(context.Context, *GetTripRequest) (*TripResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTrip not implemented")
+}
+func (UnimplementedShopServiceServer) ListTrips(context.Context, *ListTripsRequest) (*ListTripsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTrips not implemented")
+}
+func (UnimplementedShopServiceServer) AssignDriver(context.Context, *AssignDriverRequest) (*TripResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AssignDriver not implemented")
+}
+func (UnimplementedShopServiceServer) DriverArrived(context.Context, *TripActionRequest) (*TripResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DriverArrived not implemented")
+}
+func (UnimplementedShopServiceServer) BoardTrip(context.Context, *TripActionRequest) (*TripResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BoardTrip not implemented")
+}
+func (UnimplementedShopServiceServer) CancelTrip(context.Context, *TripActionRequest) (*TripResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelTrip not implemented")
+}
+func (UnimplementedShopServiceServer) EndTrip(context.Context, *EndTripRequest) (*TripResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EndTrip not implemented")
+}
+func (UnimplementedShopServiceServer) PayTrip(context.Context, *PayTripRequest) (*PayTripResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PayTrip not implemented")
 }
 func (UnimplementedShopServiceServer) mustEmbedUnimplementedShopServiceServer() {}
 func (UnimplementedShopServiceServer) testEmbeddedByValue()                     {}
@@ -1364,6 +1514,168 @@ func _ShopService_VoidUserCoupon_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ShopService_CreateTrip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateTripRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).CreateTrip(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_CreateTrip_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).CreateTrip(ctx, req.(*CreateTripRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_GetTrip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTripRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).GetTrip(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_GetTrip_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).GetTrip(ctx, req.(*GetTripRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_ListTrips_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTripsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).ListTrips(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_ListTrips_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).ListTrips(ctx, req.(*ListTripsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_AssignDriver_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AssignDriverRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).AssignDriver(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_AssignDriver_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).AssignDriver(ctx, req.(*AssignDriverRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_DriverArrived_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TripActionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).DriverArrived(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_DriverArrived_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).DriverArrived(ctx, req.(*TripActionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_BoardTrip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TripActionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).BoardTrip(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_BoardTrip_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).BoardTrip(ctx, req.(*TripActionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_CancelTrip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TripActionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).CancelTrip(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_CancelTrip_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).CancelTrip(ctx, req.(*TripActionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_EndTrip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EndTripRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).EndTrip(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_EndTrip_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).EndTrip(ctx, req.(*EndTripRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_PayTrip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PayTripRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).PayTrip(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_PayTrip_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).PayTrip(ctx, req.(*PayTripRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ShopService_ServiceDesc is the grpc.ServiceDesc for ShopService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1514,6 +1826,42 @@ var ShopService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VoidUserCoupon",
 			Handler:    _ShopService_VoidUserCoupon_Handler,
+		},
+		{
+			MethodName: "CreateTrip",
+			Handler:    _ShopService_CreateTrip_Handler,
+		},
+		{
+			MethodName: "GetTrip",
+			Handler:    _ShopService_GetTrip_Handler,
+		},
+		{
+			MethodName: "ListTrips",
+			Handler:    _ShopService_ListTrips_Handler,
+		},
+		{
+			MethodName: "AssignDriver",
+			Handler:    _ShopService_AssignDriver_Handler,
+		},
+		{
+			MethodName: "DriverArrived",
+			Handler:    _ShopService_DriverArrived_Handler,
+		},
+		{
+			MethodName: "BoardTrip",
+			Handler:    _ShopService_BoardTrip_Handler,
+		},
+		{
+			MethodName: "CancelTrip",
+			Handler:    _ShopService_CancelTrip_Handler,
+		},
+		{
+			MethodName: "EndTrip",
+			Handler:    _ShopService_EndTrip_Handler,
+		},
+		{
+			MethodName: "PayTrip",
+			Handler:    _ShopService_PayTrip_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -32,12 +32,13 @@ func (h *SettlementHandler) CreateBill(c *gin.Context) {
 		return
 	}
 	resp, err := h.client.CreateBill(outgoingContext(c), &settlementv1.CreateBillRequest{
-		OrderNo:         req.OrderNo,
-		UserId:          req.UserID,
-		DriverId:        req.DriverID,
-		TotalAmount:     req.TotalAmount,
-		PlatformSubsidy: req.PlatformSubsidy,
-		Remark:          req.Remark,
+		OrderNo:          req.OrderNo,
+		UserId:           req.UserID,
+		DriverId:         req.DriverID,
+		TotalAmount:      req.TotalAmount,
+		PlatformSubsidy:  req.PlatformSubsidy,
+		Remark:           req.Remark,
+		CommissionRateBp: req.CommissionRateBP,
 	})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
@@ -58,6 +59,7 @@ func (h *SettlementHandler) Split(c *gin.Context) {
 		OrderNo:           req.OrderNo,
 		CommissionRateBps: req.CommissionRateBps,
 		PlatformSubsidy:   req.PlatformSubsidy,
+		UseBillRate:       req.UseBillRate,
 	})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))

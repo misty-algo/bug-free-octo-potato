@@ -26,6 +26,13 @@ import (
 const serviceName = "settlement-service"
 const defaultGRPCPort = 9103
 
+// 掉单补偿参数：支付链路的分账是 fire-and-forget，失败只记日志，
+// 靠这个后台循环兜底，保证钱最终进司机钱包。这两个值可按实际单量调整。
+const (
+	reconcileInterval  = 30 * time.Second
+	reconcileBatchSize = int64(100)
+)
+
 func main() {
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
@@ -68,8 +75,12 @@ func main() {
 		log.Fatal("listen failed", zap.String("addr", addr), zap.Error(err))
 	}
 
+	// 掉单补偿：支付成功后分账失败的账单靠它兜底。
+	reconciler := settlementservice.NewReconcileWorker(svc, log, reconcileInterval, reconcileBatchSize)
+	reconciler.Start()
+
 	printStartupSummary(cfg.App.Env, addr, port)
-	go shutdownOnSignal(server, log)
+	go shutdownOnSignal(server, reconciler, log)
 	if err := server.Serve(listener); err != nil {
 		log.Fatal("service stopped unexpectedly", zap.Error(err))
 	}
@@ -88,10 +99,12 @@ func printStartupSummary(env string, addr string, port int) {
 	fmt.Fprintf(os.Stdout, "  config: services.settlement.port\n\n")
 }
 
-func shutdownOnSignal(server *grpc.Server, log *zap.Logger) {
+func shutdownOnSignal(server *grpc.Server, reconciler *settlementservice.ReconcileWorker, log *zap.Logger) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	<-ch
 	log.Info("service shutting down", zap.String("service", serviceName))
+	// 先停补偿，等当前批次结束，避免停机把分账做在一半。
+	reconciler.Stop()
 	server.GracefulStop()
 }

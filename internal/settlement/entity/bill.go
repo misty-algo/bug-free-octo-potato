@@ -42,10 +42,13 @@ type Bill struct {
 	SubsidyFee      int64 // 平台补贴（分）
 	Settled         bool  // 是否已结算给司机
 	PlatformSubsidy int64 // 平台补贴（分，兼容旧字段）
-	Status          string
-	Remark          string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	// CommissionRateBP 是建账时锁定的平台佣金率，万分比（2000 = 20%）。
+	// 分账必须用账单自己锁定的费率：否则规则在行程期间被修改会让分账金额漂移。
+	CommissionRateBP int64
+	Status           string
+	Remark           string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // MarkPaid 支付成功：UNPAID → PAID，已是 PAID 幂等通过。
@@ -103,14 +106,14 @@ type Wallet struct {
 
 // 领域错误。
 var (
-	ErrBillNotFound            = errors.New("bill not found")
-	ErrBillAlreadyExists       = errors.New("bill already exists")
-	ErrBillAlreadySplit        = errors.New("bill already split")
-	ErrBillStateTransition     = errors.New("invalid bill state transition")
-	ErrInvalidSplitRequest     = errors.New("invalid split request")
-	ErrWalletNotFound          = errors.New("wallet not found")
-	ErrWalletVersionConflict   = errors.New("wallet version conflict")
-	ErrTransactionNotFound     = errors.New("bill transaction not found")
+	ErrBillNotFound             = errors.New("bill not found")
+	ErrBillAlreadyExists        = errors.New("bill already exists")
+	ErrBillAlreadySplit         = errors.New("bill already split")
+	ErrBillStateTransition      = errors.New("invalid bill state transition")
+	ErrInvalidSplitRequest      = errors.New("invalid split request")
+	ErrWalletNotFound           = errors.New("wallet not found")
+	ErrWalletVersionConflict    = errors.New("wallet version conflict")
+	ErrTransactionNotFound      = errors.New("bill transaction not found")
 	ErrTransactionAlreadyExists = errors.New("bill transaction already exists")
-	ErrRefundSettlementExceeds = errors.New("refund amount exceeds driver settled income")
+	ErrRefundSettlementExceeds  = errors.New("refund amount exceeds driver settled income")
 )

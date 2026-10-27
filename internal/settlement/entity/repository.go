@@ -12,6 +12,9 @@ type Repository interface {
 	FindBillByOrderNo(ctx context.Context, orderNo string) (*Bill, error)
 	// ListUnpaidBillsByUser 查询用户全部待支付账单（未付禁叫车校验）。
 	ListUnpaidBillsByUser(ctx context.Context, userID string) ([]*Bill, error)
+	// ListPendingSettleBills 查询已支付但未结算的账单（掉单补偿扫描用），最多返回 limit 条。
+	// 结果按创建时间升序，保证老单先补。
+	ListPendingSettleBills(ctx context.Context, limit int64) ([]*Bill, error)
 
 	// AppendTransaction 追加一条不可变分账流水。
 	AppendTransaction(ctx context.Context, tx *BillTransaction) error

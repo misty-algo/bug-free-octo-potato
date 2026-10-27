@@ -18,7 +18,6 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 	v1 := api.Group("/v1")
 
 	registerUserRoutes(v1, handler.NewUserHandler(clients.User, middlewareCfg.JWT, log), middlewareCfg.JWT)
-	registerNoteRoutes(v1, handler.NewNoteHandler(clients.Note, log))
 	registerOrderRoutes(v1, handler.NewOrderHandler(clients.Order, log))
 	registerDriverRoutes(v1, handler.NewDriverHandler(clients.Driver, log))
 	writes := strings.EqualFold(os.Getenv("ARRIVAL_ENABLED"), "true")
@@ -40,6 +39,7 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 	registerShopRoutes(v1, handler.NewShopHandler(clients.Shop, log))
 	registerPaymentRoutes(v1, handler.NewPaymentHandler(clients.Payment, log))
 	registerSettlementRoutes(v1, handler.NewSettlementHandler(clients.Settlement, log))
+	registerPassengerRoutes(api, handler.NewPassengerHandler(clients.Shop, log))
 
 	// 支付宝异步通知公网回调：cpolar 穿透路径 /aLiPay 原样透传，固定在根路径注册。
 	r.POST("/aLiPay", handler.NewShopHandler(clients.Shop, log).AlipayNotify)

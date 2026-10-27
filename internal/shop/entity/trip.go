@@ -38,9 +38,9 @@ const (
 
 // 轨迹点质量问题标签。
 const (
-	QualityNormal  = "normal"  // 正常
-	QualityDelay   = "delay"   // 上报延迟
-	QualityJump    = "jump"    // 跳点
+	QualityNormal = "normal" // 正常
+	QualityDelay  = "delay"  // 上报延迟
+	QualityJump   = "jump"   // 跳点
 )
 
 // TrajectoryPoint 是轨迹上报点（值对象）。
@@ -66,6 +66,23 @@ type TrajectoryPoint struct {
 type GeoPoint struct {
 	Type        string    `json:"type"`
 	Coordinates []float64 `json:"coordinates"`
+}
+
+// Lng 返回经度。GeoJSON 规定坐标顺序为 [lng, lat]，与口语习惯的「经纬度」相反，
+// 用命名方法取值，避免各处直接下标访问时把经纬写反——那会让派单把司机导到错的地方。
+func (g GeoPoint) Lng() float64 {
+	if len(g.Coordinates) < 1 {
+		return 0
+	}
+	return g.Coordinates[0]
+}
+
+// Lat 返回纬度。坐标顺序见 Lng 的说明。
+func (g GeoPoint) Lat() float64 {
+	if len(g.Coordinates) < 2 {
+		return 0
+	}
+	return g.Coordinates[1]
 }
 
 // IsValid 校验轨迹点必填字段与坐标合法性。

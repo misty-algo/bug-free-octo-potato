@@ -17,8 +17,6 @@ services:
     target: order:9100
   user:
     target: 127.0.0.1:9001
-  note:
-    target: 127.0.0.1:9002
 middleware:
   jwt:
     issuer: xiaolanshu

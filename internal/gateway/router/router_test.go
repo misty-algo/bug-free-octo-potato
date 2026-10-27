@@ -13,7 +13,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	notev1 "github.com/BwCloudWeGo/bw-cli/api/gen/note/v1"
 	userv1 "github.com/BwCloudWeGo/bw-cli/api/gen/user/v1"
 	"github.com/BwCloudWeGo/bw-cli/internal/gateway/client"
 	"github.com/BwCloudWeGo/bw-cli/internal/gateway/router"
@@ -25,7 +24,6 @@ func TestRouterUsesConfiguredCORSAndVersionedBusinessRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := router.New(&client.Clients{
 		User: fakeUserClient{},
-		Note: fakeNoteClient{},
 	}, zap.NewNop(), config.MiddlewareConfig{
 		CORS: middleware.CORSConfig{
 			AllowOrigins: []string{"http://console.example.com"},
@@ -53,16 +51,12 @@ func TestRouterUsesConfiguredCORSAndVersionedBusinessRoutes(t *testing.T) {
 	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/users/login")
 	requireRoute(t, registeredRoutes, http.MethodGet, "/api/v1/users/me")
 	requireRoute(t, registeredRoutes, http.MethodGet, "/api/v1/users/:id")
-	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/notes")
-	requireRoute(t, registeredRoutes, http.MethodGet, "/api/v1/notes/:id")
-	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/notes/publishNote")
 }
 
 func TestRouterProtectsCurrentUserRouteWithJWT(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := router.New(&client.Clients{
 		User: fakeUserClient{},
-		Note: fakeNoteClient{},
 	}, zap.NewNop(), config.MiddlewareConfig{
 		JWT: middleware.JWTConfig{
 			Secret:        "test-secret",
@@ -96,7 +90,6 @@ func TestRouterRejectsCurrentUserRouteWithoutJWT(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := router.New(&client.Clients{
 		User: fakeUserClient{},
-		Note: fakeNoteClient{},
 	}, zap.NewNop(), config.MiddlewareConfig{
 		JWT: middleware.JWTConfig{
 			Secret:        "test-secret",
@@ -117,7 +110,6 @@ func TestRouterLoginIssuesJWTAtGateway(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := router.New(&client.Clients{
 		User: fakeUserClient{},
-		Note: fakeNoteClient{},
 	}, zap.NewNop(), config.MiddlewareConfig{
 		JWT: middleware.JWTConfig{
 			Secret:        "test-secret",
@@ -171,18 +163,4 @@ func (fakeUserClient) Login(context.Context, *userv1.LoginRequest, ...grpc.CallO
 
 func (fakeUserClient) GetUser(context.Context, *userv1.GetUserRequest, ...grpc.CallOption) (*userv1.UserResponse, error) {
 	return &userv1.UserResponse{Id: "user-1", Account: "ada", DisplayName: "Ada"}, nil
-}
-
-type fakeNoteClient struct{}
-
-func (fakeNoteClient) CreateNote(context.Context, *notev1.CreateNoteRequest, ...grpc.CallOption) (*notev1.NoteResponse, error) {
-	return &notev1.NoteResponse{Id: "note-1", AuthorId: "user-1", Title: "Title", Content: "Content", Status: "DRAFT"}, nil
-}
-
-func (fakeNoteClient) GetNote(context.Context, *notev1.GetNoteRequest, ...grpc.CallOption) (*notev1.NoteResponse, error) {
-	return &notev1.NoteResponse{Id: "note-1", AuthorId: "user-1", Title: "Title", Content: "Content", Status: "DRAFT"}, nil
-}
-
-func (fakeNoteClient) PublishNote(context.Context, *notev1.PublishNoteRequest, ...grpc.CallOption) (*notev1.NoteResponse, error) {
-	return &notev1.NoteResponse{Id: "note-1", AuthorId: "user-1", Title: "Title", Content: "Content", Status: "PUBLISHED"}, nil
 }

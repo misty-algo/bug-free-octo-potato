@@ -16,7 +16,6 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/internal/gateway/router"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 	"github.com/BwCloudWeGo/bw-cli/pkg/logger"
-	"github.com/BwCloudWeGo/bw-cli/pkg/observability"
 )
 
 func main() {
@@ -37,7 +36,6 @@ func main() {
 		panic(err)
 	}
 	defer log.Sync()
-	observability.Register(gatewayServiceName, log)
 	config.PrintSourceNotice(cfg, os.Stdout)
 
 	clients, err := client.New(cfg, log)

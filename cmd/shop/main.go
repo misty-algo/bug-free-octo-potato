@@ -16,6 +16,8 @@ import (
 
 	settlementv1 "github.com/BwCloudWeGo/bw-cli/api/gen/settlement/v1"
 	shopv1 "github.com/BwCloudWeGo/bw-cli/api/gen/shop/v1"
+	pricingrepo "github.com/BwCloudWeGo/bw-cli/internal/pricing/repo"
+	pricingservice "github.com/BwCloudWeGo/bw-cli/internal/pricing/service"
 	shophandler "github.com/BwCloudWeGo/bw-cli/internal/shop/handler"
 	shoprepo "github.com/BwCloudWeGo/bw-cli/internal/shop/repo"
 	shopservice "github.com/BwCloudWeGo/bw-cli/internal/shop/service"
@@ -25,6 +27,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/grpcx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/logger"
 	"github.com/BwCloudWeGo/bw-cli/pkg/mongox"
+	"github.com/BwCloudWeGo/bw-cli/pkg/rabbitmqx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/wechatpayx"
 )
 
@@ -36,6 +39,16 @@ const (
 	paymentCompensateInterval = 60 * time.Second
 	paymentPendingTimeout     = 5 * time.Minute
 	paymentCompensateTimeout  = 30 * time.Second
+
+	// 建账补偿参数：行程已结束但账单未建出的中间态靠它兜底。
+	// 间隔比支付补偿更短——账单建不出来，乘客连付款入口都没有，阻塞感最强。
+	billReconcileInterval  = 15 * time.Second
+	billReconcileBatchSize = 100
+
+	// 派单事件投递参数：下单事件落 outbox 后由这里异步发布，失败自动重试。
+	eventPublishInterval  = 2 * time.Second
+	eventPublishTimeout   = 10 * time.Second
+	eventPublishBatchSize = 50
 )
 
 func main() {
@@ -69,7 +82,9 @@ func main() {
 	initMongoRepositories(svc, cfg, log)
 	initAlipayClient(svc, cfg, log)
 	initWechatClient(svc, cfg, log)
+	initEventPublisher(svc, cfg, log)
 	go startPaymentCompensation(svc, log)
+	go startEventPublishLoop(svc, log)
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
 	shopv1.RegisterShopServiceServer(server, shophandler.NewServer(svc, log))
 
@@ -81,8 +96,12 @@ func main() {
 		log.Fatal("listen failed", zap.String("addr", addr), zap.Error(err))
 	}
 
+	// 建账补偿：行程已计价但建账失败的中间态靠它兜底，否则乘客永远付不了款。
+	billReconciler := shopservice.NewBillReconcileWorker(svc, log, billReconcileInterval, billReconcileBatchSize)
+	billReconciler.Start()
+
 	printStartupSummary(cfg.App.Env, addr, port)
-	go shutdownOnSignal(server, log)
+	go shutdownOnSignal(server, billReconciler, log)
 	if err := server.Serve(listener); err != nil {
 		log.Fatal("service stopped unexpectedly", zap.Error(err))
 	}
@@ -104,6 +123,14 @@ func initMongoRepositories(svc *shopservice.Service, cfg *config.Config, log *za
 	svc.SetDestinationChangeRepository(shoprepo.NewMongoDestinationChangeRepository(mongoDB, log))
 	svc.SetTripShareRepository(shoprepo.NewMongoTripShareRepository(mongoDB, log))
 	svc.SetCancelQuoteRepository(shoprepo.NewMongoCancelQuoteRepository(mongoDB, log))
+	svc.SetTripRepository(shoprepo.NewMongoTripRepository(mongoDB, log))
+	svc.SetOutboxRepository(shoprepo.NewMongoOutboxRepository(mongoDB, log))
+	svc.SetPricingService(pricingservice.New(pricingrepo.NewMongoRuleSnapshotRepository(mongoDB, log)))
+	svc.SetUserCouponRepository(shoprepo.NewMongoUserCouponRepository(mongoDB, log))
+	// 派单事件的投递扫描每 2 秒一次，缺索引会退化成全表扫描。
+	if err := shoprepo.NewMongoOutboxRepository(mongoDB, log).EnsureIndexes(context.Background()); err != nil {
+		log.Warn("ensure outbox indexes failed", zap.Error(err))
+	}
 	log.Info("mongodb repositories initialized", zap.String("service", serviceName),
 		zap.String("database", cfg.MongoDB.Database))
 }
@@ -165,6 +192,39 @@ func initWechatClient(svc *shopservice.Service, cfg *config.Config, log *zap.Log
 
 // startPaymentCompensation 后台补偿 goroutine：周期扫描超过阈值的 pending 支付单，
 // 逐个调用 service 查单方法刷新状态（成功→success，失败保持 pending），实现掉单补偿闭环。
+// initEventPublisher 连接 RabbitMQ 并注入事件投递器。
+//
+// 连接失败只告警不退出：派单事件已落在 outbox 表里，broker 恢复后由发布循环自动补投，
+// 因此 MQ 故障只影响派单延迟，不应让整个乘客域（含下单）不可用。
+func initEventPublisher(svc *shopservice.Service, cfg *config.Config, log *zap.Logger) {
+	mqClient, err := rabbitmqx.New(cfg.RabbitMQ.RabbitmqxConfig())
+	if err != nil {
+		log.Warn("connect rabbitmq failed, dispatch events will retry later",
+			zap.String("service", serviceName), zap.Error(err))
+		return
+	}
+	svc.SetEventPublisher(mqClient.Publish)
+	log.Info("rabbitmq connected", zap.String("service", serviceName), zap.String("url", cfg.RabbitMQ.URL))
+}
+
+// startEventPublishLoop 可靠事件投递循环：把 outbox 里的待投事件发布到消息队列。
+func startEventPublishLoop(svc *shopservice.Service, log *zap.Logger) {
+	ticker := time.NewTicker(eventPublishInterval)
+	defer ticker.Stop()
+	for range ticker.C {
+		ctx, cancel := context.WithTimeout(context.Background(), eventPublishTimeout)
+		published, err := svc.PublishPendingEvents(ctx, eventPublishBatchSize)
+		cancel()
+		if err != nil {
+			log.Warn("event publish round failed", zap.String("service", serviceName), zap.Error(err))
+			continue
+		}
+		if published > 0 {
+			log.Info("event publish round done", zap.String("service", serviceName), zap.Int("published", published))
+		}
+	}
+}
+
 func startPaymentCompensation(svc *shopservice.Service, log *zap.Logger) {
 	ticker := time.NewTicker(paymentCompensateInterval)
 	defer ticker.Stop()
@@ -195,10 +255,12 @@ func printStartupSummary(env string, addr string, port int) {
 	fmt.Fprintf(os.Stdout, "  config: services.shop.port\n\n")
 }
 
-func shutdownOnSignal(server *grpc.Server, log *zap.Logger) {
+func shutdownOnSignal(server *grpc.Server, reconciler *shopservice.BillReconcileWorker, log *zap.Logger) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	<-ch
 	log.Info("service shutting down", zap.String("service", serviceName))
+	// 先停补偿，等当前批次结束，避免停机把建账做在一半。
+	reconciler.Stop()
 	server.GracefulStop()
 }

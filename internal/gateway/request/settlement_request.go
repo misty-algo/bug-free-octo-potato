@@ -8,6 +8,8 @@ type CreateBillRequest struct {
 	TotalAmount     int64  `json:"total_amount" binding:"required,gt=0"`
 	PlatformSubsidy int64  `json:"platform_subsidy"`
 	Remark          string `json:"remark"`
+	// CommissionRateBP 建账时锁定的平台佣金率（万分比），如 2000 = 20%。
+	CommissionRateBP int64 `json:"commission_rate_bp" binding:"min=0,max=10000"`
 }
 
 // SplitBillRequest 是 POST /api/v1/settlements/split 使用的 JSON 载荷。
@@ -16,6 +18,8 @@ type SplitBillRequest struct {
 	OrderNo           string `json:"order_no" binding:"required"`
 	CommissionRateBps int64  `json:"commission_rate_bps" binding:"min=0,max=10000"`
 	PlatformSubsidy   int64  `json:"platform_subsidy"`
+	// UseBillRate 为 true 时忽略 commission_rate_bps，按建账锁定的费率分账。
+	UseBillRate bool `json:"use_bill_rate"`
 }
 
 // GetWalletBalanceRequest 是 GET /api/v1/settlements/wallets/:driver_id 使用的查询参数载荷。

@@ -31,13 +31,14 @@ func NewServer(svc *service.Service, log *zap.Logger) *Server {
 // CreateBill 处理生成乘客账单。
 func (s *Server) CreateBill(ctx context.Context, req *settlementv1.CreateBillRequest) (*settlementv1.BillResponse, error) {
 	bill, err := s.svc.CreateBill(ctx, dto.CreateBillCommand{
-		OrderNo:         req.GetOrderNo(),
-		UserID:          req.GetUserId(),
-		DriverID:        req.GetDriverId(),
-		TotalAmount:     req.GetTotalAmount(),
-		DiscountFee:     req.GetDiscountFee(),
-		PlatformSubsidy: req.GetPlatformSubsidy(),
-		Remark:          req.GetRemark(),
+		OrderNo:          req.GetOrderNo(),
+		UserID:           req.GetUserId(),
+		DriverID:         req.GetDriverId(),
+		TotalAmount:      req.GetTotalAmount(),
+		DiscountFee:      req.GetDiscountFee(),
+		PlatformSubsidy:  req.GetPlatformSubsidy(),
+		Remark:           req.GetRemark(),
+		CommissionRateBP: req.GetCommissionRateBp(),
 	})
 	if err != nil {
 		return nil, mapSettlementError(err)
@@ -61,6 +62,7 @@ func (s *Server) SplitBill(ctx context.Context, req *settlementv1.SplitBillReque
 		DriverSubsidy:   0, // 司机补贴不在本阶段 proto 暴露，如需可扩展
 		PlatformSubsidy: req.GetPlatformSubsidy(),
 		IdempotentKey:   req.GetIdempotentKey(),
+		UseBillRate:     req.GetUseBillRate(),
 	})
 	if err != nil {
 		return nil, mapSettlementError(err)

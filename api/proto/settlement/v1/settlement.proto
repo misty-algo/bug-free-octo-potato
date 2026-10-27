@@ -33,6 +33,9 @@ message CreateBillRequest {
   int64 platform_subsidy = 6;    // 平台补贴（分，默认 0）
   string remark = 7;             // 备注
   int64 discount_fee = 8;        // 优惠总额（分，默认 0）
+  // commission_rate_bp 建账时锁定的平台佣金率，万分比（2000 = 20%），
+  // 后续自动分账以此为准，避免规则在行程期间被修改导致分账金额漂移。
+  int64 commission_rate_bp = 9;
 }
 
 message BillResponse {
@@ -59,6 +62,9 @@ message SplitBillRequest {
   int64 commission_rate_bps = 3;             // 平台佣金比例，万分比，默认 1000（10%）
   int64 platform_subsidy = 4;                // 平台补贴（分，默认 0，须与账单一致）
   string idempotent_key = 5;                 // 分账幂等键（可选，默认取 bill_no）
+  // use_bill_rate 为 true 时忽略 commission_rate_bps，改用建账锁定的费率。
+  // 支付成功后的自动分账必须置 true：调用方不掌握费率，必须按锁定值分账。
+  bool use_bill_rate = 6;
 }
 
 message SplitBillResponse {

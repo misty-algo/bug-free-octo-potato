@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	settlementv1 "github.com/BwCloudWeGo/bw-cli/api/gen/settlement/v1"
+	pricingservice "github.com/BwCloudWeGo/bw-cli/internal/pricing/service"
 	"github.com/BwCloudWeGo/bw-cli/internal/shop/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/shop/entity"
 	"github.com/BwCloudWeGo/bw-cli/pkg/gopay"
@@ -22,12 +23,21 @@ type Service struct {
 
 	settlement settlementv1.SettlementServiceClient
 
-	trajectories    entity.TrajectoryRepository
-	virtualNumbers  entity.VirtualNumberRepository
-	destinationChg  entity.DestinationChangeRepository
-	tripShares      entity.TripShareRepository
-	cancelQuotes    entity.CancelQuoteRepository
-	userCoupons     entity.UserCouponRepository
+	// trips 乘客行程聚合；pricing 计价域（进程内调用，计价无独立服务与契约）。
+	trips   entity.TripRepository
+	pricing *pricingservice.Service
+
+	// outbox 出站可靠事件；publisher 由 cmd 注入（RabbitMQ 发布函数）。
+	// 派单通知走「先落库再异步投递」，broker 抖动只影响延迟，不影响送达。
+	outbox    entity.OutboxRepository
+	publisher func(ctx context.Context, routingKey string, body []byte) error
+
+	trajectories   entity.TrajectoryRepository
+	virtualNumbers entity.VirtualNumberRepository
+	destinationChg entity.DestinationChangeRepository
+	tripShares     entity.TripShareRepository
+	cancelQuotes   entity.CancelQuoteRepository
+	userCoupons    entity.UserCouponRepository
 }
 
 // NewService 创建 shop 用例服务。
@@ -47,6 +57,27 @@ func (s *Service) SetPaymentRepository(payments entity.PaymentRepository) {
 // 未注入时退款仍正常完成，仅跳过冲正（由 refund_success 事件消费端兜底）。
 func (s *Service) SetSettlementClient(client settlementv1.SettlementServiceClient) {
 	s.settlement = client
+}
+
+// SetTripRepository 注入乘客行程仓储。下单与行程流转用例落库前必须注入。
+func (s *Service) SetTripRepository(r entity.TripRepository) {
+	s.trips = r
+}
+
+// SetPricingService 注入计价域服务。计价无独立部署与 gRPC 契约，按进程内调用使用。
+// 未注入时行程结束无法计价，EndTrip 直接返回错误（不建 0 元账单）。
+func (s *Service) SetPricingService(p *pricingservice.Service) {
+	s.pricing = p
+}
+
+// SetOutboxRepository 注入出站事件仓储。下单派单通知落库前必须注入。
+func (s *Service) SetOutboxRepository(r entity.OutboxRepository) {
+	s.outbox = r
+}
+
+// SetEventPublisher 注入事件投递器（cmd 接线时传入 RabbitMQ 发布函数）。
+func (s *Service) SetEventPublisher(publisher func(ctx context.Context, routingKey string, body []byte) error) {
+	s.publisher = publisher
 }
 
 // SetTrajectoryRepository 注入实时轨迹仓储（P08）。

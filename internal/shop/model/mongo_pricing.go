@@ -31,8 +31,8 @@ type PricingRulesDocument struct {
 	WaitingFeePerMin   int64            `bson:"waiting_fee_per_min"`
 	ExtraFeeTypes      []string         `bson:"extra_fee_types"`
 
-	// 司机结算
-	CommissionRate          float64     `bson:"commission_rate"`
+	// 司机结算。比率一律用万分比整数（2000 = 20%），与 settlement 域 P*rate/10000 口径一致。
+	CommissionRateBP        int64       `bson:"commission_rate_bp"`
 	DriverMinIncomePerOrder int64       `bson:"driver_min_income_per_order"`
 	SubsidyRule             SubsidyRule `bson:"subsidy_rule"`
 	Remark                  string      `bson:"remark"`
@@ -94,18 +94,20 @@ const pricingSnapshotsMongoCollectionName = "pricing_snapshots"
 
 // PricingSnapshotsDocument 是 pricing_snapshots 集合（计价规则快照）的 MongoDB 文档模型。
 type PricingSnapshotsDocument struct {
-	ID          string                 `bson:"_id"`
-	OrderID     string                 `bson:"order_id"`
-	RuleID      string                 `bson:"rule_id"`
-	RuleVersion int64                  `bson:"rule_version"`
-	Snapshot    map[string]interface{} `bson:"snapshot"`
-	SurgeRatio  float64                `bson:"surge_ratio"`
-	CreatedAt   time.Time              `bson:"created_at"`
-	UpdatedAt   time.Time              `bson:"updated_at"`
-	CreatedBy   string                 `bson:"created_by"`
-	UpdatedBy   string                 `bson:"updated_by"`
-	IsDeleted   bool                   `bson:"is_deleted"`
-	Version     int64                  `bson:"version"`
+	ID          string `bson:"_id"`
+	OrderID     string `bson:"order_id"`
+	RuleID      string `bson:"rule_id"`
+	RuleVersion int64  `bson:"rule_version"`
+	// Snapshot 保存下单当时的规则副本，结构化存储以便计价时可直接还原成类型化规则，
+	// 避免规则在行程期间被修改导致实付与预估不一致。
+	Snapshot     PricingRulesDocument `bson:"snapshot"`
+	SurgeRatioBP int64                `bson:"surge_ratio_bp"`
+	CreatedAt    time.Time            `bson:"created_at"`
+	UpdatedAt    time.Time            `bson:"updated_at"`
+	CreatedBy    string               `bson:"created_by"`
+	UpdatedBy    string               `bson:"updated_by"`
+	IsDeleted    bool                 `bson:"is_deleted"`
+	Version      int64                `bson:"version"`
 }
 
 func (PricingSnapshotsDocument) MongoCollectionName() string {
@@ -116,17 +118,18 @@ const surgeRulesMongoCollectionName = "surge_rules"
 
 // SurgeRulesDocument 是 surge_rules 集合（动态调价规则）的 MongoDB 文档模型。
 type SurgeRulesDocument struct {
-	ID                string     `bson:"_id"`
-	CityCode          string     `bson:"city_code"`
-	ProductCode       string     `bson:"product_code"`
-	GeoHash           string     `bson:"geo_hash"`
-	DemandSupplyRatio float64    `bson:"demand_supply_ratio"`
-	SurgeRatio        float64    `bson:"surge_ratio"`
-	MaxSurgeRatio     float64    `bson:"max_surge_ratio"`
-	TimeWindow        TimeWindow `bson:"time_window"`
-	WeatherTrigger    []string   `bson:"weather_trigger"`
-	Enabled           bool       `bson:"enabled"`
-	Sort              int64      `bson:"sort"`
+	ID          string `bson:"_id"`
+	CityCode    string `bson:"city_code"`
+	ProductCode string `bson:"product_code"`
+	GeoHash     string `bson:"geo_hash"`
+	// 比率一律用万分比整数（12000 表示 1.2 倍），避免 float 进入金额计算路径。
+	DemandSupplyRatioBP int64      `bson:"demand_supply_ratio_bp"`
+	SurgeRatioBP        int64      `bson:"surge_ratio_bp"`
+	MaxSurgeRatioBP     int64      `bson:"max_surge_ratio_bp"`
+	TimeWindow          TimeWindow `bson:"time_window"`
+	WeatherTrigger      []string   `bson:"weather_trigger"`
+	Enabled             bool       `bson:"enabled"`
+	Sort                int64      `bson:"sort"`
 
 	CreatedAt time.Time `bson:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"`

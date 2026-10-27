@@ -303,7 +303,7 @@ func (s *Service) BarCodePay(ctx context.Context, cmd dto.BarCodePayCommand) (*B
 
 // markSuccess 将支付单标记为 success 并记录渠道交易号与支付时间。
 // P5：终态保护——仅 pending 可成功；已 success 幂等返回；CLOSED/FAILED/REFUNDED 拒绝迁移。
-// P3：成功后触发结算服务 MarkBillPaid，打通支付成功→账单置 PAID 链路（方案 A，无 MQ）。
+// P3：成功后驱动结算链路 MarkBillPaid → SplitBill，打通支付成功→分账入司机钱包（方案 A，无 MQ）。
 func (s *Service) markSuccess(ctx context.Context, orderNo, tradeNo string, paidAt time.Time) error {
 	if s.payments == nil {
 		return nil
@@ -328,31 +328,54 @@ func (s *Service) markSuccess(ctx context.Context, orderNo, tradeNo string, paid
 		s.log.Warn("mark payment success error", zap.String("order_no", orderNo), zap.Error(err))
 		return err
 	}
-	s.triggerMarkBillPaid(orderNo, item.Amount)
+	s.triggerSettlement(orderNo, item.Amount)
 	return nil
 }
 
-// triggerMarkBillPaid 支付成功后异步通知结算服务将账单置为 PAID（方案 A，无需 MQ）。
-// 异步 + 短超时：失败不阻断支付响应，由账单查询/掉单补偿与对账兜底；
-// 幂等由 settlement.MarkBillPaid 的 UNPAID→PAID 状态机保证。
-func (s *Service) triggerMarkBillPaid(orderNo string, payFee int64) {
+// triggerSettlement 支付成功后异步驱动结算链路：账单置 PAID → 按锁定费率分账入司机钱包。
+// 两步必须串行：分账只接受 PAID 账单，先置 PAID 再分账。
+// 异步 + 短超时：失败不阻断支付响应，由对账兜底；两步均幂等，可安全重放。
+func (s *Service) triggerSettlement(orderNo string, payFee int64) {
 	if s.settlement == nil {
-		s.log.Warn("settlement client not injected, skip mark bill paid", zap.String("order_no", orderNo))
+		s.log.Warn("settlement client not injected, skip settlement chain", zap.String("order_no", orderNo))
 		return
 	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, err := s.settlement.MarkBillPaid(ctx, &settlementv1.MarkBillPaidRequest{
-			OrderNo: orderNo,
-			PayFee:  payFee,
-		})
-		if err != nil {
-			s.log.Warn("settlement mark bill paid failed", zap.String("order_no", orderNo), zap.Error(err))
-			return
+		// 结算失败不阻断支付响应：这里只记日志，由 settlement 域的掉单补偿兜底。
+		if err := s.settleAfterPayment(ctx, orderNo, payFee); err != nil {
+			s.log.Warn("settlement chain failed", zap.String("order_no", orderNo), zap.Error(err))
 		}
-		s.log.Info("settlement bill marked paid", zap.String("order_no", orderNo), zap.Int64("pay_fee", payFee))
 	}()
+}
+
+// settleAfterPayment 支付成功后驱动结算链路：账单置 PAID → 按锁定费率分账入司机钱包。
+// 两步必须串行：分账只接受 PAID 账单，先置 PAID 再分账。
+// 与 triggerSettlement 分离是为了可测——异步外壳只负责调度，这里可被同步断言。
+func (s *Service) settleAfterPayment(ctx context.Context, orderNo string, payFee int64) error {
+	if s.settlement == nil {
+		return errors.New("settlement client not injected")
+	}
+	if _, err := s.settlement.MarkBillPaid(ctx, &settlementv1.MarkBillPaidRequest{
+		OrderNo: orderNo,
+		PayFee:  payFee,
+	}); err != nil {
+		s.log.Warn("settlement mark bill paid failed", zap.String("order_no", orderNo), zap.Error(err))
+		return err
+	}
+	s.log.Info("settlement bill marked paid", zap.String("order_no", orderNo), zap.Int64("pay_fee", payFee))
+
+	// UseBillRate：支付侧不掌握佣金率，分账按建账时锁定在账单上的费率执行。
+	if _, err := s.settlement.SplitBill(ctx, &settlementv1.SplitBillRequest{
+		OrderNo:     orderNo,
+		UseBillRate: true,
+	}); err != nil {
+		s.log.Warn("settlement split bill failed", zap.String("order_no", orderNo), zap.Error(err))
+		return err
+	}
+	s.log.Info("settlement bill split", zap.String("order_no", orderNo))
+	return nil
 }
 
 // Refund 发起退款，channel 区分 alipay / wechat（空值默认 alipay）。

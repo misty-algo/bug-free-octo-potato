@@ -11,6 +11,9 @@ type CreateBillCommand struct {
 	DiscountFee     int64 // 优惠总额（可选，默认 0）
 	PlatformSubsidy int64 // 平台补贴（可选，默认 0）
 	Remark          string
+	// CommissionRateBP 建账时锁定的平台佣金率，万分比（2000 = 20%）。
+	// 建账即锁定，后续分账不再依赖外部传入，避免规则变更导致分账漂移。
+	CommissionRateBP int64
 }
 
 // MarkBillPaidCommand 支付成功标记账单已付入参（bill_no 与 order_no 二选一）。
@@ -48,6 +51,10 @@ type SplitBillCommand struct {
 	DriverSubsidy   int64  // 司机补贴（可选）
 	PlatformSubsidy int64  // 平台补贴（可选，大于 0 时覆盖账单补贴）
 	IdempotentKey   string // 幂等键（可选，默认沿用账单号派生锚点）
+	// UseBillRate 为 true 时忽略上面的 CommissionRate，改用建账时锁定在账单上的费率。
+	// 自动分账（支付成功后触发）必须走这条路径：调用方不掌握费率，
+	// 且必须按建账时锁定的值分账，否则规则在行程期间被修改会让分账金额漂移。
+	UseBillRate bool
 }
 
 // ApplyRefundCommand 退款冲正入参。
@@ -96,12 +103,12 @@ type BillDTO struct {
 type SplitResult struct {
 	BillNo             string
 	OrderNo            string
-	PassengerPaid      int64 // 乘客实付
-	PlatformCommission int64 // 平台佣金
-	DriverIncome       int64 // 司机收入
-	PlatformSubsidy    int64 // 平台补贴
+	PassengerPaid      int64  // 乘客实付
+	PlatformCommission int64  // 平台佣金
+	DriverIncome       int64  // 司机收入
+	PlatformSubsidy    int64  // 平台补贴
 	Status             string // 分账后账单状态（真实状态，P9：不再硬编码）
-	Repeated           bool  // 是否重复分账（幂等命中）
+	Repeated           bool   // 是否重复分账（幂等命中）
 }
 
 // WalletDTO 钱包视图。

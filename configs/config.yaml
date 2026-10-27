@@ -26,10 +26,6 @@ services:
     name: user-service
     port: 9001
     target: 127.0.0.1:9001
-  note:
-    name: note-service
-    port: 9002
-    target: 127.0.0.1:9002
   order:
     name: order-service
     port: 9100
