@@ -40,7 +40,8 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 	registerShopRoutes(v1, handler.NewShopHandler(clients.Shop, log))
 	registerPaymentRoutes(v1, handler.NewPaymentHandler(clients.Payment, log))
 	registerSettlementRoutes(v1, handler.NewSettlementHandler(clients.Settlement, log))
-	registerPassengerRoutes(api, handler.NewPassengerHandler(clients.Shop, log))
+	// 行程六态链路走 shop-service，与 dev 主干的 /api/v1/passenger 相互独立。
+	registerTripRoutes(api, handler.NewTripHandler(clients.Shop, log))
 
 	// 支付宝异步通知公网回调：cpolar 穿透路径 /aLiPay 原样透传，固定在根路径注册。
 	r.POST("/aLiPay", handler.NewShopHandler(clients.Shop, log).AlipayNotify)
