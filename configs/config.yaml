@@ -30,6 +30,10 @@ services:
     name: order-service
     port: 9100
     target: 127.0.0.1:9100
+  passenger:
+    name: passenger-service
+    port: 9005
+    target: 127.0.0.1:9005
 
 database:
   driver: mysql
@@ -272,6 +276,9 @@ middleware:
       - Content-Type
       - Authorization
       - X-Request-ID
+      # 账号标识头。带自定义头的请求会触发 CORS 预检，
+      # 预检允许头列表里缺它会让浏览器直接拒绝请求，前端表现为 Failed to fetch。
+      - X-Account-Id
     allow_credentials: false
   jwt:
     secret: ""

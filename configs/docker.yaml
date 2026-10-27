@@ -1,0 +1,112 @@
+# Docker Compose 专用配置
+#
+# 与 configs/config.yaml 的差别只有两点：
+#   1. services.*.target 用 compose 服务名，不用 127.0.0.1
+#      （容器里 127.0.0.1 指向容器自己，连不到旁边的容器）
+#   2. mongodb.uri 指向 compose 里的 mongodb 服务
+#
+# 密钥类一律留空，由 docker-compose 的环境变量注入：
+#   MONGODB_PASSWORD / MONGODB_USERNAME / MONGODB_DATABASE
+#   PASSENGER_TOKEN_SECRET / PASSENGER_PHONE_KEY
+#
+# 启动时显式指定本文件：
+#   /app/gateway    -config /app/configs/docker.yaml
+#   /app/passenger  -config /app/configs/docker.yaml
+
+app:
+  name: xiaolanshu
+  env: local
+
+http:
+  host: 0.0.0.0
+  port: 8080
+  read_timeout_seconds: 5
+  write_timeout_seconds: 10
+
+grpc:
+  host: 0.0.0.0
+
+services:
+  gateway:
+    name: gateway
+  user:
+    name: user-service
+    port: 9001
+    target: user:9001
+  note:
+    name: note-service
+    port: 9002
+    target: note:9002
+  order:
+    name: order-service
+    port: 9100
+    target: order:9100
+  passenger:
+    name: passenger-service
+    port: 9005
+    target: passenger:9005
+
+mongodb:
+  # 默认连线上库；用 MONGODB_URI 环境变量可覆盖为容器内的 mongodb:27017。
+  uri: mongodb://101.96.204.17:27017
+  username: ""
+  # 密码从 MONGODB_PASSWORD 环境变量读，配置里保持为空。
+  password: ""
+  database: huaxiaozhu
+  app_name: bw-cli
+  min_pool_size: 0
+  max_pool_size: 100
+  connect_timeout_seconds: 10
+  server_selection_timeout_seconds: 5
+
+redis:
+  addr: redis:6379
+  username: ""
+  password: ""
+  db: 0
+  pool_size: 10
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+  lock:
+    key_prefix: xiaolanshu
+    default_ttl: 30s
+
+middleware:
+  cors:
+    allow_origins:
+      - "*"
+    allow_methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allow_headers:
+      - Origin
+      - Content-Type
+      - Authorization
+      - X-Request-ID
+      # 账号标识头。带自定义头的请求会触发 CORS 预检，
+      # 预检允许头列表里缺它会让浏览器直接拒绝请求，前端表现为 Failed to fetch。
+      - X-Account-Id
+    allow_credentials: false
+  jwt:
+    # 真实密钥从 PASSENGER_TOKEN_SECRET 环境变量读，这里只留占位。
+    secret: ""
+    issuer: xiaolanshu
+    expire_seconds: 7200
+
+log:
+  service: xiaolanshu
+  environment: local
+  level: info
+  encoding: json
+  file:
+    enabled: true
+    filename: logs/app.log
+    max_size_mb: 128
+    max_backups: 14
+    max_age_days: 7
+    compress: true

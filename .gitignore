@@ -7,6 +7,11 @@ bin/
 tmp/
 docs/superpowers/
 
+# 本地密钥文件，MUST NOT 提交。见 .env.example
+.env
+.env.*
+!.env.example
+
 # Local agent/runtime files
 /.codex/
 /graphify-out/

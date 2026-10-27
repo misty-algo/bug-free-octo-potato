@@ -17,15 +17,40 @@ services:
     ports:
       - "9002:9002"
 
+  passenger:
+    build: .
+    # 用容器编排专用配置：各域 target 用 compose 服务名，不用 127.0.0.1。
+    command: ["/app/passenger", "-config", "/app/configs/docker.yaml"]
+    depends_on:
+      passenger-init:
+        condition: service_completed_successfully
+    environment:
+      # 连接信息。密码 MUST NOT 写进配置文件或仓库。
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
+      MONGODB_USERNAME: ${MONGODB_USERNAME:-bw}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD:-bw-secret}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-huaxiaozhu}
+      # 密钥。缺 PASSENGER_PHONE_KEY 时进程直接退出，不用兜底密钥。
+      PASSENGER_TOKEN_SECRET: ${PASSENGER_TOKEN_SECRET:-local-dev-secret-change-me}
+      PASSENGER_PHONE_KEY: ${PASSENGER_PHONE_KEY:-0123456789abcdef0123456789abcdef}
+    volumes:
+      - ./logs:/app/logs
+    ports:
+      - "9005:9005"
+
   gateway:
     build: .
-    command: ["/app/gateway"]
+    # 同样指定编排专用配置，网关才能按服务名转发到 passenger 容器。
+    command: ["/app/gateway", "-config", "/app/configs/docker.yaml"]
     depends_on:
       - user
       - note
+      - passenger
     environment:
       APP_GRPC_USER_TARGET: user:9001
       APP_GRPC_NOTE_TARGET: note:9002
+      # gateway 只透传 JWT 密钥，各域地址走 configs/docker.yaml 的服务名。
+      PASSENGER_TOKEN_SECRET: ${PASSENGER_TOKEN_SECRET:-local-dev-secret-change-me}
     volumes:
       - ./logs:/app/logs
     ports:

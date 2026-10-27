@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,10 +23,20 @@ import (
 
 func main() {
 	// 构建依赖前先加载运行时配置。
-	if err := config.InitGlobal("configs/config.yaml"); err != nil {
+	// 配置路径可指定，便于本地联调时用不同端口与目标地址。
+	configPath := flag.String("config", "configs/config.yaml", "配置文件路径")
+	flag.Parse()
+	if err := config.InitGlobal(*configPath); err != nil {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
+
+	// JWT 密钥从环境变量读。MUST NOT 把真值写进配置文件，
+	// 否则提交到仓库等于泄露。与乘客端保持一致的取密钥方式。
+	if value := strings.TrimSpace(os.Getenv("PASSENGER_TOKEN_SECRET")); value != "" {
+		cfg.Middleware.JWT.Secret = value
+	}
+
 	if err := configureArrivalGateway(cfg); err != nil {
 		panic(err)
 	}

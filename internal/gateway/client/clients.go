@@ -10,6 +10,7 @@ import (
 	driverv1 "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1"
 	notev1 "github.com/BwCloudWeGo/bw-cli/api/gen/note/v1"
 	orderv1 "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1"
+	passengerv1 "github.com/BwCloudWeGo/bw-cli/api/gen/passenger/v1"
 	userv1 "github.com/BwCloudWeGo/bw-cli/api/gen/user/v1"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 )
@@ -30,7 +31,9 @@ type Clients struct {
 	Safety  driverv1.SafetyServiceClient
 	// Driver 指向独立部署的 driver-service（D01–D04 接单大厅、D09–D13 收益结算）。
 	Driver driverv1.DriverServiceClient
-	Config *config.Config
+	// Passenger 为乘客端业务域的 gRPC client。
+	Passenger passengerv1.PassengerServiceClient
+	Config    *config.Config
 
 	conns []*grpc.ClientConn
 }
@@ -41,6 +44,7 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 	noteTarget := cfg.ServiceTarget("note")
 	orderTarget := cfg.ServiceTarget("order")
 	driverTarget := cfg.ServiceTarget("driver")
+	passengerTarget := cfg.ServiceTarget("passenger")
 	userConn, err := grpc.Dial(userTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("dial user service: %w", err)
@@ -69,12 +73,20 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		orderConn.Close()
 		return nil, fmt.Errorf("dial driver service: %w", err)
 	}
+	passengerConn, err := grpc.Dial(passengerTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		userConn.Close()
+		noteConn.Close()
+		orderConn.Close()
+		return nil, fmt.Errorf("dial passenger service: %w", err)
+	}
 
 	log.Info("grpc clients initialized",
 		zap.String("user_target", userTarget),
 		zap.String("note_target", noteTarget),
 		zap.String("order_target", orderTarget),
 		zap.String("driver_target", driverTarget),
+		zap.String("passenger_target", passengerTarget),
 	)
 	return &Clients{
 		User:    userv1.NewUserServiceClient(userConn),
@@ -85,12 +97,13 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 		Spec:    orderv1.NewServiceSpecServiceClient(orderConn),
 		// D14/D15/D17 的车辆资料、文件与安全服务由李嘉峰注册在 order-service 进程内，
 		// 因此复用 orderConn；司机端本体服务走独立的 driverConn。
-		Vehicle: driverv1.NewVehicleServiceClient(orderConn),
-		File:    driverv1.NewFileServiceClient(orderConn),
-		Safety:  driverv1.NewSafetyServiceClient(orderConn),
-		Driver:  driverv1.NewDriverServiceClient(driverConn),
-		Config:  cfg,
-		conns:   []*grpc.ClientConn{userConn, noteConn, orderConn, driverConn},
+		Vehicle:   driverv1.NewVehicleServiceClient(orderConn),
+		File:      driverv1.NewFileServiceClient(orderConn),
+		Safety:    driverv1.NewSafetyServiceClient(orderConn),
+		Driver:    driverv1.NewDriverServiceClient(driverConn),
+		Passenger: passengerv1.NewPassengerServiceClient(passengerConn),
+		Config:    cfg,
+		conns:     []*grpc.ClientConn{userConn, noteConn, orderConn, driverConn, passengerConn},
 	}, nil
 }
 
