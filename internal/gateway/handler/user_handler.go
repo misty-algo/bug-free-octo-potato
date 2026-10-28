@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
@@ -90,6 +92,84 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, resp)
+}
+
+// GetRealName 将 GET /api/pax/realname 代理到 GetRealNameStatus（契约 3.7.1）。
+func (h *UserHandler) GetRealName(c *gin.Context) {
+	claims := middleware.ClaimsFromContext(c)
+	if claims.UserID == "" {
+		httpx.PaxError(c, http.StatusUnauthorized, httpx.PaxCodeUnauthorized, "unauthorized")
+		return
+	}
+	resp, err := h.client.GetRealNameStatus(outgoingContext(c), &userv1.GetRealNameStatusRequest{AccountId: claims.UserID})
+	if err != nil {
+		httpx.PaxAppError(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.PaxOK(c, resp)
+}
+
+// SubmitRealName 将 POST /api/pax/realname 代理到 SubmitRealName（契约 3.7.1）。
+func (h *UserHandler) SubmitRealName(c *gin.Context) {
+	var req request.RealNamePaxRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.PaxError(c, http.StatusBadRequest, httpx.PaxCodeInvalidArgument, err.Error())
+		return
+	}
+	claims := middleware.ClaimsFromContext(c)
+	if claims.UserID == "" {
+		httpx.PaxError(c, http.StatusUnauthorized, httpx.PaxCodeUnauthorized, "unauthorized")
+		return
+	}
+	resp, err := h.client.SubmitRealName(outgoingContext(c), &userv1.SubmitRealNameRequest{
+		AccountId:      claims.UserID,
+		Name:           req.Name,
+		IdNo:           req.IDNo,
+		IdempotencyKey: req.IdempotencyKey,
+	})
+	if err != nil {
+		httpx.PaxAppError(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.PaxOK(c, resp)
+}
+
+// GetAccountSecurity 将 GET /api/pax/account-security 代理到 GetAccountSecurity（契约 3.7.2）。
+func (h *UserHandler) GetAccountSecurity(c *gin.Context) {
+	claims := middleware.ClaimsFromContext(c)
+	if claims.UserID == "" {
+		httpx.PaxError(c, http.StatusUnauthorized, httpx.PaxCodeUnauthorized, "unauthorized")
+		return
+	}
+	resp, err := h.client.GetAccountSecurity(outgoingContext(c), &userv1.GetAccountSecurityRequest{AccountId: claims.UserID})
+	if err != nil {
+		httpx.PaxAppError(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.PaxOK(c, resp)
+}
+
+// RecordAgreement 将 POST /api/pax/account-security 代理到 RecordAgreement（契约 3.7.2）。
+func (h *UserHandler) RecordAgreement(c *gin.Context) {
+	var req request.AccountSecurityPaxRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.PaxError(c, http.StatusBadRequest, httpx.PaxCodeInvalidArgument, err.Error())
+		return
+	}
+	claims := middleware.ClaimsFromContext(c)
+	if claims.UserID == "" {
+		httpx.PaxError(c, http.StatusUnauthorized, httpx.PaxCodeUnauthorized, "unauthorized")
+		return
+	}
+	resp, err := h.client.RecordAgreement(outgoingContext(c), &userv1.RecordAgreementRequest{
+		AccountId:   claims.UserID,
+		ProtocolVer: req.ProtocolVer,
+	})
+	if err != nil {
+		httpx.PaxAppError(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.PaxOK(c, resp)
 }
 
 // LoginResponse 是 POST /api/v1/users/login 返回的 gateway HTTP 载荷。

@@ -17,7 +17,10 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 	api := r.Group("/api")
 	v1 := api.Group("/v1")
 
-	registerUserRoutes(v1, handler.NewUserHandler(clients.User, middlewareCfg.JWT, log), middlewareCfg.JWT)
+	userH := handler.NewUserHandler(clients.User, middlewareCfg.JWT, log)
+	registerUserRoutes(v1, userH, middlewareCfg.JWT)
+	svcH := handler.NewPaxServiceHandler(clients.Order, clients.User, log)
+	registerPaxRoutes(api, handler.NewPaxOrderHandler(clients.Order, log), userH, svcH, middlewareCfg.JWT)
 	registerNoteRoutes(v1, handler.NewNoteHandler(clients.Note, log))
 	registerOrderRoutes(v1, handler.NewOrderHandler(clients.Order, log))
 	registerPassengerRoutes(v1, handler.NewPassengerHandler(clients.Passenger, log))
