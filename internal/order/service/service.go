@@ -9,6 +9,7 @@ import (
 
 	"github.com/BwCloudWeGo/bw-cli/internal/order/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/order/entity"
+	"github.com/BwCloudWeGo/bw-cli/pkg/clock"
 )
 
 // OrderCreatedEvent 是下单成功后的领域事件 routing key。
@@ -24,6 +25,8 @@ type EventPublisher interface {
 type Service struct {
 	repo      entity.Repository
 	publisher EventPublisher
+	poiNames  POINameResolver
+	clock     clock.Clock
 	log       *zap.Logger
 }
 
@@ -32,7 +35,7 @@ func NewService(repo entity.Repository, publisher EventPublisher, log *zap.Logge
 	if log == nil {
 		log = zap.NewNop()
 	}
-	return &Service{repo: repo, publisher: publisher, log: log}
+	return &Service{repo: repo, publisher: publisher, clock: clock.Real{}, log: log}
 }
 
 // Create 创建 order 记录，并向 RabbitMQ 发布下单成功事件。
