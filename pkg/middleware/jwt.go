@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/BwCloudWeGo/bw-cli/pkg/authn"
+	"github.com/BwCloudWeGo/bw-cli/pkg/httpx"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -76,20 +77,36 @@ func (j *JWT) GenerateToken(claims JWTClaims) (string, error) {
 
 // Auth 校验授权请求头中的 Bearer 令牌，并把声明写入 Gin 上下文。
 func (j *JWT) Auth() gin.HandlerFunc {
+	return j.authWith(abortUnauthorized)
+}
+
+// AuthPax 同 Auth，但 401 统一回 pax 契约信封（code 40101，附录 A）并中止链。
+func (j *JWT) AuthPax() gin.HandlerFunc {
+	return j.authWith(func(c *gin.Context, _ string, message string) {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, httpx.PaxBody{
+			Code:    httpx.PaxCodeUnauthorized,
+			Message: message,
+			Data:    nil,
+		})
+	})
+}
+
+// authWith 是鉴权主体，abort 决定 401 响应形态。
+func (j *JWT) authWith(abort func(c *gin.Context, code string, message string)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if strings.TrimSpace(j.cfg.Secret) == "" {
-			abortUnauthorized(c, "jwt_secret_missing", "jwt secret is not configured")
+			abort(c, "jwt_secret_missing", "jwt secret is not configured")
 			return
 		}
 		tokenText := bearerToken(c.GetHeader("Authorization"))
 		if tokenText == "" {
-			abortUnauthorized(c, "missing_token", "missing bearer token")
+			abort(c, "missing_token", "missing bearer token")
 			return
 		}
 
 		principal, err := authn.VerifyToken(tokenText, authn.Config{Secret: j.cfg.Secret, Issuer: j.cfg.Issuer})
 		if err != nil {
-			abortUnauthorized(c, "invalid_token", "invalid bearer token")
+			abort(c, "invalid_token", "invalid bearer token")
 			return
 		}
 
@@ -106,6 +123,11 @@ func GenerateToken(cfg JWTConfig, claims JWTClaims) (string, error) {
 // JWTAuth 校验授权请求头中的 Bearer 令牌，并把声明写入 Gin 上下文。
 func JWTAuth(cfg JWTConfig) gin.HandlerFunc {
 	return NewJWT(cfg).Auth()
+}
+
+// JWTAuthPax 是 pax 契约版 JWTAuth：401 统一回 pax 信封 code 40101。
+func JWTAuthPax(cfg JWTConfig) gin.HandlerFunc {
+	return NewJWT(cfg).AuthPax()
 }
 
 // ClaimsFromContext 返回 JWTAuth 解析出的 JWT claims。

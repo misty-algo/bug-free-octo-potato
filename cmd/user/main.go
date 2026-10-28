@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -15,10 +16,12 @@ import (
 	userhandler "github.com/BwCloudWeGo/bw-cli/internal/user/handler"
 	userrepo "github.com/BwCloudWeGo/bw-cli/internal/user/repo"
 	userservice "github.com/BwCloudWeGo/bw-cli/internal/user/service"
+	"github.com/BwCloudWeGo/bw-cli/pkg/clock"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 	"github.com/BwCloudWeGo/bw-cli/pkg/database"
 	"github.com/BwCloudWeGo/bw-cli/pkg/grpcx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/logger"
+	"github.com/BwCloudWeGo/bw-cli/pkg/mongox"
 )
 
 func main() {
@@ -27,6 +30,22 @@ func main() {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
+	// Mongo 连接与实名三件套密钥真值 MUST NOT 入库（约束 §4）：经环境变量注入，配置文件仅保留占位。
+	if uri, exists := os.LookupEnv("MONGODB_URI"); exists {
+		cfg.MongoDB.URI = uri
+	}
+	if username, exists := os.LookupEnv("MONGODB_USERNAME"); exists {
+		cfg.MongoDB.Username = username
+	}
+	if password, exists := os.LookupEnv("MONGODB_PASSWORD"); exists {
+		cfg.MongoDB.Password = password
+	}
+	if name, exists := os.LookupEnv("MONGODB_DATABASE"); exists {
+		cfg.MongoDB.Database = name
+	}
+	if key, exists := os.LookupEnv("SECURITY_DATA_KEY"); exists {
+		cfg.Security.DataKey = key
+	}
 	cfg.Log.Service = cfg.ServiceName("user")
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
@@ -46,10 +65,37 @@ func main() {
 		log.Fatal("migrate user database failed", zap.Error(err))
 	}
 
+	// P20 实名认证：落线上 accounts 集合，三件套密钥从 security.data_key 读取。
+	dataKey := []byte(cfg.Security.DataKey)
+	if len(dataKey) != 32 {
+		log.Fatal("user realname requires security.data_key (32 bytes)")
+	}
+	mongoClient, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
+	if err != nil {
+		log.Fatal("open MongoDB failed; check connection configuration")
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if err := mongoClient.Disconnect(ctx); err != nil {
+			log.Error("close MongoDB failed", zap.Error(err))
+		}
+	}()
+	accountRepo := userrepo.NewMongoAccountRepository(mongox.Database(mongoClient, cfg.MongoDB.Database))
+	realName := userservice.NewRealNameService(
+		accountRepo,
+		userservice.SimulatedRealNameVerifier{},
+		dataKey,
+		clock.Real{},
+	)
+
 	repo := userrepo.NewGormRepository(db, log)
 	svc := userservice.NewService(repo, userrepo.NewSHA256Hasher())
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
-	userv1.RegisterUserServiceServer(server, userhandler.NewServer(svc, log))
+	userv1.RegisterUserServiceServer(server, userhandler.NewServer(svc, log).
+		WithRealName(realName).
+		WithAccountSecurity(userservice.NewAccountSecurityService(accountRepo)).
+		WithConfig(userservice.NewConfigService(userrepo.NewMongoConfigRepository(mongox.Database(mongoClient, cfg.MongoDB.Database)))))
 
 	addr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, cfg.ServicePort("user", 9001))
 	listener, err := net.Listen("tcp", addr)

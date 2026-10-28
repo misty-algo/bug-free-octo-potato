@@ -82,8 +82,8 @@ type CreateHallOrderRequest struct {
 
 // ListHallOrdersRequest 大厅列表查询参数。
 type ListHallOrdersRequest struct {
-	DriverID string `form:"driver_id" binding:"required"`
-	Limit    int32  `form:"limit"`
+	DriverID string  `form:"driver_id" binding:"required"`
+	Limit    int32   `form:"limit"`
 	Lat      float64 `form:"lat"`
 	Lng      float64 `form:"lng"`
 }

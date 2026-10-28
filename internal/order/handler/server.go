@@ -105,7 +105,10 @@ func mapOrderError(err error) error {
 		return apperrors.InvalidArgument("invalid_order", "invalid order input")
 	case stderrors.Is(err, entity.ErrOrderNotFound):
 		return apperrors.NotFound("order_not_found", "order not found")
-	default:
-		return apperrors.Wrap(apperrors.KindInternal, "order_service_error", "order service error", err)
 	}
+	if appErr, ok := apperrors.As(err); ok {
+		// 服务层已给出带数值业务码的应用错误（如 40901/41001），原样透出。
+		return appErr
+	}
+	return apperrors.Wrap(apperrors.KindInternal, "order_service_error", "order service error", err)
 }

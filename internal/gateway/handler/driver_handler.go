@@ -6,8 +6,8 @@ import (
 
 	driverv1 "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1"
 	biz "github.com/BwCloudWeGo/bw-cli/internal/gateway/request"
-	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 	"github.com/BwCloudWeGo/bw-cli/pkg/contracts"
+	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 	"github.com/BwCloudWeGo/bw-cli/pkg/httpx"
 )
 
@@ -121,9 +121,9 @@ func (h *DriverHandler) CreateHallOrder(c *gin.Context) {
 	}
 	resp, err := h.client.CreateHallOrder(outgoingContext(c), &driverv1.CreateHallOrderRequest{
 		PassengerName: req.PassengerName,
-		Origin: &driverv1.LocationMessage{Name: req.Origin.Name, Lat: req.Origin.Lat, Lng: req.Origin.Lng},
-		Destination: &driverv1.LocationMessage{Name: req.Destination.Name, Lat: req.Destination.Lat, Lng: req.Destination.Lng},
-		OrigFareFen: req.OrigFareFen, PassengerPaidFen: req.PassengerPaidFen,
+		Origin:        &driverv1.LocationMessage{Name: req.Origin.Name, Lat: req.Origin.Lat, Lng: req.Origin.Lng},
+		Destination:   &driverv1.LocationMessage{Name: req.Destination.Name, Lat: req.Destination.Lat, Lng: req.Destination.Lng},
+		OrigFareFen:   req.OrigFareFen, PassengerPaidFen: req.PassengerPaidFen,
 		PlatformCouponFen: req.PlatformCouponFen, DriverCouponFen: req.DriverCouponFen,
 		SubsidyFen: req.SubsidyFen, PassengerCount: int32(req.PassengerCount),
 		CityCode: req.CityCode, OrderType: req.OrderType,
@@ -401,4 +401,3 @@ func toAmountMessage(a biz.AmountItem) *driverv1.AmountMessage {
 		CommissionFen: a.CommissionFen, SubsidyFen: a.SubsidyFen, DriverIncomeFen: a.DriverIncomeFen,
 	}
 }
-

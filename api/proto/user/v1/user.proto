@@ -8,6 +8,11 @@ service UserService {
   rpc Register(RegisterRequest) returns (UserResponse);
   rpc Login(LoginRequest) returns (UserResponse);
   rpc GetUser(GetUserRequest) returns (UserResponse);
+  rpc GetRealNameStatus(GetRealNameStatusRequest) returns (RealNameStatusResponse);
+  rpc SubmitRealName(SubmitRealNameRequest) returns (RealNameStatusResponse);
+  rpc GetAccountSecurity(GetAccountSecurityRequest) returns (AccountSecurityResponse);
+  rpc RecordAgreement(RecordAgreementRequest) returns (RecordAgreementResponse);
+  rpc GetServiceConfig(GetServiceConfigRequest) returns (ServiceConfigResponse);
 }
 
 message RegisterRequest {
@@ -29,4 +34,62 @@ message UserResponse {
   string id = 1;
   string account = 2;
   string display_name = 3;
+}
+
+message GetRealNameStatusRequest {
+  string account_id = 1;
+}
+
+message SubmitRealNameRequest {
+  string account_id = 1;
+  string name = 2;
+  string id_no = 3;
+  string idempotency_key = 4;
+}
+
+// RealNameStatusResponse 实名状态出参（契约 3.7.1）。
+// name/id_no 为脱敏值，不回真值。
+message RealNameStatusResponse {
+  string state = 1; // 未认证/认证中/已认证/认证失败
+  string name = 2;  // 脱敏姓名
+  string id_no = 3; // 脱敏证件号
+}
+
+message GetAccountSecurityRequest {
+  string account_id = 1;
+}
+
+// ChannelBinding 渠道绑定条目（契约 3.7.2，复用 3.1.6 bindings 口径）。
+message ChannelBinding {
+  string channel = 1; // wechat / qq / sms
+  bool bound = 2;
+  int64 bound_at = 3; // 绑定时间（unix 秒）；未绑定为 0
+}
+
+// AccountSecurityResponse 账号安全出参：绑定列表+协议版本+实名状态。
+message AccountSecurityResponse {
+  repeated ChannelBinding bindings = 1;
+  string protocol_ver = 2;
+  string real_name_state = 3; // 未认证/认证中/已认证/认证失败
+}
+
+message RecordAgreementRequest {
+  string account_id = 1;
+  string protocol_ver = 2;
+}
+
+// RecordAgreementResponse 协议同意记录出参（同版本幂等）。
+message RecordAgreementResponse {
+  string protocol_ver = 1;
+}
+
+message GetServiceConfigRequest {}
+
+// ServiceConfigResponse 客服配置出参（契约 3.7.3/3.9.6，config_dictionaries 现值）。
+// key 无记录时对应字段为空串；faq_json 缺省 "[]"。
+message ServiceConfigResponse {
+  string hotline = 1;
+  string service_time = 2;
+  string service_spec = 3;
+  string faq_json = 4; // FAQ JSON 数组文本
 }

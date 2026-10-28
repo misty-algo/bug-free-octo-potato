@@ -164,3 +164,32 @@ func (fakeUserClient) Login(context.Context, *userv1.LoginRequest, ...grpc.CallO
 func (fakeUserClient) GetUser(context.Context, *userv1.GetUserRequest, ...grpc.CallOption) (*userv1.UserResponse, error) {
 	return &userv1.UserResponse{Id: "user-1", Account: "ada", DisplayName: "Ada"}, nil
 }
+
+func (fakeUserClient) GetRealNameStatus(context.Context, *userv1.GetRealNameStatusRequest, ...grpc.CallOption) (*userv1.RealNameStatusResponse, error) {
+	return &userv1.RealNameStatusResponse{State: "认证中", Name: "张*丰", IdNo: "110***********1234"}, nil
+}
+
+func (fakeUserClient) SubmitRealName(context.Context, *userv1.SubmitRealNameRequest, ...grpc.CallOption) (*userv1.RealNameStatusResponse, error) {
+	return &userv1.RealNameStatusResponse{State: "认证中", Name: "张*丰", IdNo: "110***********1234"}, nil
+}
+
+func (fakeUserClient) GetAccountSecurity(context.Context, *userv1.GetAccountSecurityRequest, ...grpc.CallOption) (*userv1.AccountSecurityResponse, error) {
+	return &userv1.AccountSecurityResponse{
+		Bindings:      []*userv1.ChannelBinding{{Channel: "wechat", Bound: true, BoundAt: 1700000000}},
+		ProtocolVer:   "v2.0",
+		RealNameState: "已认证",
+	}, nil
+}
+
+func (fakeUserClient) RecordAgreement(context.Context, *userv1.RecordAgreementRequest, ...grpc.CallOption) (*userv1.RecordAgreementResponse, error) {
+	return &userv1.RecordAgreementResponse{ProtocolVer: "v2.0"}, nil
+}
+
+func (fakeUserClient) GetServiceConfig(context.Context, *userv1.GetServiceConfigRequest, ...grpc.CallOption) (*userv1.ServiceConfigResponse, error) {
+	return &userv1.ServiceConfigResponse{
+		Hotline:     "400-123",
+		ServiceTime: "07:00-23:00",
+		ServiceSpec: "",
+		FaqJson:     "[]",
+	}, nil
+}
