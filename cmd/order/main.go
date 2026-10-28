@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/authn"
 	"github.com/BwCloudWeGo/bw-cli/pkg/clock"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
-	"github.com/BwCloudWeGo/bw-cli/pkg/database"
 	"github.com/BwCloudWeGo/bw-cli/pkg/filex"
 	"github.com/BwCloudWeGo/bw-cli/pkg/grpcx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/logger"
@@ -41,6 +41,20 @@ func main() {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
+	// Mongo 连接真值 MUST NOT 入库（约束 §4）：经环境变量注入，配置文件仅保留占位。
+	// ARRIVAL_MONGO_URI 为到达域专用覆盖，优先级更高（见下）。
+	if uri, exists := os.LookupEnv("MONGODB_URI"); exists {
+		cfg.MongoDB.URI = uri
+	}
+	if username, exists := os.LookupEnv("MONGODB_USERNAME"); exists {
+		cfg.MongoDB.Username = username
+	}
+	if password, exists := os.LookupEnv("MONGODB_PASSWORD"); exists {
+		cfg.MongoDB.Password = password
+	}
+	if name, exists := os.LookupEnv("MONGODB_DATABASE"); exists {
+		cfg.MongoDB.Database = name
+	}
 	arrivalWrites := strings.EqualFold(os.Getenv("ARRIVAL_ENABLED"), "true")
 	arrivalEnabled := arrivalWrites || strings.EqualFold(os.Getenv("ARRIVAL_READ_ENABLED"), "true")
 	if arrivalEnabled {
@@ -73,6 +87,7 @@ func main() {
 	config.PrintSourceNotice(cfg, os.Stdout)
 
 	var legacyRepo orderentity.Repository
+	var legacyDB *mongo.Database // P17 POI 名称解析等 Mongo 只读扩展；Gorm 路径为 nil
 	// 材料上传单文件可达 5MB，需放宽默认 4MB 接收上限。
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)),
@@ -100,6 +115,7 @@ func main() {
 			log.Fatal("arrival schema validation failed", zap.Error(err))
 		}
 		legacyRepo = orderrepo.NewMongoRepository(db, log)
+		legacyDB = db
 		arrivalRepo := orderrepo.NewMongoArrivalRepository(db)
 		clk := clock.Real{}
 		arrivals := orderservice.NewArrivalService(arrivalRepo, clk)
@@ -160,14 +176,20 @@ func main() {
 		driverv1.RegisterFileServiceServer(server, driverhandler.NewFileServer(files, driverAuth))
 		driverv1.RegisterSafetyServiceServer(server, driverhandler.NewSafetyServer(safety, notice, driverAuth))
 	} else {
-		db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
+		// order 业务数据落线上 Mongo（huazhu）；Gorm 路径保留编译但不再注入。
+		mongoClient, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
 		if err != nil {
-			log.Fatal("open database failed", zap.Error(err))
+			log.Fatal("open MongoDB failed; check connection configuration")
 		}
-		if err := orderrepo.AutoMigrate(db); err != nil {
-			log.Fatal("migrate order database failed", zap.Error(err))
-		}
-		legacyRepo = orderrepo.NewGormRepository(db, log)
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			if err := mongoClient.Disconnect(ctx); err != nil {
+				log.Error("close MongoDB failed", zap.Error(err))
+			}
+		}()
+		legacyDB = mongox.Database(mongoClient, cfg.MongoDB.Database)
+		legacyRepo = orderrepo.NewMongoRepository(legacyDB, log)
 	}
 	// 订单事件发布器：RabbitMQ 不可用时降级为 nil publisher（NewService 支持），
 	// 保证未部署消息队列的环境同样能启动本服务，下单主流程不受影响。
@@ -178,7 +200,11 @@ func main() {
 		defer mqClient.Close()
 		orderPublisher = mqClient
 	}
-	orderv1.RegisterOrderServiceServer(server, orderhandler.NewServer(orderservice.NewService(legacyRepo, orderPublisher, log), log))
+	orderSvc := orderservice.NewService(legacyRepo, orderPublisher, log)
+	if legacyDB != nil {
+		orderSvc = orderSvc.WithPOINameResolver(orderrepo.NewPOINameResolver(legacyDB, log))
+	}
+	orderv1.RegisterOrderServiceServer(server, orderhandler.NewServer(orderSvc, log))
 
 	port := cfg.ServicePort("order", defaultGRPCPort)
 	addr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, port)
