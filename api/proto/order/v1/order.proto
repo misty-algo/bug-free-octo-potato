@@ -12,6 +12,13 @@ service OrderService {
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
   rpc UpdateOrder(UpdateOrderRequest) returns (OrderResponse);
   rpc DeleteOrder(DeleteOrderRequest) returns (DeleteOrderResponse);
+
+  // 乘客端 P17-P22（契约《花小猪打车-后端接口文档 v2.0》3.6 节）。
+  rpc ListMyOrders(ListMyOrdersRequest) returns (ListMyOrdersResponse);
+  rpc GetMyOrderDetail(GetMyOrderDetailRequest) returns (MyOrderDetailResponse);
+  rpc SubmitRating(SubmitRatingRequest) returns (SubmitRatingResponse);
+  rpc SubmitComplaint(SubmitComplaintRequest) returns (SubmitComplaintResponse);
+  rpc ListMyTickets(ListMyTicketsRequest) returns (ListMyTicketsResponse);
 }
 
 message CreateOrderRequest {
@@ -53,4 +60,157 @@ message ListOrdersResponse {
 
 message DeleteOrderResponse {
   bool success = 1;
+}
+
+// ---------- 乘客端 P17-P22 ----------
+
+// ListMyOrdersRequest P17 订单列表（GET /api/pax/orders）。
+message ListMyOrdersRequest {
+  string passenger_id = 1;
+  string filter = 2; // 全部/进行中/待支付/已完成/已取消
+  int32 page = 3;
+  int32 size = 4;
+}
+
+// MyOrderListItem 列表项（契约：id/type_name/start_name/end_name/state/amount/...）。
+message MyOrderListItem {
+  string id = 1;            // orders.orderNo（业务号，契约 id）
+  string type_name = 2;     // 车型名
+  string start_name = 3;    // 起点 POI 名
+  string end_name = 4;      // 终点 POI 名
+  string state = 5;         // 状态机器码
+  string state_name = 6;    // 状态契约中文
+  int64 amount = 7;         // 金额（分）
+  string amount_label = 8;  // 预估/应付/实付/退款后净实付
+  string amount_basis = 9;  // estimated/payable/paid/net_paid
+  string bill_state = 10;   // 账单状态
+  string created_at = 11;
+}
+
+message ListMyOrdersResponse {
+  repeated MyOrderListItem list = 1;
+  int64 total = 2;
+}
+
+// GetMyOrderDetailRequest P18 订单详情（GET /api/pax/orders/{order_id}）。
+message GetMyOrderDetailRequest {
+  string passenger_id = 1;
+  string order_id = 2;
+}
+
+// BillDetail 费用明细（契约 T/Q/H/F/K/Cp/Cd/P/D/N，出参映射见计划附录 B）。
+message BillDetail {
+  int64 total_fee = 1;                 // T
+  int64 driver_gross_fee = 2;          // Q
+  int64 platform_service_fee = 3;      // H
+  int64 surge_fee = 4;                 // F
+  int64 coupon_fee = 5;                // K
+  int64 platform_coupon_bear_fee = 6;  // Cp
+  int64 driver_coupon_bear_fee = 7;    // Cd
+  int64 payable_fee = 8;               // P
+  int64 driver_income_fee = 9;         // D
+  int64 platform_net_fee = 10;         // N
+  string state = 11;
+  string kind = 12;
+  string paid_at = 13;
+}
+
+// OrderTimelineItem 时间线元素（orders.timeline[]{name,t}）。
+message OrderTimelineItem {
+  string name = 1;
+  string t = 2;
+}
+
+// DriverSnap 司机快照（下单时快照，不查实时 driver 表）。
+message DriverSnap {
+  string name = 1;
+}
+
+// RefundItem 退款记录（orders.refunds[]，按时间序）。
+message RefundItem {
+  int64 refund_fee = 1;
+  int64 driver_refund_fee = 2;
+  string mode = 3;
+  string state = 4;
+  string t = 5;
+}
+
+// MyOrderDetailResponse 详情（快照字段不随后台改动变化，不伪造状态回退）。
+message MyOrderDetailResponse {
+  string id = 1;
+  string type_name = 2;
+  string start_name = 3;
+  string end_name = 4;
+  string state = 5;
+  string state_name = 6;
+  int64 dist_m = 7;
+  int64 dur_s = 8;
+  string created_at = 9;
+  BillDetail bill = 10;
+  repeated OrderTimelineItem timeline = 11;
+  DriverSnap driver_snap = 12;
+  repeated RefundItem refunds = 13;
+}
+
+// SubmitRatingRequest P19 提交评价（POST /api/pax/order/rate）。
+message SubmitRatingRequest {
+  string passenger_id = 1; // 评价人（订单+评价人唯一）
+  string order_id = 2;
+  int32 rating = 3;        // 1-5 星
+  bool anonymous = 4;
+}
+
+message SubmitRatingResponse {
+  string order_id = 1;
+  int32 rating = 2;
+}
+
+// SubmitComplaintRequest P19 提交投诉（POST /api/pax/order/complaint）。
+message SubmitComplaintRequest {
+  string passenger_id = 1;
+  string order_id = 2;
+  string type = 3;            // 绕路/服务态度/危险驾驶/费用异议/其他
+  string desc = 4;            // ≤500 字
+  repeated string images = 5; // ≤6 张
+  string idempotency_key = 6;
+}
+
+message SubmitComplaintResponse {
+  string ticket_id = 1;
+  string state = 2;      // 状态机器码
+  string state_name = 3; // 状态契约中文（待处理/处理中/已完结）
+}
+
+// ListMyTicketsRequest 客服页我的工单（GET /api/pax/service 合并用）。
+message ListMyTicketsRequest {
+  string passenger_id = 1;
+}
+
+// MyTicketProgress 工单进度项（含 state/round/timeline）。
+message MyTicketProgress {
+  string ticket_id = 1;
+  string ticket_no = 2;
+  string order_no = 3;
+  string type = 4;
+  string state = 5;
+  string state_name = 6;
+  int32 round = 7;
+  string created_at = 8;
+  repeated TicketTimelineItem timeline = 9;
+}
+
+// TicketTimelineItem 工单时间线（tickets.timeline[]{seq,actor,action,from,to,message,at}）。
+message TicketTimelineItem {
+  int32 seq = 1;
+  string actor = 2;
+  string action = 3;
+  string from = 4;
+  string to = 5;
+  string message = 6;
+  string at = 7;
+}
+
+message ListMyTicketsResponse {
+  repeated MyTicketProgress list = 1;
+  int64 total = 2;
 }
