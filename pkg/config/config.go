@@ -184,20 +184,26 @@ type DispatchWeightsConfig struct {
 
 // DriverConfig 司机端业务参数（接单大厅 / 收益 / 结算）。金额单位一律为「分」。
 type DriverConfig struct {
-	CommissionRate        float64               `mapstructure:"commission_rate" yaml:"commission_rate"`
-	MinWithdrawFen        int64                 `mapstructure:"min_withdraw_fen" yaml:"min_withdraw_fen"`
-	MaxWithdrawFen        int64                 `mapstructure:"max_withdraw_fen" yaml:"max_withdraw_fen"`
-	DailyWithdrawLimitFen int64                 `mapstructure:"daily_withdraw_limit_fen" yaml:"daily_withdraw_limit_fen"`
-	DailyWithdrawCount    int                   `mapstructure:"daily_withdraw_count" yaml:"daily_withdraw_count"`
-	DualApprovalFen       int64                 `mapstructure:"dual_approval_fen" yaml:"dual_approval_fen"`
-	DailyReleaseLimit     int                   `mapstructure:"daily_release_limit" yaml:"daily_release_limit"`
-	AcceptTimeoutSeconds  int                   `mapstructure:"accept_timeout_seconds" yaml:"accept_timeout_seconds"`
-	ListenWindowSeconds   int                   `mapstructure:"listen_window_seconds" yaml:"listen_window_seconds"`
-	DispatchWindowSeconds int                   `mapstructure:"dispatch_window_seconds" yaml:"dispatch_window_seconds"`
-	HeartbeatTimeoutSeconds int                 `mapstructure:"heartbeat_timeout_seconds" yaml:"heartbeat_timeout_seconds"`
-	HallListLimit         int                   `mapstructure:"hall_list_limit" yaml:"hall_list_limit"`
-	AutoSettleOnTripEnd   bool                  `mapstructure:"auto_settle_on_trip_end" yaml:"auto_settle_on_trip_end"`
-	Weights               DispatchWeightsConfig `mapstructure:"dispatch_weights" yaml:"dispatch_weights"`
+	CommissionRate          float64               `mapstructure:"commission_rate" yaml:"commission_rate"`
+	MinWithdrawFen          int64                 `mapstructure:"min_withdraw_fen" yaml:"min_withdraw_fen"`
+	MaxWithdrawFen          int64                 `mapstructure:"max_withdraw_fen" yaml:"max_withdraw_fen"`
+	DailyWithdrawLimitFen   int64                 `mapstructure:"daily_withdraw_limit_fen" yaml:"daily_withdraw_limit_fen"`
+	DailyWithdrawCount      int                   `mapstructure:"daily_withdraw_count" yaml:"daily_withdraw_count"`
+	DualApprovalFen         int64                 `mapstructure:"dual_approval_fen" yaml:"dual_approval_fen"`
+	DailyReleaseLimit       int                   `mapstructure:"daily_release_limit" yaml:"daily_release_limit"`
+	AcceptTimeoutSeconds    int                   `mapstructure:"accept_timeout_seconds" yaml:"accept_timeout_seconds"`
+	ListenWindowSeconds     int                   `mapstructure:"listen_window_seconds" yaml:"listen_window_seconds"`
+	DispatchWindowSeconds   int                   `mapstructure:"dispatch_window_seconds" yaml:"dispatch_window_seconds"`
+	HeartbeatTimeoutSeconds int                   `mapstructure:"heartbeat_timeout_seconds" yaml:"heartbeat_timeout_seconds"`
+	HallListLimit           int                   `mapstructure:"hall_list_limit" yaml:"hall_list_limit"`
+	AutoSettleOnTripEnd     bool                  `mapstructure:"auto_settle_on_trip_end" yaml:"auto_settle_on_trip_end"`
+	Weights                 DispatchWeightsConfig `mapstructure:"dispatch_weights" yaml:"dispatch_weights"`
+}
+
+// SecurityConfig 数据安全配置（P20 实名三件套加解密）。
+type SecurityConfig struct {
+	// DataKey 为 AES-256-GCM 密钥，32 字节；真值 MUST NOT 提交到仓库。
+	DataKey string `mapstructure:"data_key" yaml:"data_key"`
 }
 
 // Config 是每个进程加载的应用根配置。
@@ -221,6 +227,7 @@ type Config struct {
 	Alipay        alipayx.Config           `mapstructure:"alipay" yaml:"alipay"`
 	Nacos         nacosx.Config            `mapstructure:"nacos" yaml:"nacos"`
 	Middleware    MiddlewareConfig         `mapstructure:"middleware" yaml:"middleware"`
+	Security      SecurityConfig           `mapstructure:"security" yaml:"security"`
 	Log           logger.Config            `mapstructure:"log" yaml:"log"`
 }
 
