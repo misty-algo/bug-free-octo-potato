@@ -1,7 +1,11 @@
 package router
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -115,17 +119,19 @@ func registerDriverContractRoutes(
 	drv.POST("/region-preference", driverIDParamFromClaims(drvH.UpdateAreaConfig))
 
 	// ── D04 接单大厅合并数据 / D02 听单邀请响应 / D04 抢单 ──
-	drv.GET("/hall", drvH.ListHallOrders)
+	// 大厅从 query 读 driver_id、抢单从 body 读，均 required，必须同样包装。
+	drv.GET("/hall", driverIDParamFromClaims(drvH.ListHallOrders))
 	drv.POST("/invite/respond", contractH.InviteRespond)
-	drv.POST("/grab", drvH.GrabOrder)
+	drv.POST("/grab", driverIDParamFromClaims(drvH.GrabOrder))
 
 	// ── D14 车辆审核状态 ──
 	drv.GET("/vehicle/status", contractH.VehicleStatus)
 
 	// ── D09 收益中心 / D12 收入流水 / D13 申请提现 ──
-	drv.GET("/income", drvH.GetSummary)
-	drv.GET("/income/entries", drvH.GetFlows)
-	drv.POST("/withdraw", drvH.Withdraw)
+	// 收益与流水从 query 读 driver_id、提现从 body 读，均 required，同样需要包装。
+	drv.GET("/income", driverIDParamFromClaims(drvH.GetSummary))
+	drv.GET("/income/entries", driverIDParamFromClaims(drvH.GetFlows))
+	drv.POST("/withdraw", driverIDParamFromClaims(drvH.Withdraw))
 }
 
 // registerSystemContractRoutes 注册支付渠道回调、只读分享与事件总线。
@@ -152,8 +158,19 @@ func accountIDFromClaims() gin.HandlerFunc {
 	}
 }
 
-// driverIDParamFromClaims 把当前令牌的账号标识注入为路径参数 id，
+// driverIDParamFromClaims 把当前令牌的账号标识注入为司机 ID，
 // 让既有 driver 域 handler 能在契约路径下原样复用。
+//
+// 既有 handler 读取司机 ID 的位置并不统一，共三处：
+//   - 路径参数 id：UpdateStatus / Heartbeat / UpdateAreaConfig；
+//   - query(form:"driver_id")：ListHallOrders / GetSummary / GetFlows；
+//   - JSON body(json:"driver_id")：GrabOrder / Withdraw。
+//
+// 契约路径 /api/drv/* 不接收司机 ID，且后两处是 binding:"required"，
+// 只注入路径参数会让大厅、收益、抢单、提现一律 400。故这里三处都要回填。
+//
+// 安全：driver_id 一律强制覆盖为令牌 claims 的值——客户端即使显式传
+// query 或 body 也无法指定他人 ID。
 func driverIDParamFromClaims(next gin.HandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.GetHeader(middleware.HeaderAccountID)
@@ -166,6 +183,45 @@ func driverIDParamFromClaims(next gin.HandlerFunc) gin.HandlerFunc {
 			return
 		}
 		c.Params = append(c.Params, gin.Param{Key: "id", Value: id})
+
+		// query / form：大厅列表与收益查询走 bindQuery 读 driver_id。
+		q := c.Request.URL.Query()
+		q.Set("driver_id", id)
+		c.Request.URL.RawQuery = q.Encode()
+
+		// body：抢单与提现走 bindJSON 读 driver_id。
+		injectDriverIDIntoBody(c, id)
+
 		next(c)
 	}
+}
+
+// injectDriverIDIntoBody 在 JSON 请求体中强制写入 driver_id。
+// 非 JSON、无 body 或解析失败时原样保留，交由后续 handler 自行报错。
+func injectDriverIDIntoBody(c *gin.Context, id string) {
+	if c.Request.Body == nil || c.Request.ContentLength <= 0 {
+		return
+	}
+	if !strings.HasPrefix(c.ContentType(), "application/json") {
+		return
+	}
+	raw, err := io.ReadAll(c.Request.Body)
+	_ = c.Request.Body.Close()
+	if err != nil {
+		return
+	}
+	var payload map[string]any
+	if json.Unmarshal(raw, &payload) != nil {
+		c.Request.Body = io.NopCloser(bytes.NewReader(raw))
+		return
+	}
+	payload["driver_id"] = id
+	out, err := json.Marshal(payload)
+	if err != nil {
+		c.Request.Body = io.NopCloser(bytes.NewReader(raw))
+		return
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(out))
+	c.Request.ContentLength = int64(len(out))
+	c.Request.Header.Set("Content-Length", strconv.FormatInt(int64(len(out)), 10))
 }
