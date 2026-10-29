@@ -965,7 +965,7 @@ HB $d23 | Out-Null
 Api "POST" "/driver/profile/$($d23.id)/mode" @{ mode = "listen" } | Out-Null
 Api "POST" "/driver/profile/$($d23.id)/heartbeat" @{ lat = 30.6572; lng = 104.0808 } | Out-Null
 
-$r = NewOrder "听单单" 3000 0 0
+$r = NewOrder "听单" 3000 0 0
 T $iface "下单进入听单通道" "有听单司机在线" "OK" $r "channel=$($r.Data.dispatch_channel) driver=$($r.Data.driver_id) visible=$($r.Data.visible_in_pool)" | Out-Null
 $o23 = $r.Data
 

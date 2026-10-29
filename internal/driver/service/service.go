@@ -49,12 +49,12 @@ type BusinessConfig struct {
 
 // Service 编排司机端用例：接单大厅（D01–D04）、首页收益对比（D09–D11）、收入结算（D12–D13）。
 type Service struct {
-	drivers  entity.DriverRepository
-	orders   entity.HallOrderRepository
-	incomes  entity.IncomeRepository
-	support  entity.SupportRepository
-	cfg      BusinessConfig
-	log      *zap.Logger
+	drivers   entity.DriverRepository
+	orders    entity.HallOrderRepository
+	incomes   entity.IncomeRepository
+	support   entity.SupportRepository
+	cfg       BusinessConfig
+	log       *zap.Logger
 	publisher func(ctx context.Context, routingKey string, body []byte) error
 }
 
@@ -76,7 +76,7 @@ func (s *Service) RegisterDriver(ctx context.Context, cmd dto.RegisterDriverComm
 		return nil, err
 	}
 	s.emit(ctx, &contracts.DriverStatusChangedPayload{
-		EventID: "dsc-" + driver.ID + "-" + fmt.Sprint(driver.CreatedAt.UnixNano()),
+		EventID:  "dsc-" + driver.ID + "-" + fmt.Sprint(driver.CreatedAt.UnixNano()),
 		DriverID: driver.ID, FromStatus: "", ToStatus: driver.Status, Reason: "register",
 		OccurredAt: biztime.RFC3339(driver.CreatedAt),
 	}, contracts.EventDriverStatusChanged)
@@ -112,7 +112,7 @@ func (s *Service) UpdateStatus(ctx context.Context, cmd dto.UpdateStatusCommand)
 		return nil, err
 	}
 	s.emit(ctx, &contracts.DriverStatusChangedPayload{
-		EventID: "dsc-" + driver.ID + "-" + fmt.Sprint(driver.UpdatedAt.UnixNano()),
+		EventID:  "dsc-" + driver.ID + "-" + fmt.Sprint(driver.UpdatedAt.UnixNano()),
 		DriverID: driver.ID, FromStatus: from, ToStatus: driver.Status,
 		Reason: "driver_operated", OccurredAt: biztime.RFC3339(driver.UpdatedAt),
 	}, contracts.EventDriverStatusChanged)
@@ -198,7 +198,7 @@ func (s *Service) SetOfflineAfterTrip(ctx context.Context, cmd dto.OfflineAfterT
 // CreateTask 创建派单任务：乘客域下单事件 / 模拟下单共用。
 // 单通道分发先走听单窗口，无听单运力时直接转抢单池曝光。
 func (s *Service) CreateTask(ctx context.Context, cmd dto.CreateTaskCommand) (*dto.HallOrderDTO, error) {
-	commission := int64(math.Round(float64(cmd.PassengerPaidFen) * s.cfg.CommissionRate))
+	commission := int64(math.Round(float64(cmd.PassengerPaidFen) * s.cfg.CommissionRate)) //计算佣金
 	order, err := entity.NewHallOrder(entity.CreateHallOrderParam{
 		OrderID: cmd.OrderID, PassengerName: cmd.PassengerName, PassengerCount: cmd.PassengerCount,
 		CityCode: cmd.CityCode, OrderType: cmd.OrderType,
@@ -294,7 +294,7 @@ func (s *Service) GrabOrder(ctx context.Context, cmd dto.GrabOrderCommand) (*dto
 	}
 	s.emit(ctx, &contracts.TaskAssignedPayload{
 		EventID: "tas-" + assigned.ID + "-" + fmt.Sprint(assigned.InviteRound),
-		TaskID: assigned.TaskID, OrderID: assigned.OrderID, DriverID: driver.ID,
+		TaskID:  assigned.TaskID, OrderID: assigned.OrderID, DriverID: driver.ID,
 		Channel: entity.DispatchChannelGrabPool, InviteRound: assigned.InviteRound,
 		AcceptDeadline: biztime.RFC3339(assigned.AcceptDeadline), OccurredAt: biztime.RFC3339(now),
 	}, contracts.EventTaskAssigned)
@@ -339,6 +339,7 @@ func (s *Service) ReleaseOrder(ctx context.Context, cmd dto.ReleaseOrderCommand)
 	}
 	party := stringsDefault(cmd.ResponsibleParty, contracts.PartyDriver)
 	if party == contracts.PartyDriver {
+		//司机退单次数
 		count, err := s.drivers.CountDriverReleasesToday(ctx, driver.ID, biztime.DayStart(biztime.Now()))
 		if err != nil {
 			return nil, err
@@ -355,7 +356,7 @@ func (s *Service) ReleaseOrder(ctx context.Context, cmd dto.ReleaseOrderCommand)
 	_ = s.releaseDriver(ctx, driver, false)
 	s.emit(ctx, &contracts.TaskReleasedPayload{
 		EventID: "tre-" + released.ID + "-" + fmt.Sprint(released.InviteRound+1),
-		TaskID: released.TaskID, OrderID: released.OrderID, DriverID: driver.ID,
+		TaskID:  released.TaskID, OrderID: released.OrderID, DriverID: driver.ID,
 		Reason: released.CancelReason, ResponsibleParty: party, ReleasedAt: biztime.RFC3339(biztime.UTC()),
 	}, contracts.EventTaskReleased)
 	// 继承剩余派单预算重新派发。
@@ -454,7 +455,7 @@ func (s *Service) releaseDriver(ctx context.Context, driver *entity.Driver, forc
 	}
 	if offline {
 		s.emit(ctx, &contracts.DriverStatusChangedPayload{
-			EventID: "dsc-" + driver.ID + "-" + fmt.Sprint(driver.UpdatedAt.UnixNano()),
+			EventID:  "dsc-" + driver.ID + "-" + fmt.Sprint(driver.UpdatedAt.UnixNano()),
 			DriverID: driver.ID, FromStatus: entity.DriverStatusBusy, ToStatus: entity.DriverStatusOffline,
 			Reason: "offline_after_trip", OccurredAt: biztime.RFC3339(driver.UpdatedAt),
 		}, contracts.EventDriverStatusChanged)
