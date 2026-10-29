@@ -18,3 +18,8 @@ docs/superpowers/
 /AGENTS.md
 /CLAUDE.md
 *.md
+
+# 例外：.agent 是 AI 开发约定规则库（20 个文件，多为 .md），必须入库，
+# 否则规则库无法随仓库分发，换机/换人即丢失。上面的 *.md 会把它整目录挡掉。
+!.agent/**/*.md
+!.agent/**
