@@ -14,6 +14,11 @@ import (
 var (
 	ErrAccountNotFound    = errors.New("account not found")
 	ErrAccountDisabled    = errors.New("account is disabled")
+	ErrAccountCanceled    = errors.New("account is canceled")
+	// ErrProfileFieldTooLong 昵称或紧急联系人姓名超长。
+	ErrProfileFieldTooLong = errors.New("profile field is too long")
+	// ErrEmergencyContactIncomplete 紧急联系人姓名与电话必须成对提交。
+	ErrEmergencyContactIncomplete = errors.New("emergency contact name and phone are both required")
 	ErrInvalidPhone       = errors.New("invalid phone")
 	ErrPhoneAlreadyUsed   = errors.New("phone number is already used")
 	ErrInvalidCode        = errors.New("invalid verification code")
@@ -124,8 +129,19 @@ type Account struct {
 	RealNameName string
 	// RealNameIDNo 为脱敏证件号，只用于「我的」页回显，不含真值。
 	RealNameIDNo string
+	// EmergencyName 为紧急联系人姓名，注册引导时补全。
+	EmergencyName string
+	// EmergencyPhone 为紧急联系人电话，对外只输出掩码值。
+	EmergencyPhone string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+// ProfileCompleted 报告注册引导是否已填完：昵称与紧急联系人齐全才算完成，
+// 头像可选（未选时用昵称首字兜底）。
+func (a *Account) ProfileCompleted() bool {
+	return a != nil && strings.TrimSpace(a.Nickname) != "" &&
+		strings.TrimSpace(a.EmergencyName) != "" && strings.TrimSpace(a.EmergencyPhone) != ""
 }
 
 // NewAccount 校验并创建主账号。
@@ -156,6 +172,14 @@ func (a *Account) Enabled() bool {
 // HasPassword 报告账号是否已设置密码。
 func (a *Account) HasPassword() bool {
 	return a != nil && strings.TrimSpace(a.PasswordHash) != ""
+}
+
+// Touch 记录资料更新时间。
+func (a *Account) Touch(now time.Time) {
+	if a == nil {
+		return
+	}
+	a.UpdatedAt = now.UTC()
 }
 
 // WithPasswordHash 返回带密码摘要的账号副本。摘要由仓储层之外的哈希器产生。

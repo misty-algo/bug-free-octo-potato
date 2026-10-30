@@ -59,6 +59,30 @@ func (s *Server) Login(ctx context.Context, req *passengerv1.LoginRequest) (*pas
 	return toLoginProto(out), nil
 }
 
+// UpdateProfile 处理注册引导：补全昵称、头像与紧急联系人。
+func (s *Server) UpdateProfile(ctx context.Context, req *passengerv1.UpdateProfileRequest) (*passengerv1.ProfileResponse, error) {
+	out, err := s.svc.UpdateProfile(ctx, dto.UpdateProfileCommand{
+		AccountID:      req.GetAccountId(),
+		Nickname:       req.GetNickname(),
+		Avatar:         req.GetAvatar(),
+		EmergencyName:  req.GetEmergencyName(),
+		EmergencyPhone: req.GetEmergencyPhone(),
+	})
+	if err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return toProfileProto(out), nil
+}
+
+// GetProfile 处理个人资料查询（紧急联系电话只回掩码值）。
+func (s *Server) GetProfile(ctx context.Context, req *passengerv1.GetProfileRequest) (*passengerv1.ProfileResponse, error) {
+	out, err := s.svc.GetProfile(ctx, req.GetAccountId())
+	if err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return toProfileProto(out), nil
+}
+
 // SetPassword 处理设置登录密码。
 func (s *Server) SetPassword(ctx context.Context, req *passengerv1.SetPasswordRequest) (*passengerv1.SetPasswordResponse, error) {
 	err := s.svc.SetPassword(ctx, dto.SetPasswordCommand{
@@ -319,6 +343,17 @@ func toRealNameProto(out *dto.RealNameStatusDTO) *passengerv1.RealNameStatusResp
 		State:    out.State,
 		NameMask: out.NameMask,
 		IdNoMask: out.IDNoMask,
+	}
+}
+
+func toProfileProto(out *dto.ProfileDTO) *passengerv1.ProfileResponse {
+	return &passengerv1.ProfileResponse{
+		AccountId:          out.AccountID,
+		Nickname:           out.Nickname,
+		Avatar:             out.Avatar,
+		EmergencyName:      out.EmergencyName,
+		EmergencyPhoneMask: out.EmergencyPhoneMask,
+		Completed:          out.Completed,
 	}
 }
 
@@ -648,6 +683,12 @@ func mapPassengerError(err error) error {
 		return apperrors.New(apperrors.KindUnauthorized, "forbidden", "无权限访问该资源")
 	case stderrors.Is(err, entity.ErrAccountDisabled):
 		return apperrors.New(apperrors.KindUnauthorized, "account_disabled", "账号已被禁用")
+	case stderrors.Is(err, entity.ErrAccountCanceled):
+		return apperrors.New(apperrors.KindUnauthorized, "account_canceled", "账号已注销")
+	case stderrors.Is(err, entity.ErrProfileFieldTooLong):
+		return apperrors.New(apperrors.KindInvalidArgument, "profile_too_long", "昵称或紧急联系人姓名过长")
+	case stderrors.Is(err, entity.ErrEmergencyContactIncomplete):
+		return apperrors.New(apperrors.KindInvalidArgument, "emergency_incomplete", "紧急联系人姓名与电话需同时填写")
 	case stderrors.Is(err, entity.ErrAccountNotFound),
 		stderrors.Is(err, entity.ErrEstimateNotFound),
 		stderrors.Is(err, entity.ErrAddressNotFound),

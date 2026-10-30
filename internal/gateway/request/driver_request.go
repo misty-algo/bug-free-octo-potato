@@ -108,6 +108,18 @@ type CancelOrderRequest struct {
 }
 
 // IncomeQueryRequest 收入相关查询参数。
+// DriverSendCodeRequest 司机登录验证码下发请求体。
+type DriverSendCodeRequest struct {
+	Phone string `json:"phone" binding:"required"`
+}
+
+// DriverLoginRequest 司机登录请求体（手机号 + 验证码，首次登录带姓名自动建档）。
+type DriverLoginRequest struct {
+	Phone string `json:"phone" binding:"required"`
+	Code  string `json:"code" binding:"required"`
+	Name  string `json:"name"`
+}
+
 type IncomeQueryRequest struct {
 	DriverID string `form:"driver_id" binding:"required"`
 	Page     int32  `form:"page"`

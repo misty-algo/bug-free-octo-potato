@@ -19,6 +19,9 @@ service PassengerService {
   rpc UnbindChannel(UnbindChannelRequest) returns (LogoutResponse);
   rpc CancelAccount(CancelAccountRequest) returns (LogoutResponse);
   rpc WithdrawCancelAccount(CancelAccountRequest) returns (LogoutResponse);
+  // 注册引导：首次登录补全昵称、头像与紧急联系人。
+  rpc UpdateProfile(UpdateProfileRequest) returns (ProfileResponse);
+  rpc GetProfile(GetProfileRequest) returns (ProfileResponse);
 
   // 首页相关
   rpc Home(HomeRequest) returns (HomeResponse);
@@ -148,6 +151,33 @@ message UnbindChannelRequest {
 
 message CancelAccountRequest {
   string account_id = 1;
+}
+
+// ── 注册引导 / 个人资料 ──
+
+message UpdateProfileRequest {
+  string account_id = 1;
+  string nickname = 2;
+  // avatar 为头像标识（前端用 emoji 或预设图标，不上传文件）。
+  string avatar = 3;
+  // emergency_name / emergency_phone 为紧急联系人，仅本人可见与编辑。
+  string emergency_name = 4;
+  string emergency_phone = 5;
+}
+
+message GetProfileRequest {
+  string account_id = 1;
+}
+
+message ProfileResponse {
+  string account_id = 1;
+  string nickname = 2;
+  string avatar = 3;
+  string emergency_name = 4;
+  // emergency_phone_mask 为脱敏后的紧急联系电话。
+  string emergency_phone_mask = 5;
+  // completed 表示注册引导是否已填完（昵称与紧急联系人齐全）。
+  bool completed = 6;
 }
 
 message HomeRequest {

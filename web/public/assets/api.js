@@ -2,14 +2,20 @@
 // 请求打到 /api/v1，由 web/server.mjs 反向代理到网关，所以不需要处理跨域。
 const BASE = '/api/v1';
 
+// 司机端令牌的本地存储键（乘客端令牌不落盘，刷新即需重新登录）。
+export const DRIVER_TOKEN_KEY = 'huazhu.driverToken';
+
 /**
  * api 调用乘客/司机端接口，并统一抛出「code：message」形式的错误。
  * 账号标识走 X-Account-Id，登录态走 Authorization，与后端约定一致。
  */
 export async function api(path, { method = 'GET', body, accountId, token } = {}) {
+  // 司机端令牌持久化在 localStorage（登录后长期有效），这里统一带上；
+  // 乘客端令牌只存在会话内存里，由调用方显式传入，刷新后需重新登录。
+  const authToken = token || localStorage.getItem(DRIVER_TOKEN_KEY) || '';
   const headers = {};
   if (accountId) headers['X-Account-Id'] = accountId;
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
   const response = await fetch(BASE + path, {

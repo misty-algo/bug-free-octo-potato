@@ -21,6 +21,240 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type SendDriverCodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Phone         string                 `protobuf:"bytes,1,opt,name=phone,proto3" json:"phone,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendDriverCodeRequest) Reset() {
+	*x = SendDriverCodeRequest{}
+	mi := &file_driver_v1_driver_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendDriverCodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendDriverCodeRequest) ProtoMessage() {}
+
+func (x *SendDriverCodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_driver_v1_driver_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendDriverCodeRequest.ProtoReflect.Descriptor instead.
+func (*SendDriverCodeRequest) Descriptor() ([]byte, []int) {
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *SendDriverCodeRequest) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+type SendDriverCodeResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// debug_code 仅本地联调环境返回，生产环境由短信通道下发。
+	DebugCode     string `protobuf:"bytes,1,opt,name=debug_code,json=debugCode,proto3" json:"debug_code,omitempty"`
+	ExpiresIn     int64  `protobuf:"varint,2,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"` // 验证码有效期（秒）
+	ResendIn      int64  `protobuf:"varint,3,opt,name=resend_in,json=resendIn,proto3" json:"resend_in,omitempty"`    // 距离可再次下发的秒数
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendDriverCodeResponse) Reset() {
+	*x = SendDriverCodeResponse{}
+	mi := &file_driver_v1_driver_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendDriverCodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendDriverCodeResponse) ProtoMessage() {}
+
+func (x *SendDriverCodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_driver_v1_driver_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendDriverCodeResponse.ProtoReflect.Descriptor instead.
+func (*SendDriverCodeResponse) Descriptor() ([]byte, []int) {
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SendDriverCodeResponse) GetDebugCode() string {
+	if x != nil {
+		return x.DebugCode
+	}
+	return ""
+}
+
+func (x *SendDriverCodeResponse) GetExpiresIn() int64 {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return 0
+}
+
+func (x *SendDriverCodeResponse) GetResendIn() int64 {
+	if x != nil {
+		return x.ResendIn
+	}
+	return 0
+}
+
+type DriverLoginRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Phone string                 `protobuf:"bytes,1,opt,name=phone,proto3" json:"phone,omitempty"`
+	Code  string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	// name 仅首次登录（自动建档）时必填。
+	Name          string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DriverLoginRequest) Reset() {
+	*x = DriverLoginRequest{}
+	mi := &file_driver_v1_driver_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DriverLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DriverLoginRequest) ProtoMessage() {}
+
+func (x *DriverLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_driver_v1_driver_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DriverLoginRequest.ProtoReflect.Descriptor instead.
+func (*DriverLoginRequest) Descriptor() ([]byte, []int) {
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *DriverLoginRequest) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *DriverLoginRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *DriverLoginRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type DriverLoginResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	ExpiresIn     int64                  `protobuf:"varint,2,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"` // 令牌有效期（秒）
+	Driver        *DriverProfileResponse `protobuf:"bytes,3,opt,name=driver,proto3" json:"driver,omitempty"`
+	IsNew         bool                   `protobuf:"varint,4,opt,name=is_new,json=isNew,proto3" json:"is_new,omitempty"` // 本次是否自动建档
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DriverLoginResponse) Reset() {
+	*x = DriverLoginResponse{}
+	mi := &file_driver_v1_driver_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DriverLoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DriverLoginResponse) ProtoMessage() {}
+
+func (x *DriverLoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_driver_v1_driver_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DriverLoginResponse.ProtoReflect.Descriptor instead.
+func (*DriverLoginResponse) Descriptor() ([]byte, []int) {
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *DriverLoginResponse) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *DriverLoginResponse) GetExpiresIn() int64 {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return 0
+}
+
+func (x *DriverLoginResponse) GetDriver() *DriverProfileResponse {
+	if x != nil {
+		return x.Driver
+	}
+	return nil
+}
+
+func (x *DriverLoginResponse) GetIsNew() bool {
+	if x != nil {
+		return x.IsNew
+	}
+	return false
+}
+
 type RegisterDriverRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -31,7 +265,7 @@ type RegisterDriverRequest struct {
 
 func (x *RegisterDriverRequest) Reset() {
 	*x = RegisterDriverRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[0]
+	mi := &file_driver_v1_driver_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +277,7 @@ func (x *RegisterDriverRequest) String() string {
 func (*RegisterDriverRequest) ProtoMessage() {}
 
 func (x *RegisterDriverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[0]
+	mi := &file_driver_v1_driver_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +290,7 @@ func (x *RegisterDriverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterDriverRequest.ProtoReflect.Descriptor instead.
 func (*RegisterDriverRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{0}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RegisterDriverRequest) GetName() string {
@@ -82,7 +316,7 @@ type GetDriverProfileRequest struct {
 
 func (x *GetDriverProfileRequest) Reset() {
 	*x = GetDriverProfileRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[1]
+	mi := &file_driver_v1_driver_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -94,7 +328,7 @@ func (x *GetDriverProfileRequest) String() string {
 func (*GetDriverProfileRequest) ProtoMessage() {}
 
 func (x *GetDriverProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[1]
+	mi := &file_driver_v1_driver_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -107,7 +341,7 @@ func (x *GetDriverProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDriverProfileRequest.ProtoReflect.Descriptor instead.
 func (*GetDriverProfileRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{1}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetDriverProfileRequest) GetDriverId() string {
@@ -129,7 +363,7 @@ type UpdateDriverStatusRequest struct {
 
 func (x *UpdateDriverStatusRequest) Reset() {
 	*x = UpdateDriverStatusRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[2]
+	mi := &file_driver_v1_driver_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -141,7 +375,7 @@ func (x *UpdateDriverStatusRequest) String() string {
 func (*UpdateDriverStatusRequest) ProtoMessage() {}
 
 func (x *UpdateDriverStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[2]
+	mi := &file_driver_v1_driver_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -154,7 +388,7 @@ func (x *UpdateDriverStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDriverStatusRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDriverStatusRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{2}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateDriverStatusRequest) GetDriverId() string {
@@ -190,7 +424,7 @@ type UpdateDriverModeRequest struct {
 
 func (x *UpdateDriverModeRequest) Reset() {
 	*x = UpdateDriverModeRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[3]
+	mi := &file_driver_v1_driver_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -202,7 +436,7 @@ func (x *UpdateDriverModeRequest) String() string {
 func (*UpdateDriverModeRequest) ProtoMessage() {}
 
 func (x *UpdateDriverModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[3]
+	mi := &file_driver_v1_driver_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -215,7 +449,7 @@ func (x *UpdateDriverModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDriverModeRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDriverModeRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{3}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdateDriverModeRequest) GetDriverId() string {
@@ -250,7 +484,7 @@ type UpdateOfflineAfterTripRequest struct {
 
 func (x *UpdateOfflineAfterTripRequest) Reset() {
 	*x = UpdateOfflineAfterTripRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[4]
+	mi := &file_driver_v1_driver_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -262,7 +496,7 @@ func (x *UpdateOfflineAfterTripRequest) String() string {
 func (*UpdateOfflineAfterTripRequest) ProtoMessage() {}
 
 func (x *UpdateOfflineAfterTripRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[4]
+	mi := &file_driver_v1_driver_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -275,7 +509,7 @@ func (x *UpdateOfflineAfterTripRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateOfflineAfterTripRequest.ProtoReflect.Descriptor instead.
 func (*UpdateOfflineAfterTripRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{4}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateOfflineAfterTripRequest) GetDriverId() string {
@@ -310,7 +544,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[5]
+	mi := &file_driver_v1_driver_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -322,7 +556,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[5]
+	mi := &file_driver_v1_driver_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -335,7 +569,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{5}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *HeartbeatRequest) GetDriverId() string {
@@ -372,7 +606,7 @@ type AreaBoxMessage struct {
 
 func (x *AreaBoxMessage) Reset() {
 	*x = AreaBoxMessage{}
-	mi := &file_driver_v1_driver_proto_msgTypes[6]
+	mi := &file_driver_v1_driver_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -384,7 +618,7 @@ func (x *AreaBoxMessage) String() string {
 func (*AreaBoxMessage) ProtoMessage() {}
 
 func (x *AreaBoxMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[6]
+	mi := &file_driver_v1_driver_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -397,7 +631,7 @@ func (x *AreaBoxMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AreaBoxMessage.ProtoReflect.Descriptor instead.
 func (*AreaBoxMessage) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{6}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AreaBoxMessage) GetName() string {
@@ -447,7 +681,7 @@ type UpdateAreaConfigRequest struct {
 
 func (x *UpdateAreaConfigRequest) Reset() {
 	*x = UpdateAreaConfigRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[7]
+	mi := &file_driver_v1_driver_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -459,7 +693,7 @@ func (x *UpdateAreaConfigRequest) String() string {
 func (*UpdateAreaConfigRequest) ProtoMessage() {}
 
 func (x *UpdateAreaConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[7]
+	mi := &file_driver_v1_driver_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -472,7 +706,7 @@ func (x *UpdateAreaConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAreaConfigRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAreaConfigRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{7}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateAreaConfigRequest) GetDriverId() string {
@@ -516,7 +750,7 @@ type FundsMessage struct {
 
 func (x *FundsMessage) Reset() {
 	*x = FundsMessage{}
-	mi := &file_driver_v1_driver_proto_msgTypes[8]
+	mi := &file_driver_v1_driver_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -528,7 +762,7 @@ func (x *FundsMessage) String() string {
 func (*FundsMessage) ProtoMessage() {}
 
 func (x *FundsMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[8]
+	mi := &file_driver_v1_driver_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -541,7 +775,7 @@ func (x *FundsMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FundsMessage.ProtoReflect.Descriptor instead.
 func (*FundsMessage) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{8}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *FundsMessage) GetPendingFen() int64 {
@@ -612,7 +846,7 @@ type DriverProfileResponse struct {
 
 func (x *DriverProfileResponse) Reset() {
 	*x = DriverProfileResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[9]
+	mi := &file_driver_v1_driver_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -624,7 +858,7 @@ func (x *DriverProfileResponse) String() string {
 func (*DriverProfileResponse) ProtoMessage() {}
 
 func (x *DriverProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[9]
+	mi := &file_driver_v1_driver_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -637,7 +871,7 @@ func (x *DriverProfileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriverProfileResponse.ProtoReflect.Descriptor instead.
 func (*DriverProfileResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{9}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DriverProfileResponse) GetId() string {
@@ -819,7 +1053,7 @@ type LocationMessage struct {
 
 func (x *LocationMessage) Reset() {
 	*x = LocationMessage{}
-	mi := &file_driver_v1_driver_proto_msgTypes[10]
+	mi := &file_driver_v1_driver_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -831,7 +1065,7 @@ func (x *LocationMessage) String() string {
 func (*LocationMessage) ProtoMessage() {}
 
 func (x *LocationMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[10]
+	mi := &file_driver_v1_driver_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -844,7 +1078,7 @@ func (x *LocationMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocationMessage.ProtoReflect.Descriptor instead.
 func (*LocationMessage) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{10}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *LocationMessage) GetName() string {
@@ -891,7 +1125,7 @@ type CreateHallOrderRequest struct {
 
 func (x *CreateHallOrderRequest) Reset() {
 	*x = CreateHallOrderRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[11]
+	mi := &file_driver_v1_driver_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -903,7 +1137,7 @@ func (x *CreateHallOrderRequest) String() string {
 func (*CreateHallOrderRequest) ProtoMessage() {}
 
 func (x *CreateHallOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[11]
+	mi := &file_driver_v1_driver_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -916,7 +1150,7 @@ func (x *CreateHallOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateHallOrderRequest.ProtoReflect.Descriptor instead.
 func (*CreateHallOrderRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{11}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CreateHallOrderRequest) GetPassengerName() string {
@@ -1062,7 +1296,7 @@ type HallOrderResponse struct {
 
 func (x *HallOrderResponse) Reset() {
 	*x = HallOrderResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[12]
+	mi := &file_driver_v1_driver_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1074,7 +1308,7 @@ func (x *HallOrderResponse) String() string {
 func (*HallOrderResponse) ProtoMessage() {}
 
 func (x *HallOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[12]
+	mi := &file_driver_v1_driver_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1087,7 +1321,7 @@ func (x *HallOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HallOrderResponse.ProtoReflect.Descriptor instead.
 func (*HallOrderResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{12}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *HallOrderResponse) GetId() string {
@@ -1354,7 +1588,7 @@ type ListHallOrdersRequest struct {
 
 func (x *ListHallOrdersRequest) Reset() {
 	*x = ListHallOrdersRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[13]
+	mi := &file_driver_v1_driver_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1366,7 +1600,7 @@ func (x *ListHallOrdersRequest) String() string {
 func (*ListHallOrdersRequest) ProtoMessage() {}
 
 func (x *ListHallOrdersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[13]
+	mi := &file_driver_v1_driver_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1379,7 +1613,7 @@ func (x *ListHallOrdersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHallOrdersRequest.ProtoReflect.Descriptor instead.
 func (*ListHallOrdersRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{13}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListHallOrdersRequest) GetDriverId() string {
@@ -1420,7 +1654,7 @@ type ListHallOrdersResponse struct {
 
 func (x *ListHallOrdersResponse) Reset() {
 	*x = ListHallOrdersResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[14]
+	mi := &file_driver_v1_driver_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1432,7 +1666,7 @@ func (x *ListHallOrdersResponse) String() string {
 func (*ListHallOrdersResponse) ProtoMessage() {}
 
 func (x *ListHallOrdersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[14]
+	mi := &file_driver_v1_driver_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1445,7 +1679,7 @@ func (x *ListHallOrdersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHallOrdersResponse.ProtoReflect.Descriptor instead.
 func (*ListHallOrdersResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{14}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListHallOrdersResponse) GetItems() []*HallOrderResponse {
@@ -1473,7 +1707,7 @@ type GrabOrderRequest struct {
 
 func (x *GrabOrderRequest) Reset() {
 	*x = GrabOrderRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[15]
+	mi := &file_driver_v1_driver_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1485,7 +1719,7 @@ func (x *GrabOrderRequest) String() string {
 func (*GrabOrderRequest) ProtoMessage() {}
 
 func (x *GrabOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[15]
+	mi := &file_driver_v1_driver_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1498,7 +1732,7 @@ func (x *GrabOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GrabOrderRequest.ProtoReflect.Descriptor instead.
 func (*GrabOrderRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{15}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GrabOrderRequest) GetDriverId() string {
@@ -1534,7 +1768,7 @@ type AcceptOrderRequest struct {
 
 func (x *AcceptOrderRequest) Reset() {
 	*x = AcceptOrderRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[16]
+	mi := &file_driver_v1_driver_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1546,7 +1780,7 @@ func (x *AcceptOrderRequest) String() string {
 func (*AcceptOrderRequest) ProtoMessage() {}
 
 func (x *AcceptOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[16]
+	mi := &file_driver_v1_driver_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1559,7 +1793,7 @@ func (x *AcceptOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptOrderRequest.ProtoReflect.Descriptor instead.
 func (*AcceptOrderRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{16}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *AcceptOrderRequest) GetDriverId() string {
@@ -1603,7 +1837,7 @@ type ReleaseOrderRequest struct {
 
 func (x *ReleaseOrderRequest) Reset() {
 	*x = ReleaseOrderRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[17]
+	mi := &file_driver_v1_driver_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1615,7 +1849,7 @@ func (x *ReleaseOrderRequest) String() string {
 func (*ReleaseOrderRequest) ProtoMessage() {}
 
 func (x *ReleaseOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[17]
+	mi := &file_driver_v1_driver_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1628,7 +1862,7 @@ func (x *ReleaseOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseOrderRequest.ProtoReflect.Descriptor instead.
 func (*ReleaseOrderRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{17}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ReleaseOrderRequest) GetDriverId() string {
@@ -1677,7 +1911,7 @@ type StartTripRequest struct {
 
 func (x *StartTripRequest) Reset() {
 	*x = StartTripRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[18]
+	mi := &file_driver_v1_driver_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1689,7 +1923,7 @@ func (x *StartTripRequest) String() string {
 func (*StartTripRequest) ProtoMessage() {}
 
 func (x *StartTripRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[18]
+	mi := &file_driver_v1_driver_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1702,7 +1936,7 @@ func (x *StartTripRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartTripRequest.ProtoReflect.Descriptor instead.
 func (*StartTripRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{18}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *StartTripRequest) GetDriverId() string {
@@ -1739,7 +1973,7 @@ type CompleteOrderRequest struct {
 
 func (x *CompleteOrderRequest) Reset() {
 	*x = CompleteOrderRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[19]
+	mi := &file_driver_v1_driver_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1751,7 +1985,7 @@ func (x *CompleteOrderRequest) String() string {
 func (*CompleteOrderRequest) ProtoMessage() {}
 
 func (x *CompleteOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[19]
+	mi := &file_driver_v1_driver_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1764,7 +1998,7 @@ func (x *CompleteOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteOrderRequest.ProtoReflect.Descriptor instead.
 func (*CompleteOrderRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{19}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CompleteOrderRequest) GetDriverId() string {
@@ -1813,7 +2047,7 @@ type CancelOrderRequest struct {
 
 func (x *CancelOrderRequest) Reset() {
 	*x = CancelOrderRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[20]
+	mi := &file_driver_v1_driver_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1825,7 +2059,7 @@ func (x *CancelOrderRequest) String() string {
 func (*CancelOrderRequest) ProtoMessage() {}
 
 func (x *CancelOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[20]
+	mi := &file_driver_v1_driver_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1838,7 +2072,7 @@ func (x *CancelOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelOrderRequest.ProtoReflect.Descriptor instead.
 func (*CancelOrderRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{20}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CancelOrderRequest) GetOrderId() string {
@@ -1877,7 +2111,7 @@ type AmountMessage struct {
 
 func (x *AmountMessage) Reset() {
 	*x = AmountMessage{}
-	mi := &file_driver_v1_driver_proto_msgTypes[21]
+	mi := &file_driver_v1_driver_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1889,7 +2123,7 @@ func (x *AmountMessage) String() string {
 func (*AmountMessage) ProtoMessage() {}
 
 func (x *AmountMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[21]
+	mi := &file_driver_v1_driver_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1902,7 +2136,7 @@ func (x *AmountMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AmountMessage.ProtoReflect.Descriptor instead.
 func (*AmountMessage) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{21}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *AmountMessage) GetOrigFareFen() int64 {
@@ -1976,7 +2210,7 @@ type IncomeFlowMessage struct {
 
 func (x *IncomeFlowMessage) Reset() {
 	*x = IncomeFlowMessage{}
-	mi := &file_driver_v1_driver_proto_msgTypes[22]
+	mi := &file_driver_v1_driver_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1988,7 +2222,7 @@ func (x *IncomeFlowMessage) String() string {
 func (*IncomeFlowMessage) ProtoMessage() {}
 
 func (x *IncomeFlowMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[22]
+	mi := &file_driver_v1_driver_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2001,7 +2235,7 @@ func (x *IncomeFlowMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IncomeFlowMessage.ProtoReflect.Descriptor instead.
 func (*IncomeFlowMessage) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{22}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *IncomeFlowMessage) GetId() string {
@@ -2111,7 +2345,7 @@ type IncomeFlowResponse struct {
 
 func (x *IncomeFlowResponse) Reset() {
 	*x = IncomeFlowResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[23]
+	mi := &file_driver_v1_driver_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2123,7 +2357,7 @@ func (x *IncomeFlowResponse) String() string {
 func (*IncomeFlowResponse) ProtoMessage() {}
 
 func (x *IncomeFlowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[23]
+	mi := &file_driver_v1_driver_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2136,7 +2370,7 @@ func (x *IncomeFlowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IncomeFlowResponse.ProtoReflect.Descriptor instead.
 func (*IncomeFlowResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{23}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *IncomeFlowResponse) GetFlow() *IncomeFlowMessage {
@@ -2156,7 +2390,7 @@ type CompleteOrderResponse struct {
 
 func (x *CompleteOrderResponse) Reset() {
 	*x = CompleteOrderResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[24]
+	mi := &file_driver_v1_driver_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2168,7 +2402,7 @@ func (x *CompleteOrderResponse) String() string {
 func (*CompleteOrderResponse) ProtoMessage() {}
 
 func (x *CompleteOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[24]
+	mi := &file_driver_v1_driver_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2181,7 +2415,7 @@ func (x *CompleteOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteOrderResponse.ProtoReflect.Descriptor instead.
 func (*CompleteOrderResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{24}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CompleteOrderResponse) GetOrder() *HallOrderResponse {
@@ -2207,7 +2441,7 @@ type GetIncomeCompareRequest struct {
 
 func (x *GetIncomeCompareRequest) Reset() {
 	*x = GetIncomeCompareRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[25]
+	mi := &file_driver_v1_driver_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2219,7 +2453,7 @@ func (x *GetIncomeCompareRequest) String() string {
 func (*GetIncomeCompareRequest) ProtoMessage() {}
 
 func (x *GetIncomeCompareRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[25]
+	mi := &file_driver_v1_driver_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2232,7 +2466,7 @@ func (x *GetIncomeCompareRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIncomeCompareRequest.ProtoReflect.Descriptor instead.
 func (*GetIncomeCompareRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{25}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetIncomeCompareRequest) GetDriverId() string {
@@ -2254,7 +2488,7 @@ type DayIncomeMessage struct {
 
 func (x *DayIncomeMessage) Reset() {
 	*x = DayIncomeMessage{}
-	mi := &file_driver_v1_driver_proto_msgTypes[26]
+	mi := &file_driver_v1_driver_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2266,7 +2500,7 @@ func (x *DayIncomeMessage) String() string {
 func (*DayIncomeMessage) ProtoMessage() {}
 
 func (x *DayIncomeMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[26]
+	mi := &file_driver_v1_driver_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2279,7 +2513,7 @@ func (x *DayIncomeMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DayIncomeMessage.ProtoReflect.Descriptor instead.
 func (*DayIncomeMessage) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{26}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *DayIncomeMessage) GetDate() string {
@@ -2326,7 +2560,7 @@ type IncomeCompareResponse struct {
 
 func (x *IncomeCompareResponse) Reset() {
 	*x = IncomeCompareResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[27]
+	mi := &file_driver_v1_driver_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2338,7 +2572,7 @@ func (x *IncomeCompareResponse) String() string {
 func (*IncomeCompareResponse) ProtoMessage() {}
 
 func (x *IncomeCompareResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[27]
+	mi := &file_driver_v1_driver_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2351,7 +2585,7 @@ func (x *IncomeCompareResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IncomeCompareResponse.ProtoReflect.Descriptor instead.
 func (*IncomeCompareResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{27}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *IncomeCompareResponse) GetToday() *DayIncomeMessage {
@@ -2423,7 +2657,7 @@ type ListIncomeFlowsRequest struct {
 
 func (x *ListIncomeFlowsRequest) Reset() {
 	*x = ListIncomeFlowsRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[28]
+	mi := &file_driver_v1_driver_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2435,7 +2669,7 @@ func (x *ListIncomeFlowsRequest) String() string {
 func (*ListIncomeFlowsRequest) ProtoMessage() {}
 
 func (x *ListIncomeFlowsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[28]
+	mi := &file_driver_v1_driver_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2448,7 +2682,7 @@ func (x *ListIncomeFlowsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIncomeFlowsRequest.ProtoReflect.Descriptor instead.
 func (*ListIncomeFlowsRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{28}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListIncomeFlowsRequest) GetDriverId() string {
@@ -2496,7 +2730,7 @@ type ListIncomeFlowsResponse struct {
 
 func (x *ListIncomeFlowsResponse) Reset() {
 	*x = ListIncomeFlowsResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[29]
+	mi := &file_driver_v1_driver_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2508,7 +2742,7 @@ func (x *ListIncomeFlowsResponse) String() string {
 func (*ListIncomeFlowsResponse) ProtoMessage() {}
 
 func (x *ListIncomeFlowsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[29]
+	mi := &file_driver_v1_driver_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2521,7 +2755,7 @@ func (x *ListIncomeFlowsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIncomeFlowsResponse.ProtoReflect.Descriptor instead.
 func (*ListIncomeFlowsResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{29}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListIncomeFlowsResponse) GetItems() []*IncomeFlowMessage {
@@ -2547,7 +2781,7 @@ type GetIncomeSummaryRequest struct {
 
 func (x *GetIncomeSummaryRequest) Reset() {
 	*x = GetIncomeSummaryRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[30]
+	mi := &file_driver_v1_driver_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2559,7 +2793,7 @@ func (x *GetIncomeSummaryRequest) String() string {
 func (*GetIncomeSummaryRequest) ProtoMessage() {}
 
 func (x *GetIncomeSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[30]
+	mi := &file_driver_v1_driver_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2572,7 +2806,7 @@ func (x *GetIncomeSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIncomeSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetIncomeSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{30}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *GetIncomeSummaryRequest) GetDriverId() string {
@@ -2604,7 +2838,7 @@ type IncomeSummaryResponse struct {
 
 func (x *IncomeSummaryResponse) Reset() {
 	*x = IncomeSummaryResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[31]
+	mi := &file_driver_v1_driver_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2616,7 +2850,7 @@ func (x *IncomeSummaryResponse) String() string {
 func (*IncomeSummaryResponse) ProtoMessage() {}
 
 func (x *IncomeSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[31]
+	mi := &file_driver_v1_driver_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2629,7 +2863,7 @@ func (x *IncomeSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IncomeSummaryResponse.ProtoReflect.Descriptor instead.
 func (*IncomeSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{31}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *IncomeSummaryResponse) GetPendingFen() int64 {
@@ -2741,7 +2975,7 @@ type RequestWithdrawRequest struct {
 
 func (x *RequestWithdrawRequest) Reset() {
 	*x = RequestWithdrawRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[32]
+	mi := &file_driver_v1_driver_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2753,7 +2987,7 @@ func (x *RequestWithdrawRequest) String() string {
 func (*RequestWithdrawRequest) ProtoMessage() {}
 
 func (x *RequestWithdrawRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[32]
+	mi := &file_driver_v1_driver_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2766,7 +3000,7 @@ func (x *RequestWithdrawRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestWithdrawRequest.ProtoReflect.Descriptor instead.
 func (*RequestWithdrawRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{32}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *RequestWithdrawRequest) GetDriverId() string {
@@ -2801,7 +3035,7 @@ type ApprovalMessage struct {
 
 func (x *ApprovalMessage) Reset() {
 	*x = ApprovalMessage{}
-	mi := &file_driver_v1_driver_proto_msgTypes[33]
+	mi := &file_driver_v1_driver_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2813,7 +3047,7 @@ func (x *ApprovalMessage) String() string {
 func (*ApprovalMessage) ProtoMessage() {}
 
 func (x *ApprovalMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[33]
+	mi := &file_driver_v1_driver_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2826,7 +3060,7 @@ func (x *ApprovalMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApprovalMessage.ProtoReflect.Descriptor instead.
 func (*ApprovalMessage) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{33}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ApprovalMessage) GetApproverId() string {
@@ -2869,7 +3103,7 @@ type WithdrawResponse struct {
 
 func (x *WithdrawResponse) Reset() {
 	*x = WithdrawResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[34]
+	mi := &file_driver_v1_driver_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2881,7 +3115,7 @@ func (x *WithdrawResponse) String() string {
 func (*WithdrawResponse) ProtoMessage() {}
 
 func (x *WithdrawResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[34]
+	mi := &file_driver_v1_driver_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2894,7 +3128,7 @@ func (x *WithdrawResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WithdrawResponse.ProtoReflect.Descriptor instead.
 func (*WithdrawResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{34}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *WithdrawResponse) GetId() string {
@@ -2981,7 +3215,7 @@ type ListWithdrawalsRequest struct {
 
 func (x *ListWithdrawalsRequest) Reset() {
 	*x = ListWithdrawalsRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[35]
+	mi := &file_driver_v1_driver_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2993,7 +3227,7 @@ func (x *ListWithdrawalsRequest) String() string {
 func (*ListWithdrawalsRequest) ProtoMessage() {}
 
 func (x *ListWithdrawalsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[35]
+	mi := &file_driver_v1_driver_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3006,7 +3240,7 @@ func (x *ListWithdrawalsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWithdrawalsRequest.ProtoReflect.Descriptor instead.
 func (*ListWithdrawalsRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{35}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ListWithdrawalsRequest) GetDriverId() string {
@@ -3061,7 +3295,7 @@ type ListWithdrawalsResponse struct {
 
 func (x *ListWithdrawalsResponse) Reset() {
 	*x = ListWithdrawalsResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[36]
+	mi := &file_driver_v1_driver_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3073,7 +3307,7 @@ func (x *ListWithdrawalsResponse) String() string {
 func (*ListWithdrawalsResponse) ProtoMessage() {}
 
 func (x *ListWithdrawalsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[36]
+	mi := &file_driver_v1_driver_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3086,7 +3320,7 @@ func (x *ListWithdrawalsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWithdrawalsResponse.ProtoReflect.Descriptor instead.
 func (*ListWithdrawalsResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{36}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ListWithdrawalsResponse) GetItems() []*WithdrawResponse {
@@ -3117,7 +3351,7 @@ type ReportPaymentRequest struct {
 
 func (x *ReportPaymentRequest) Reset() {
 	*x = ReportPaymentRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[37]
+	mi := &file_driver_v1_driver_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3129,7 +3363,7 @@ func (x *ReportPaymentRequest) String() string {
 func (*ReportPaymentRequest) ProtoMessage() {}
 
 func (x *ReportPaymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[37]
+	mi := &file_driver_v1_driver_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3142,7 +3376,7 @@ func (x *ReportPaymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportPaymentRequest.ProtoReflect.Descriptor instead.
 func (*ReportPaymentRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{37}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ReportPaymentRequest) GetOrderId() string {
@@ -3202,7 +3436,7 @@ type ReportRefundRequest struct {
 
 func (x *ReportRefundRequest) Reset() {
 	*x = ReportRefundRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[38]
+	mi := &file_driver_v1_driver_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3214,7 +3448,7 @@ func (x *ReportRefundRequest) String() string {
 func (*ReportRefundRequest) ProtoMessage() {}
 
 func (x *ReportRefundRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[38]
+	mi := &file_driver_v1_driver_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3227,7 +3461,7 @@ func (x *ReportRefundRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportRefundRequest.ProtoReflect.Descriptor instead.
 func (*ReportRefundRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{38}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ReportRefundRequest) GetOrderId() string {
@@ -3290,7 +3524,7 @@ type SettleIncomeRequest struct {
 
 func (x *SettleIncomeRequest) Reset() {
 	*x = SettleIncomeRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[39]
+	mi := &file_driver_v1_driver_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3302,7 +3536,7 @@ func (x *SettleIncomeRequest) String() string {
 func (*SettleIncomeRequest) ProtoMessage() {}
 
 func (x *SettleIncomeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[39]
+	mi := &file_driver_v1_driver_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3315,7 +3549,7 @@ func (x *SettleIncomeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SettleIncomeRequest.ProtoReflect.Descriptor instead.
 func (*SettleIncomeRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{39}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *SettleIncomeRequest) GetDriverId() string {
@@ -3348,7 +3582,7 @@ type SettleIncomeResponse struct {
 
 func (x *SettleIncomeResponse) Reset() {
 	*x = SettleIncomeResponse{}
-	mi := &file_driver_v1_driver_proto_msgTypes[40]
+	mi := &file_driver_v1_driver_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3360,7 +3594,7 @@ func (x *SettleIncomeResponse) String() string {
 func (*SettleIncomeResponse) ProtoMessage() {}
 
 func (x *SettleIncomeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[40]
+	mi := &file_driver_v1_driver_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3373,7 +3607,7 @@ func (x *SettleIncomeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SettleIncomeResponse.ProtoReflect.Descriptor instead.
 func (*SettleIncomeResponse) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{40}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *SettleIncomeResponse) GetSettledDrivers() int32 {
@@ -3394,7 +3628,7 @@ type ApproveWithdrawRequest struct {
 
 func (x *ApproveWithdrawRequest) Reset() {
 	*x = ApproveWithdrawRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[41]
+	mi := &file_driver_v1_driver_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3406,7 +3640,7 @@ func (x *ApproveWithdrawRequest) String() string {
 func (*ApproveWithdrawRequest) ProtoMessage() {}
 
 func (x *ApproveWithdrawRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[41]
+	mi := &file_driver_v1_driver_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3419,7 +3653,7 @@ func (x *ApproveWithdrawRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveWithdrawRequest.ProtoReflect.Descriptor instead.
 func (*ApproveWithdrawRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{41}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ApproveWithdrawRequest) GetWithdrawalId() string {
@@ -3454,7 +3688,7 @@ type RejectWithdrawRequest struct {
 
 func (x *RejectWithdrawRequest) Reset() {
 	*x = RejectWithdrawRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[42]
+	mi := &file_driver_v1_driver_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3466,7 +3700,7 @@ func (x *RejectWithdrawRequest) String() string {
 func (*RejectWithdrawRequest) ProtoMessage() {}
 
 func (x *RejectWithdrawRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[42]
+	mi := &file_driver_v1_driver_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3479,7 +3713,7 @@ func (x *RejectWithdrawRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RejectWithdrawRequest.ProtoReflect.Descriptor instead.
 func (*RejectWithdrawRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{42}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *RejectWithdrawRequest) GetWithdrawalId() string {
@@ -3514,7 +3748,7 @@ type CompleteWithdrawRequest struct {
 
 func (x *CompleteWithdrawRequest) Reset() {
 	*x = CompleteWithdrawRequest{}
-	mi := &file_driver_v1_driver_proto_msgTypes[43]
+	mi := &file_driver_v1_driver_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3526,7 +3760,7 @@ func (x *CompleteWithdrawRequest) String() string {
 func (*CompleteWithdrawRequest) ProtoMessage() {}
 
 func (x *CompleteWithdrawRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_driver_v1_driver_proto_msgTypes[43]
+	mi := &file_driver_v1_driver_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3539,7 +3773,7 @@ func (x *CompleteWithdrawRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteWithdrawRequest.ProtoReflect.Descriptor instead.
 func (*CompleteWithdrawRequest) Descriptor() ([]byte, []int) {
-	return file_driver_v1_driver_proto_rawDescGZIP(), []int{43}
+	return file_driver_v1_driver_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *CompleteWithdrawRequest) GetWithdrawalId() string {
@@ -3567,7 +3801,25 @@ var File_driver_v1_driver_proto protoreflect.FileDescriptor
 
 const file_driver_v1_driver_proto_rawDesc = "" +
 	"\n" +
-	"\x16driver/v1/driver.proto\x12\tdriver.v1\"A\n" +
+	"\x16driver/v1/driver.proto\x12\tdriver.v1\"-\n" +
+	"\x15SendDriverCodeRequest\x12\x14\n" +
+	"\x05phone\x18\x01 \x01(\tR\x05phone\"s\n" +
+	"\x16SendDriverCodeResponse\x12\x1d\n" +
+	"\n" +
+	"debug_code\x18\x01 \x01(\tR\tdebugCode\x12\x1d\n" +
+	"\n" +
+	"expires_in\x18\x02 \x01(\x03R\texpiresIn\x12\x1b\n" +
+	"\tresend_in\x18\x03 \x01(\x03R\bresendIn\"R\n" +
+	"\x12DriverLoginRequest\x12\x14\n" +
+	"\x05phone\x18\x01 \x01(\tR\x05phone\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"\x9b\x01\n" +
+	"\x13DriverLoginResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
+	"\n" +
+	"expires_in\x18\x02 \x01(\x03R\texpiresIn\x128\n" +
+	"\x06driver\x18\x03 \x01(\v2 .driver.v1.DriverProfileResponseR\x06driver\x12\x15\n" +
+	"\x06is_new\x18\x04 \x01(\bR\x05isNew\"A\n" +
 	"\x15RegisterDriverRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05phone\x18\x02 \x01(\tR\x05phone\"6\n" +
@@ -3896,8 +4148,10 @@ const file_driver_v1_driver_proto_rawDesc = "" +
 	"\x17CompleteWithdrawRequest\x12#\n" +
 	"\rwithdrawal_id\x18\x01 \x01(\tR\fwithdrawalId\x12\x18\n" +
 	"\asuccess\x18\x02 \x01(\bR\asuccess\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reason2\xb5\x11\n" +
-	"\rDriverService\x12T\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason2\xda\x12\n" +
+	"\rDriverService\x12U\n" +
+	"\x0eSendDriverCode\x12 .driver.v1.SendDriverCodeRequest\x1a!.driver.v1.SendDriverCodeResponse\x12L\n" +
+	"\vDriverLogin\x12\x1d.driver.v1.DriverLoginRequest\x1a\x1e.driver.v1.DriverLoginResponse\x12T\n" +
 	"\x0eRegisterDriver\x12 .driver.v1.RegisterDriverRequest\x1a .driver.v1.DriverProfileResponse\x12X\n" +
 	"\x10GetDriverProfile\x12\".driver.v1.GetDriverProfileRequest\x1a .driver.v1.DriverProfileResponse\x12\\\n" +
 	"\x12UpdateDriverStatus\x12$.driver.v1.UpdateDriverStatusRequest\x1a .driver.v1.DriverProfileResponse\x12X\n" +
@@ -3937,129 +4191,138 @@ func file_driver_v1_driver_proto_rawDescGZIP() []byte {
 	return file_driver_v1_driver_proto_rawDescData
 }
 
-var file_driver_v1_driver_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_driver_v1_driver_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
 var file_driver_v1_driver_proto_goTypes = []any{
-	(*RegisterDriverRequest)(nil),         // 0: driver.v1.RegisterDriverRequest
-	(*GetDriverProfileRequest)(nil),       // 1: driver.v1.GetDriverProfileRequest
-	(*UpdateDriverStatusRequest)(nil),     // 2: driver.v1.UpdateDriverStatusRequest
-	(*UpdateDriverModeRequest)(nil),       // 3: driver.v1.UpdateDriverModeRequest
-	(*UpdateOfflineAfterTripRequest)(nil), // 4: driver.v1.UpdateOfflineAfterTripRequest
-	(*HeartbeatRequest)(nil),              // 5: driver.v1.HeartbeatRequest
-	(*AreaBoxMessage)(nil),                // 6: driver.v1.AreaBoxMessage
-	(*UpdateAreaConfigRequest)(nil),       // 7: driver.v1.UpdateAreaConfigRequest
-	(*FundsMessage)(nil),                  // 8: driver.v1.FundsMessage
-	(*DriverProfileResponse)(nil),         // 9: driver.v1.DriverProfileResponse
-	(*LocationMessage)(nil),               // 10: driver.v1.LocationMessage
-	(*CreateHallOrderRequest)(nil),        // 11: driver.v1.CreateHallOrderRequest
-	(*HallOrderResponse)(nil),             // 12: driver.v1.HallOrderResponse
-	(*ListHallOrdersRequest)(nil),         // 13: driver.v1.ListHallOrdersRequest
-	(*ListHallOrdersResponse)(nil),        // 14: driver.v1.ListHallOrdersResponse
-	(*GrabOrderRequest)(nil),              // 15: driver.v1.GrabOrderRequest
-	(*AcceptOrderRequest)(nil),            // 16: driver.v1.AcceptOrderRequest
-	(*ReleaseOrderRequest)(nil),           // 17: driver.v1.ReleaseOrderRequest
-	(*StartTripRequest)(nil),              // 18: driver.v1.StartTripRequest
-	(*CompleteOrderRequest)(nil),          // 19: driver.v1.CompleteOrderRequest
-	(*CancelOrderRequest)(nil),            // 20: driver.v1.CancelOrderRequest
-	(*AmountMessage)(nil),                 // 21: driver.v1.AmountMessage
-	(*IncomeFlowMessage)(nil),             // 22: driver.v1.IncomeFlowMessage
-	(*IncomeFlowResponse)(nil),            // 23: driver.v1.IncomeFlowResponse
-	(*CompleteOrderResponse)(nil),         // 24: driver.v1.CompleteOrderResponse
-	(*GetIncomeCompareRequest)(nil),       // 25: driver.v1.GetIncomeCompareRequest
-	(*DayIncomeMessage)(nil),              // 26: driver.v1.DayIncomeMessage
-	(*IncomeCompareResponse)(nil),         // 27: driver.v1.IncomeCompareResponse
-	(*ListIncomeFlowsRequest)(nil),        // 28: driver.v1.ListIncomeFlowsRequest
-	(*ListIncomeFlowsResponse)(nil),       // 29: driver.v1.ListIncomeFlowsResponse
-	(*GetIncomeSummaryRequest)(nil),       // 30: driver.v1.GetIncomeSummaryRequest
-	(*IncomeSummaryResponse)(nil),         // 31: driver.v1.IncomeSummaryResponse
-	(*RequestWithdrawRequest)(nil),        // 32: driver.v1.RequestWithdrawRequest
-	(*ApprovalMessage)(nil),               // 33: driver.v1.ApprovalMessage
-	(*WithdrawResponse)(nil),              // 34: driver.v1.WithdrawResponse
-	(*ListWithdrawalsRequest)(nil),        // 35: driver.v1.ListWithdrawalsRequest
-	(*ListWithdrawalsResponse)(nil),       // 36: driver.v1.ListWithdrawalsResponse
-	(*ReportPaymentRequest)(nil),          // 37: driver.v1.ReportPaymentRequest
-	(*ReportRefundRequest)(nil),           // 38: driver.v1.ReportRefundRequest
-	(*SettleIncomeRequest)(nil),           // 39: driver.v1.SettleIncomeRequest
-	(*SettleIncomeResponse)(nil),          // 40: driver.v1.SettleIncomeResponse
-	(*ApproveWithdrawRequest)(nil),        // 41: driver.v1.ApproveWithdrawRequest
-	(*RejectWithdrawRequest)(nil),         // 42: driver.v1.RejectWithdrawRequest
-	(*CompleteWithdrawRequest)(nil),       // 43: driver.v1.CompleteWithdrawRequest
+	(*SendDriverCodeRequest)(nil),         // 0: driver.v1.SendDriverCodeRequest
+	(*SendDriverCodeResponse)(nil),        // 1: driver.v1.SendDriverCodeResponse
+	(*DriverLoginRequest)(nil),            // 2: driver.v1.DriverLoginRequest
+	(*DriverLoginResponse)(nil),           // 3: driver.v1.DriverLoginResponse
+	(*RegisterDriverRequest)(nil),         // 4: driver.v1.RegisterDriverRequest
+	(*GetDriverProfileRequest)(nil),       // 5: driver.v1.GetDriverProfileRequest
+	(*UpdateDriverStatusRequest)(nil),     // 6: driver.v1.UpdateDriverStatusRequest
+	(*UpdateDriverModeRequest)(nil),       // 7: driver.v1.UpdateDriverModeRequest
+	(*UpdateOfflineAfterTripRequest)(nil), // 8: driver.v1.UpdateOfflineAfterTripRequest
+	(*HeartbeatRequest)(nil),              // 9: driver.v1.HeartbeatRequest
+	(*AreaBoxMessage)(nil),                // 10: driver.v1.AreaBoxMessage
+	(*UpdateAreaConfigRequest)(nil),       // 11: driver.v1.UpdateAreaConfigRequest
+	(*FundsMessage)(nil),                  // 12: driver.v1.FundsMessage
+	(*DriverProfileResponse)(nil),         // 13: driver.v1.DriverProfileResponse
+	(*LocationMessage)(nil),               // 14: driver.v1.LocationMessage
+	(*CreateHallOrderRequest)(nil),        // 15: driver.v1.CreateHallOrderRequest
+	(*HallOrderResponse)(nil),             // 16: driver.v1.HallOrderResponse
+	(*ListHallOrdersRequest)(nil),         // 17: driver.v1.ListHallOrdersRequest
+	(*ListHallOrdersResponse)(nil),        // 18: driver.v1.ListHallOrdersResponse
+	(*GrabOrderRequest)(nil),              // 19: driver.v1.GrabOrderRequest
+	(*AcceptOrderRequest)(nil),            // 20: driver.v1.AcceptOrderRequest
+	(*ReleaseOrderRequest)(nil),           // 21: driver.v1.ReleaseOrderRequest
+	(*StartTripRequest)(nil),              // 22: driver.v1.StartTripRequest
+	(*CompleteOrderRequest)(nil),          // 23: driver.v1.CompleteOrderRequest
+	(*CancelOrderRequest)(nil),            // 24: driver.v1.CancelOrderRequest
+	(*AmountMessage)(nil),                 // 25: driver.v1.AmountMessage
+	(*IncomeFlowMessage)(nil),             // 26: driver.v1.IncomeFlowMessage
+	(*IncomeFlowResponse)(nil),            // 27: driver.v1.IncomeFlowResponse
+	(*CompleteOrderResponse)(nil),         // 28: driver.v1.CompleteOrderResponse
+	(*GetIncomeCompareRequest)(nil),       // 29: driver.v1.GetIncomeCompareRequest
+	(*DayIncomeMessage)(nil),              // 30: driver.v1.DayIncomeMessage
+	(*IncomeCompareResponse)(nil),         // 31: driver.v1.IncomeCompareResponse
+	(*ListIncomeFlowsRequest)(nil),        // 32: driver.v1.ListIncomeFlowsRequest
+	(*ListIncomeFlowsResponse)(nil),       // 33: driver.v1.ListIncomeFlowsResponse
+	(*GetIncomeSummaryRequest)(nil),       // 34: driver.v1.GetIncomeSummaryRequest
+	(*IncomeSummaryResponse)(nil),         // 35: driver.v1.IncomeSummaryResponse
+	(*RequestWithdrawRequest)(nil),        // 36: driver.v1.RequestWithdrawRequest
+	(*ApprovalMessage)(nil),               // 37: driver.v1.ApprovalMessage
+	(*WithdrawResponse)(nil),              // 38: driver.v1.WithdrawResponse
+	(*ListWithdrawalsRequest)(nil),        // 39: driver.v1.ListWithdrawalsRequest
+	(*ListWithdrawalsResponse)(nil),       // 40: driver.v1.ListWithdrawalsResponse
+	(*ReportPaymentRequest)(nil),          // 41: driver.v1.ReportPaymentRequest
+	(*ReportRefundRequest)(nil),           // 42: driver.v1.ReportRefundRequest
+	(*SettleIncomeRequest)(nil),           // 43: driver.v1.SettleIncomeRequest
+	(*SettleIncomeResponse)(nil),          // 44: driver.v1.SettleIncomeResponse
+	(*ApproveWithdrawRequest)(nil),        // 45: driver.v1.ApproveWithdrawRequest
+	(*RejectWithdrawRequest)(nil),         // 46: driver.v1.RejectWithdrawRequest
+	(*CompleteWithdrawRequest)(nil),       // 47: driver.v1.CompleteWithdrawRequest
 }
 var file_driver_v1_driver_proto_depIdxs = []int32{
-	6,  // 0: driver.v1.UpdateAreaConfigRequest.areas:type_name -> driver.v1.AreaBoxMessage
-	6,  // 1: driver.v1.DriverProfileResponse.areas:type_name -> driver.v1.AreaBoxMessage
-	8,  // 2: driver.v1.DriverProfileResponse.funds:type_name -> driver.v1.FundsMessage
-	10, // 3: driver.v1.CreateHallOrderRequest.origin:type_name -> driver.v1.LocationMessage
-	10, // 4: driver.v1.CreateHallOrderRequest.destination:type_name -> driver.v1.LocationMessage
-	10, // 5: driver.v1.HallOrderResponse.origin:type_name -> driver.v1.LocationMessage
-	10, // 6: driver.v1.HallOrderResponse.destination:type_name -> driver.v1.LocationMessage
-	12, // 7: driver.v1.ListHallOrdersResponse.items:type_name -> driver.v1.HallOrderResponse
-	21, // 8: driver.v1.IncomeFlowMessage.amount:type_name -> driver.v1.AmountMessage
-	22, // 9: driver.v1.IncomeFlowResponse.flow:type_name -> driver.v1.IncomeFlowMessage
-	12, // 10: driver.v1.CompleteOrderResponse.order:type_name -> driver.v1.HallOrderResponse
-	22, // 11: driver.v1.CompleteOrderResponse.flow:type_name -> driver.v1.IncomeFlowMessage
-	26, // 12: driver.v1.IncomeCompareResponse.today:type_name -> driver.v1.DayIncomeMessage
-	26, // 13: driver.v1.IncomeCompareResponse.yesterday:type_name -> driver.v1.DayIncomeMessage
-	22, // 14: driver.v1.ListIncomeFlowsResponse.items:type_name -> driver.v1.IncomeFlowMessage
-	33, // 15: driver.v1.WithdrawResponse.approvals:type_name -> driver.v1.ApprovalMessage
-	34, // 16: driver.v1.ListWithdrawalsResponse.items:type_name -> driver.v1.WithdrawResponse
-	21, // 17: driver.v1.ReportPaymentRequest.amount:type_name -> driver.v1.AmountMessage
-	0,  // 18: driver.v1.DriverService.RegisterDriver:input_type -> driver.v1.RegisterDriverRequest
-	1,  // 19: driver.v1.DriverService.GetDriverProfile:input_type -> driver.v1.GetDriverProfileRequest
-	2,  // 20: driver.v1.DriverService.UpdateDriverStatus:input_type -> driver.v1.UpdateDriverStatusRequest
-	3,  // 21: driver.v1.DriverService.UpdateDriverMode:input_type -> driver.v1.UpdateDriverModeRequest
-	7,  // 22: driver.v1.DriverService.UpdateAreaConfig:input_type -> driver.v1.UpdateAreaConfigRequest
-	5,  // 23: driver.v1.DriverService.DriverHeartbeat:input_type -> driver.v1.HeartbeatRequest
-	4,  // 24: driver.v1.DriverService.UpdateOfflineAfterTrip:input_type -> driver.v1.UpdateOfflineAfterTripRequest
-	11, // 25: driver.v1.DriverService.CreateHallOrder:input_type -> driver.v1.CreateHallOrderRequest
-	13, // 26: driver.v1.DriverService.ListHallOrders:input_type -> driver.v1.ListHallOrdersRequest
-	15, // 27: driver.v1.DriverService.GrabOrder:input_type -> driver.v1.GrabOrderRequest
-	16, // 28: driver.v1.DriverService.AcceptOrder:input_type -> driver.v1.AcceptOrderRequest
-	17, // 29: driver.v1.DriverService.ReleaseOrder:input_type -> driver.v1.ReleaseOrderRequest
-	18, // 30: driver.v1.DriverService.StartTrip:input_type -> driver.v1.StartTripRequest
-	19, // 31: driver.v1.DriverService.CompleteOrder:input_type -> driver.v1.CompleteOrderRequest
-	20, // 32: driver.v1.DriverService.CancelOrder:input_type -> driver.v1.CancelOrderRequest
-	25, // 33: driver.v1.DriverService.GetIncomeCompare:input_type -> driver.v1.GetIncomeCompareRequest
-	28, // 34: driver.v1.DriverService.ListIncomeFlows:input_type -> driver.v1.ListIncomeFlowsRequest
-	30, // 35: driver.v1.DriverService.GetIncomeSummary:input_type -> driver.v1.GetIncomeSummaryRequest
-	32, // 36: driver.v1.DriverService.RequestWithdraw:input_type -> driver.v1.RequestWithdrawRequest
-	35, // 37: driver.v1.DriverService.ListWithdrawals:input_type -> driver.v1.ListWithdrawalsRequest
-	37, // 38: driver.v1.DriverService.ReportPaymentSucceeded:input_type -> driver.v1.ReportPaymentRequest
-	38, // 39: driver.v1.DriverService.ReportRefundSucceeded:input_type -> driver.v1.ReportRefundRequest
-	39, // 40: driver.v1.DriverService.SettleIncome:input_type -> driver.v1.SettleIncomeRequest
-	41, // 41: driver.v1.DriverService.ApproveWithdraw:input_type -> driver.v1.ApproveWithdrawRequest
-	42, // 42: driver.v1.DriverService.RejectWithdraw:input_type -> driver.v1.RejectWithdrawRequest
-	43, // 43: driver.v1.DriverService.CompleteWithdraw:input_type -> driver.v1.CompleteWithdrawRequest
-	9,  // 44: driver.v1.DriverService.RegisterDriver:output_type -> driver.v1.DriverProfileResponse
-	9,  // 45: driver.v1.DriverService.GetDriverProfile:output_type -> driver.v1.DriverProfileResponse
-	9,  // 46: driver.v1.DriverService.UpdateDriverStatus:output_type -> driver.v1.DriverProfileResponse
-	9,  // 47: driver.v1.DriverService.UpdateDriverMode:output_type -> driver.v1.DriverProfileResponse
-	9,  // 48: driver.v1.DriverService.UpdateAreaConfig:output_type -> driver.v1.DriverProfileResponse
-	9,  // 49: driver.v1.DriverService.DriverHeartbeat:output_type -> driver.v1.DriverProfileResponse
-	9,  // 50: driver.v1.DriverService.UpdateOfflineAfterTrip:output_type -> driver.v1.DriverProfileResponse
-	12, // 51: driver.v1.DriverService.CreateHallOrder:output_type -> driver.v1.HallOrderResponse
-	14, // 52: driver.v1.DriverService.ListHallOrders:output_type -> driver.v1.ListHallOrdersResponse
-	12, // 53: driver.v1.DriverService.GrabOrder:output_type -> driver.v1.HallOrderResponse
-	12, // 54: driver.v1.DriverService.AcceptOrder:output_type -> driver.v1.HallOrderResponse
-	12, // 55: driver.v1.DriverService.ReleaseOrder:output_type -> driver.v1.HallOrderResponse
-	12, // 56: driver.v1.DriverService.StartTrip:output_type -> driver.v1.HallOrderResponse
-	24, // 57: driver.v1.DriverService.CompleteOrder:output_type -> driver.v1.CompleteOrderResponse
-	12, // 58: driver.v1.DriverService.CancelOrder:output_type -> driver.v1.HallOrderResponse
-	27, // 59: driver.v1.DriverService.GetIncomeCompare:output_type -> driver.v1.IncomeCompareResponse
-	29, // 60: driver.v1.DriverService.ListIncomeFlows:output_type -> driver.v1.ListIncomeFlowsResponse
-	31, // 61: driver.v1.DriverService.GetIncomeSummary:output_type -> driver.v1.IncomeSummaryResponse
-	34, // 62: driver.v1.DriverService.RequestWithdraw:output_type -> driver.v1.WithdrawResponse
-	36, // 63: driver.v1.DriverService.ListWithdrawals:output_type -> driver.v1.ListWithdrawalsResponse
-	23, // 64: driver.v1.DriverService.ReportPaymentSucceeded:output_type -> driver.v1.IncomeFlowResponse
-	23, // 65: driver.v1.DriverService.ReportRefundSucceeded:output_type -> driver.v1.IncomeFlowResponse
-	40, // 66: driver.v1.DriverService.SettleIncome:output_type -> driver.v1.SettleIncomeResponse
-	34, // 67: driver.v1.DriverService.ApproveWithdraw:output_type -> driver.v1.WithdrawResponse
-	34, // 68: driver.v1.DriverService.RejectWithdraw:output_type -> driver.v1.WithdrawResponse
-	34, // 69: driver.v1.DriverService.CompleteWithdraw:output_type -> driver.v1.WithdrawResponse
-	44, // [44:70] is the sub-list for method output_type
-	18, // [18:44] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	13, // 0: driver.v1.DriverLoginResponse.driver:type_name -> driver.v1.DriverProfileResponse
+	10, // 1: driver.v1.UpdateAreaConfigRequest.areas:type_name -> driver.v1.AreaBoxMessage
+	10, // 2: driver.v1.DriverProfileResponse.areas:type_name -> driver.v1.AreaBoxMessage
+	12, // 3: driver.v1.DriverProfileResponse.funds:type_name -> driver.v1.FundsMessage
+	14, // 4: driver.v1.CreateHallOrderRequest.origin:type_name -> driver.v1.LocationMessage
+	14, // 5: driver.v1.CreateHallOrderRequest.destination:type_name -> driver.v1.LocationMessage
+	14, // 6: driver.v1.HallOrderResponse.origin:type_name -> driver.v1.LocationMessage
+	14, // 7: driver.v1.HallOrderResponse.destination:type_name -> driver.v1.LocationMessage
+	16, // 8: driver.v1.ListHallOrdersResponse.items:type_name -> driver.v1.HallOrderResponse
+	25, // 9: driver.v1.IncomeFlowMessage.amount:type_name -> driver.v1.AmountMessage
+	26, // 10: driver.v1.IncomeFlowResponse.flow:type_name -> driver.v1.IncomeFlowMessage
+	16, // 11: driver.v1.CompleteOrderResponse.order:type_name -> driver.v1.HallOrderResponse
+	26, // 12: driver.v1.CompleteOrderResponse.flow:type_name -> driver.v1.IncomeFlowMessage
+	30, // 13: driver.v1.IncomeCompareResponse.today:type_name -> driver.v1.DayIncomeMessage
+	30, // 14: driver.v1.IncomeCompareResponse.yesterday:type_name -> driver.v1.DayIncomeMessage
+	26, // 15: driver.v1.ListIncomeFlowsResponse.items:type_name -> driver.v1.IncomeFlowMessage
+	37, // 16: driver.v1.WithdrawResponse.approvals:type_name -> driver.v1.ApprovalMessage
+	38, // 17: driver.v1.ListWithdrawalsResponse.items:type_name -> driver.v1.WithdrawResponse
+	25, // 18: driver.v1.ReportPaymentRequest.amount:type_name -> driver.v1.AmountMessage
+	0,  // 19: driver.v1.DriverService.SendDriverCode:input_type -> driver.v1.SendDriverCodeRequest
+	2,  // 20: driver.v1.DriverService.DriverLogin:input_type -> driver.v1.DriverLoginRequest
+	4,  // 21: driver.v1.DriverService.RegisterDriver:input_type -> driver.v1.RegisterDriverRequest
+	5,  // 22: driver.v1.DriverService.GetDriverProfile:input_type -> driver.v1.GetDriverProfileRequest
+	6,  // 23: driver.v1.DriverService.UpdateDriverStatus:input_type -> driver.v1.UpdateDriverStatusRequest
+	7,  // 24: driver.v1.DriverService.UpdateDriverMode:input_type -> driver.v1.UpdateDriverModeRequest
+	11, // 25: driver.v1.DriverService.UpdateAreaConfig:input_type -> driver.v1.UpdateAreaConfigRequest
+	9,  // 26: driver.v1.DriverService.DriverHeartbeat:input_type -> driver.v1.HeartbeatRequest
+	8,  // 27: driver.v1.DriverService.UpdateOfflineAfterTrip:input_type -> driver.v1.UpdateOfflineAfterTripRequest
+	15, // 28: driver.v1.DriverService.CreateHallOrder:input_type -> driver.v1.CreateHallOrderRequest
+	17, // 29: driver.v1.DriverService.ListHallOrders:input_type -> driver.v1.ListHallOrdersRequest
+	19, // 30: driver.v1.DriverService.GrabOrder:input_type -> driver.v1.GrabOrderRequest
+	20, // 31: driver.v1.DriverService.AcceptOrder:input_type -> driver.v1.AcceptOrderRequest
+	21, // 32: driver.v1.DriverService.ReleaseOrder:input_type -> driver.v1.ReleaseOrderRequest
+	22, // 33: driver.v1.DriverService.StartTrip:input_type -> driver.v1.StartTripRequest
+	23, // 34: driver.v1.DriverService.CompleteOrder:input_type -> driver.v1.CompleteOrderRequest
+	24, // 35: driver.v1.DriverService.CancelOrder:input_type -> driver.v1.CancelOrderRequest
+	29, // 36: driver.v1.DriverService.GetIncomeCompare:input_type -> driver.v1.GetIncomeCompareRequest
+	32, // 37: driver.v1.DriverService.ListIncomeFlows:input_type -> driver.v1.ListIncomeFlowsRequest
+	34, // 38: driver.v1.DriverService.GetIncomeSummary:input_type -> driver.v1.GetIncomeSummaryRequest
+	36, // 39: driver.v1.DriverService.RequestWithdraw:input_type -> driver.v1.RequestWithdrawRequest
+	39, // 40: driver.v1.DriverService.ListWithdrawals:input_type -> driver.v1.ListWithdrawalsRequest
+	41, // 41: driver.v1.DriverService.ReportPaymentSucceeded:input_type -> driver.v1.ReportPaymentRequest
+	42, // 42: driver.v1.DriverService.ReportRefundSucceeded:input_type -> driver.v1.ReportRefundRequest
+	43, // 43: driver.v1.DriverService.SettleIncome:input_type -> driver.v1.SettleIncomeRequest
+	45, // 44: driver.v1.DriverService.ApproveWithdraw:input_type -> driver.v1.ApproveWithdrawRequest
+	46, // 45: driver.v1.DriverService.RejectWithdraw:input_type -> driver.v1.RejectWithdrawRequest
+	47, // 46: driver.v1.DriverService.CompleteWithdraw:input_type -> driver.v1.CompleteWithdrawRequest
+	1,  // 47: driver.v1.DriverService.SendDriverCode:output_type -> driver.v1.SendDriverCodeResponse
+	3,  // 48: driver.v1.DriverService.DriverLogin:output_type -> driver.v1.DriverLoginResponse
+	13, // 49: driver.v1.DriverService.RegisterDriver:output_type -> driver.v1.DriverProfileResponse
+	13, // 50: driver.v1.DriverService.GetDriverProfile:output_type -> driver.v1.DriverProfileResponse
+	13, // 51: driver.v1.DriverService.UpdateDriverStatus:output_type -> driver.v1.DriverProfileResponse
+	13, // 52: driver.v1.DriverService.UpdateDriverMode:output_type -> driver.v1.DriverProfileResponse
+	13, // 53: driver.v1.DriverService.UpdateAreaConfig:output_type -> driver.v1.DriverProfileResponse
+	13, // 54: driver.v1.DriverService.DriverHeartbeat:output_type -> driver.v1.DriverProfileResponse
+	13, // 55: driver.v1.DriverService.UpdateOfflineAfterTrip:output_type -> driver.v1.DriverProfileResponse
+	16, // 56: driver.v1.DriverService.CreateHallOrder:output_type -> driver.v1.HallOrderResponse
+	18, // 57: driver.v1.DriverService.ListHallOrders:output_type -> driver.v1.ListHallOrdersResponse
+	16, // 58: driver.v1.DriverService.GrabOrder:output_type -> driver.v1.HallOrderResponse
+	16, // 59: driver.v1.DriverService.AcceptOrder:output_type -> driver.v1.HallOrderResponse
+	16, // 60: driver.v1.DriverService.ReleaseOrder:output_type -> driver.v1.HallOrderResponse
+	16, // 61: driver.v1.DriverService.StartTrip:output_type -> driver.v1.HallOrderResponse
+	28, // 62: driver.v1.DriverService.CompleteOrder:output_type -> driver.v1.CompleteOrderResponse
+	16, // 63: driver.v1.DriverService.CancelOrder:output_type -> driver.v1.HallOrderResponse
+	31, // 64: driver.v1.DriverService.GetIncomeCompare:output_type -> driver.v1.IncomeCompareResponse
+	33, // 65: driver.v1.DriverService.ListIncomeFlows:output_type -> driver.v1.ListIncomeFlowsResponse
+	35, // 66: driver.v1.DriverService.GetIncomeSummary:output_type -> driver.v1.IncomeSummaryResponse
+	38, // 67: driver.v1.DriverService.RequestWithdraw:output_type -> driver.v1.WithdrawResponse
+	40, // 68: driver.v1.DriverService.ListWithdrawals:output_type -> driver.v1.ListWithdrawalsResponse
+	27, // 69: driver.v1.DriverService.ReportPaymentSucceeded:output_type -> driver.v1.IncomeFlowResponse
+	27, // 70: driver.v1.DriverService.ReportRefundSucceeded:output_type -> driver.v1.IncomeFlowResponse
+	44, // 71: driver.v1.DriverService.SettleIncome:output_type -> driver.v1.SettleIncomeResponse
+	38, // 72: driver.v1.DriverService.ApproveWithdraw:output_type -> driver.v1.WithdrawResponse
+	38, // 73: driver.v1.DriverService.RejectWithdraw:output_type -> driver.v1.WithdrawResponse
+	38, // 74: driver.v1.DriverService.CompleteWithdraw:output_type -> driver.v1.WithdrawResponse
+	47, // [47:75] is the sub-list for method output_type
+	19, // [19:47] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_driver_v1_driver_proto_init() }
@@ -4073,7 +4336,7 @@ func file_driver_v1_driver_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_driver_v1_driver_proto_rawDesc), len(file_driver_v1_driver_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   44,
+			NumMessages:   48,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

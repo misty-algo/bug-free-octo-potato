@@ -30,6 +30,33 @@ func NewServer(svc *service.Service, log *zap.Logger) *Server {
 	return &Server{svc: svc, log: log}
 }
 
+// ─────────────────────────── 司机账号 ───────────────────────────
+
+// SendDriverCode 下发司机登录验证码。
+func (s *Server) SendDriverCode(ctx context.Context, req *driverv1.SendDriverCodeRequest) (*driverv1.SendDriverCodeResponse, error) {
+	result, err := s.svc.SendDriverCode(ctx, dto.SendDriverCodeCommand{Phone: req.GetPhone()})
+	if err != nil {
+		return nil, mapDriverError(err)
+	}
+	return &driverv1.SendDriverCodeResponse{
+		DebugCode: result.DebugCode, ExpiresIn: result.ExpiresIn, ResendIn: result.ResendIn,
+	}, nil
+}
+
+// DriverLogin 手机号 + 验证码登录，未注册自动建档。
+func (s *Server) DriverLogin(ctx context.Context, req *driverv1.DriverLoginRequest) (*driverv1.DriverLoginResponse, error) {
+	result, err := s.svc.DriverLogin(ctx, dto.DriverLoginCommand{
+		Phone: req.GetPhone(), Code: req.GetCode(), Name: req.GetName(),
+	})
+	if err != nil {
+		return nil, mapDriverError(err)
+	}
+	return &driverv1.DriverLoginResponse{
+		Token: result.Token, ExpiresIn: result.ExpiresIn,
+		Driver: toProfileProto(result.Driver), IsNew: result.IsNew,
+	}, nil
+}
+
 // ─────────────────────────── 司机档案 ───────────────────────────
 
 // RegisterDriver 处理司机注册。
@@ -500,6 +527,22 @@ func mapDriverError(err error) error {
 		return apperrors.Conflict("driver_unqualified", "司机资质无效，不能接单")
 	case stderrors.Is(err, entity.ErrDriverCannotAccept):
 		return apperrors.Conflict("driver_forbidden", "该司机已被禁止接单")
+	case stderrors.Is(err, entity.ErrInvalidPhone):
+		return apperrors.InvalidArgument("invalid_phone", "手机号格式不正确")
+	case stderrors.Is(err, entity.ErrInvalidCode):
+		return apperrors.InvalidArgument("invalid_code", "验证码不正确")
+	case stderrors.Is(err, entity.ErrNameRequired):
+		return apperrors.InvalidArgument("name_required", "首次登录请填写姓名完成建档")
+	case stderrors.Is(err, entity.ErrCodeNotFound):
+		return apperrors.InvalidArgument("code_not_found", "请先获取验证码")
+	case stderrors.Is(err, entity.ErrCodeExpired):
+		return apperrors.InvalidArgument("code_expired", "验证码已过期，请重新获取")
+	case stderrors.Is(err, entity.ErrCodeUsed):
+		return apperrors.InvalidArgument("code_used", "验证码已被使用，请重新获取")
+	case stderrors.Is(err, entity.ErrCodeLocked):
+		return apperrors.Conflict("code_locked", "错误次数过多，请稍后再试")
+	case stderrors.Is(err, entity.ErrCodeResendSoon):
+		return apperrors.Conflict("code_resend_too_soon", "验证码发送过于频繁，请稍后再试")
 	case stderrors.Is(err, entity.ErrVersionConflict):
 		return apperrors.Conflict("version_conflict", "数据版本已变化，请刷新后重试")
 	case stderrors.Is(err, entity.ErrReleaseLimitExceeded):

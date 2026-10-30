@@ -1,13 +1,25 @@
 // 司机端页面：档案 → 出车/听单抢单 → 接单大厅 → 行程推进 → 收入与提现。
 // 视觉与交互流对齐 Figma 原型（花小猪打车平台 · 三端联调交互原型），
 // 数据全部来自真实网关接口；「生成一单」用于在联调时模拟乘客下单。
-import { api, fy, esc, toast, randomKey, stateName } from './api.js';
+import { api, fy, esc, toast, randomKey, stateName, DRIVER_TOKEN_KEY } from './api.js';
 
 const STORE_KEY = 'huazhu.driverId';
 
 const S = {
   tab: 'hall',
   driverId: localStorage.getItem(STORE_KEY) || '',
+  // 登录态：令牌与档案都在本地后，未登录时先展示登录页。
+  token: localStorage.getItem(DRIVER_TOKEN_KEY) || '',
+  loggedIn: Boolean(localStorage.getItem(DRIVER_TOKEN_KEY)),
+  login: {
+    phone: '13800000001',
+    code: '',
+    name: '',
+    // needName 由登录接口提示"首次登录需填姓名"后置起，展示建档字段。
+    needName: false,
+    sent: false,
+    error: '',
+  },
   driver: null,
   orders: [],        // 接单大厅 items
   current: null,     // 我当前接下的订单（ACCEPTED / IN_TRIP）
@@ -30,6 +42,14 @@ const $nav = document.getElementById('drvNav');
 // ---------------------------------------------------------------- 渲染
 
 function renderAll() {
+  // 未登录：只渲染登录页，隐藏底部导航，避免未授权请求刷屏。
+  if (!S.loggedIn) {
+    $screen.innerHTML = drvLoginView();
+    $nav.innerHTML = '';
+    $overlay.style.display = 'none';
+    $overlay.innerHTML = '';
+    return;
+  }
   if (S.tab === 'income') $screen.innerHTML = drvIncomeView();
   else if (S.tab === 'me') $screen.innerHTML = drvMeView();
   else $screen.innerHTML = drvHallView();
@@ -41,12 +61,94 @@ function renderAll() {
   renderOverlay();
 }
 
+// ---------------------------------------------------------------- 司机登录
+
+// drvLoginView 司机登录页：手机号 + 验证码登录；号码未建档时自动建档，
+// 所以这里同时提供姓名输入（首次登录时展示）。
+function drvLoginView() {
+  const login = S.login;
+  return '<div class="drvtop" style="padding:22px 16px;">' +
+    '<b style="font-size:17px;">司机登录</b>' +
+    '<div style="font-size:11px;opacity:.85;margin-top:2px;">手机号验证码登录 · 未注册自动建档</div></div>' +
+    '<div class="card" style="margin-top:14px;">' +
+    '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
+    `<input id="lgPhone" type="tel" maxlength="11" placeholder="手机号" value="${esc(login.phone)}" style="flex:1">` +
+    '<button class="btn blue" style="flex:none;padding:8px 14px;" onclick="drvSendCode()">' +
+    (login.sent ? '重发验证码' : '获取验证码') + '</button></div>' +
+    `<input id="lgCode" maxlength="6" placeholder="验证码" value="${esc(login.code)}" style="width:100%;box-sizing:border-box;margin-bottom:8px;">` +
+    (login.needName
+      ? `<input id="lgName" placeholder="首次登录请填写姓名（自动建档）" value="${esc(login.name)}" style="width:100%;box-sizing:border-box;margin-bottom:8px;">`
+      : '') +
+    '<button class="btn dark" style="width:100%;" onclick="drvLogin()">登录</button>' +
+    (login.error ? `<div class="note" style="color:#f56c6c;margin-top:8px;">${esc(login.error)}</div>` : '') +
+    '<div class="note" style="margin-top:8px;">本地联调环境：验证码会随下发响应直接返回并自动填入。</div>' +
+    '</div>';
+}
+
+async function drvSendCode() {
+  const phone = (document.getElementById('lgPhone') || {}).value || '';
+  S.login.phone = phone;
+  S.login.error = '';
+  try {
+    const data = await api('/driver/auth/sms-code', { method: 'POST', body: { phone } });
+    // 生产环境由短信通道下发，这里直接回填便于联调。
+    S.login.code = data.debug_code || '';
+    S.login.sent = true;
+    toast(data.debug_code ? `验证码已发送：${data.debug_code}` : '验证码已发送');
+  } catch (error) {
+    S.login.error = error.message;
+  }
+  renderAll();
+}
+
+async function drvLogin() {
+  const login = S.login;
+  login.phone = (document.getElementById('lgPhone') || {}).value || login.phone;
+  login.code = (document.getElementById('lgCode') || {}).value || '';
+  if (login.needName) login.name = (document.getElementById('lgName') || {}).value || '';
+  login.error = '';
+  try {
+    const data = await api('/driver/auth/login', {
+      method: 'POST',
+      body: { phone: login.phone, code: login.code, name: login.name },
+    });
+    // 登录态：令牌落盘，换设备重新登录即可找回档案与全部流水。
+    S.token = data.token || '';
+    S.loggedIn = true;
+    S.driverId = (data.driver && data.driver.id) || '';
+    S.driver = data.driver || null;
+    localStorage.setItem(DRIVER_TOKEN_KEY, S.token);
+    localStorage.setItem(STORE_KEY, S.driverId);
+    toast(data.is_new ? '建档成功，已登录' : '登录成功');
+    // 先切出登录页进入大厅，再拉数据填充内容。
+    renderAll();
+    startAfterLogin();
+  } catch (error) {
+    // 首次登录缺少姓名：后端返回 400，这里补上姓名输入框再让用户输入。
+    if (/name_required/.test(error.message)) login.needName = true;
+    login.error = error.message;
+    renderAll();
+  }
+}
+
+function drvLogout() {
+  localStorage.removeItem(DRIVER_TOKEN_KEY);
+  localStorage.removeItem(STORE_KEY);
+  S.token = '';
+  S.loggedIn = false;
+  S.driver = null;
+  S.driverId = '';
+  S.login = { phone: S.login.phone, code: '', name: '', needName: false, sent: false, error: '' };
+  S.tab = 'hall';
+  toast('已退出登录');
+  renderAll();
+}
+
 function renderOverlay() {
+  // 弹层机制保留：后续如需在司机端加确认框/表单，按 S.sheet.type 扩展即可。
   if (!S.sheet) { $overlay.style.display = 'none'; $overlay.innerHTML = ''; return; }
   $overlay.style.display = 'flex';
-  let body = '';
-  if (S.sheet.type === 'create') body = createSheet();
-  $overlay.innerHTML = `<div class="sheet">${body}</div>`;
+  $overlay.innerHTML = `<div class="sheet">${S.sheet.body || ''}</div>`;
 }
 
 function statusText(d) {
@@ -64,14 +166,12 @@ function drvTopBar(title, subtitle) {
 
 function drvHallView() {
   const d = S.driver;
+  // 登录即建档，所以这里没有建档入口：档案加载不到只可能是会话失效或网络异常。
   if (!d) {
-    return '<div class="card" style="margin-top:14px;"><h4>司机建档</h4>' +
-      '<div class="note" style="margin-bottom:8px;">首次使用先创建司机档案（本地联调，无需真实资质）。</div>' +
-      '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
-      '<input id="drvName" placeholder="姓名" value="王师傅" style="flex:1">' +
-      '<input id="drvPhone" type="tel" placeholder="手机号" value="13800000099" style="flex:1"></div>' +
-      '<button class="btn blue" style="width:100%;" onclick="drvCreate()">创建司机</button></div>' +
-      '<div class="card" style="text-align:center;color:#909399;padding:26px 0;">建档后即可出车接单</div>';
+    return '<div class="card" style="margin-top:14px;text-align:center;color:#909399;padding:26px 0;">' +
+      '档案加载中或登录已失效' +
+      '<div class="btnrow" style="margin-top:10px;">' +
+      '<button class="btn ghost" onclick="drvLogout()">退出并重新登录</button></div></div>';
   }
 
   let h = '<div class="drvtop"><div class="row1"><div><b style="font-size:15px;">' + esc(d.name) + '</b>' +
@@ -279,23 +379,16 @@ function drvMeView() {
   h += '<div class="card"><h4>安全中心</h4><div style="font-size:11px;color:#606266;line-height:1.7;">' +
     '紧急求助将生成安全事件编号并上报后台安全队列（演示环境不实际拨号）。' +
     '<div class="btnrow"><button class="btn red" onclick="drvSos()">紧急求助（演示）</button></div></div></div>';
-  return h;
-}
-
-function createSheet() {
-  let h = '<h3>司机建档 <button class="x" onclick="drvCloseSheet()">✕</button></h3>';
-  h += '<div class="note" style="margin-bottom:8px;">创建司机档案后即可出车接单。</div>';
-  h += '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
-    '<input id="drvName" placeholder="姓名" value="王师傅" style="flex:1">' +
-    '<input id="drvPhone" type="tel" placeholder="手机号" value="13800000099" style="flex:1"></div>' +
-    '<button class="btn blue" style="width:100%;" onclick="drvCreate()">创建司机</button>';
-  if (S.sheet.error) h += `<div class="note" style="color:#f56c6c;">${esc(S.sheet.error)}</div>`;
+  // 账号区：显示登录手机号并给出退出入口，换设备时从这里退出再用手机号登录。
+  h += '<div class="card"><h4>账号</h4><div class="feelist">' +
+    `<div><span>登录手机号</span><span>${esc(d.phone || '-')}</span></div>` +
+    `<div><span>登录状态</span><span style="color:#67c23a;">已登录</span></div></div>` +
+    '<div class="note">退出后可用同一手机号重新登录，档案、收入与提现记录都会保留。</div>' +
+    '<div class="btnrow" style="margin-top:8px;"><button class="btn ghost" onclick="drvLogout()">退出登录</button></div></div>';
   return h;
 }
 
 // ---------------------------------------------------------------- 动作
-
-function closeSheet() { S.sheet = null; renderAll(); }
 
 async function loadProfile() {
   if (!S.driverId) return null;
@@ -303,25 +396,6 @@ async function loadProfile() {
   S.driver = driver;
   if (S.current && ['ENDED', 'CANCELLED'].includes(S.current.status)) S.current = null;
   return driver;
-}
-
-async function createDriver() {
-  const name = (document.getElementById('drvName') || {}).value || '王师傅';
-  const phone = (document.getElementById('drvPhone') || {}).value || '13800000099';
-  try {
-    const driver = await api('/driver/profile', {
-      method: 'POST', body: { name: name.trim(), phone: phone.trim() },
-    });
-    S.driverId = driver.id;
-    localStorage.setItem(STORE_KEY, driver.id);
-    S.driver = driver;
-    S.sheet = null;
-    toast(`司机已创建：${driver.driver_no || driver.id}`);
-    renderAll();
-  } catch (error) {
-    S.sheet = { type: 'create', error: error.message };
-    renderAll();
-  }
 }
 
 async function toggleDuty() {
@@ -649,8 +723,6 @@ function schedulePoll() {
   }, 5000);
 }
 
-window.drvCreate = createDriver;
-window.drvCloseSheet = closeSheet;
 window.drvToggleDuty = toggleDuty;
 window.drvSetMode = setMode;
 window.drvSeedOrder = seedOrder;
@@ -666,6 +738,9 @@ window.drvFlowSearch = drvFlowSearch;
 window.drvFlowPage = drvFlowPage;
 window.drvWdSearch = drvWdSearch;
 window.drvWdPage = drvWdPage;
+window.drvSendCode = drvSendCode;
+window.drvLogin = drvLogin;
+window.drvLogout = drvLogout;
 
 $nav.addEventListener('click', (event) => {
   const tab = event.target.dataset && event.target.dataset.tab;
@@ -684,10 +759,14 @@ function tickClock() {
 tickClock();
 setInterval(tickClock, 30000);
 
-renderAll();
-if (S.driverId) {
+// startAfterLogin 登录成功后的冷启动：拉取档案与大厅数据并开启轮询。
+function startAfterLogin() {
   loadProfile()
     .then(() => loadHall())
-    .catch(() => toast('上次记录的司机档案加载失败，可重新建档'));
+    .catch(() => toast('档案加载失败，请检查网络或重新登录'));
   schedulePoll();
 }
+
+renderAll();
+// 已有令牌视为已登录：直接恢复会话；否则停在登录页等待手机号验证码登录。
+if (S.loggedIn && S.driverId) startAfterLogin();

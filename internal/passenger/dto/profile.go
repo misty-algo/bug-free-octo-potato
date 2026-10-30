@@ -24,6 +24,28 @@ const (
 	RealNameStateVerified   = "VERIFIED"
 )
 
+// UpdateProfileCommand 是注册引导补全资料的入参。
+type UpdateProfileCommand struct {
+	AccountID string
+	Nickname  string
+	// Avatar 为头像标识（emoji 或预设图标），可空。
+	Avatar string
+	// EmergencyName / EmergencyPhone 为紧急联系人，成对提交。
+	EmergencyName  string
+	EmergencyPhone string
+}
+
+// ProfileDTO 是个人资料出参，紧急联系电话只回传掩码值。
+type ProfileDTO struct {
+	AccountID          string `json:"account_id"`
+	Nickname           string `json:"nickname"`
+	Avatar             string `json:"avatar"`
+	EmergencyName      string `json:"emergency_name"`
+	EmergencyPhoneMask string `json:"emergency_phone_mask"`
+	// Completed 表示注册引导是否已填完。
+	Completed bool `json:"completed"`
+}
+
 // ClaimCouponCommand 是领取平台券的入参。
 type ClaimCouponCommand struct {
 	AccountID string

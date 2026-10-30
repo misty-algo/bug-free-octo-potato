@@ -25,6 +25,32 @@ func NewDriverHandler(client driverv1.DriverServiceClient, log *zap.Logger) *Dri
 	return &DriverHandler{client: client, log: log}
 }
 
+// ─────────────────────────── 司机账号 ───────────────────────────
+
+// SendDriverCode 下发司机登录验证码（登录前可用）。
+func (h *DriverHandler) SendDriverCode(c *gin.Context) {
+	var req biz.DriverSendCodeRequest
+	if !bindJSON(c, &req) {
+		return
+	}
+	resp, err := h.client.SendDriverCode(outgoingContext(c), &driverv1.SendDriverCodeRequest{
+		Phone: req.Phone,
+	})
+	handleDriverResponse(c, resp, err)
+}
+
+// DriverLogin 司机登录：号码未建档时自动建档，返回司机令牌与档案。
+func (h *DriverHandler) DriverLogin(c *gin.Context) {
+	var req biz.DriverLoginRequest
+	if !bindJSON(c, &req) {
+		return
+	}
+	resp, err := h.client.DriverLogin(outgoingContext(c), &driverv1.DriverLoginRequest{
+		Phone: req.Phone, Code: req.Code, Name: req.Name,
+	})
+	handleDriverResponse(c, resp, err)
+}
+
 // Register 注册司机。
 func (h *DriverHandler) Register(c *gin.Context) {
 	var req biz.RegisterDriverRequest

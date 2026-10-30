@@ -23,7 +23,7 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 	registerPaxRoutes(api, handler.NewPaxOrderHandler(clients.Order, log), userH, svcH, middlewareCfg.JWT)
 	registerOrderRoutes(v1, handler.NewOrderHandler(clients.Order, log))
 	registerPassengerRoutes(v1, handler.NewPassengerHandler(clients.Passenger, log), svcH)
-	registerDriverRoutes(v1, handler.NewDriverHandler(clients.Driver, log))
+	registerDriverRoutes(v1, handler.NewDriverHandler(clients.Driver, log), middlewareCfg.JWT)
 	writes := strings.EqualFold(os.Getenv("ARRIVAL_ENABLED"), "true")
 	if writes || strings.EqualFold(os.Getenv("ARRIVAL_READ_ENABLED"), "true") {
 		registerArrivalRoutes(api, handler.NewArrivalHandler(clients.Arrival, authn.Config{Secret: middlewareCfg.JWT.Secret, Issuer: middlewareCfg.JWT.Issuer}, writes))

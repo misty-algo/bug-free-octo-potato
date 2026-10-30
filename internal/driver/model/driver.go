@@ -15,6 +15,7 @@ const (
 	OutboxCollectionName      = "driver_outbox_events"
 	InboundCollectionName     = "driver_inbound_events"
 	IdempotencyCollectionName = "driver_idempotency_keys"
+	CodeCollectionName        = "driver_verification_codes"
 )
 
 // AreaBoxDoc 片区包围盒。
@@ -74,3 +75,17 @@ type DriverDocument struct {
 }
 
 func (DriverDocument) MongoCollectionName() string { return DriverCollectionName }
+
+// VerificationCodeDocument 是 driver_verification_codes 集合文档。
+type VerificationCodeDocument struct {
+	// ID 为手机号，一个号码只保留最新一条验证码记录。
+	ID        string    `bson:"_id"`
+	Phone     string    `bson:"phone"`
+	Code      string    `bson:"code"`
+	SentAt    time.Time `bson:"sent_at"`
+	ExpiresAt time.Time `bson:"expires_at"`
+	Used      bool      `bson:"used"`
+	FailCount int       `bson:"fail_count"`
+}
+
+func (VerificationCodeDocument) MongoCollectionName() string { return CodeCollectionName }

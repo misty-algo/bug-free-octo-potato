@@ -13,6 +13,10 @@ option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/driver/v1;driverv1";
 //   - 司机四态 offline/idle/busy/pre_occupied；
 //   - 每个写命令可携带幂等键，服务端保证重复请求返回同一结果。
 service DriverService {
+  // ── 司机账号（手机号 + 验证码登录，未注册自动建档）──
+  rpc SendDriverCode(SendDriverCodeRequest) returns (SendDriverCodeResponse);
+  rpc DriverLogin(DriverLoginRequest) returns (DriverLoginResponse);
+
   // ── 司机档案 / 状态 / 模式 / 区域 / 心跳 ──
   rpc RegisterDriver(RegisterDriverRequest) returns (DriverProfileResponse);
   rpc GetDriverProfile(GetDriverProfileRequest) returns (DriverProfileResponse);
@@ -48,6 +52,33 @@ service DriverService {
   rpc ApproveWithdraw(ApproveWithdrawRequest) returns (WithdrawResponse);
   rpc RejectWithdraw(RejectWithdrawRequest) returns (WithdrawResponse);
   rpc CompleteWithdraw(CompleteWithdrawRequest) returns (WithdrawResponse);
+}
+
+// ── 司机账号 ──
+
+message SendDriverCodeRequest {
+  string phone = 1;
+}
+
+message SendDriverCodeResponse {
+  // debug_code 仅本地联调环境返回，生产环境由短信通道下发。
+  string debug_code = 1;
+  int64 expires_in = 2;  // 验证码有效期（秒）
+  int64 resend_in = 3;   // 距离可再次下发的秒数
+}
+
+message DriverLoginRequest {
+  string phone = 1;
+  string code = 2;
+  // name 仅首次登录（自动建档）时必填。
+  string name = 3;
+}
+
+message DriverLoginResponse {
+  string token = 1;
+  int64 expires_in = 2;     // 令牌有效期（秒）
+  DriverProfileResponse driver = 3;
+  bool is_new = 4;          // 本次是否自动建档
 }
 
 // ── 司机档案 ──

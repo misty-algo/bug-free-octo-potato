@@ -19,6 +19,11 @@ type ListenFilter struct {
 type DriverRepository interface {
 	Create(ctx context.Context, driver *Driver) error
 	Get(ctx context.Context, id string) (*Driver, error)
+	// FindByPhone 按手机号定位司机档案：登录时用它判断该号码是否已建档，
+	// 同一号码存在多份历史档案时取最近创建的一份。
+	FindByPhone(ctx context.Context, phone string) (*Driver, error)
+	// MaxDriverNo 返回库内当前最大的司机编号，用于进程重启后校准编号序列。
+	MaxDriverNo(ctx context.Context) (string, error)
 	// UpdateStatus 原子更新司机状态，version 为读到的版本号（乐观锁）。
 	UpdateStatus(ctx context.Context, id, status string, version int64, updatedAt time.Time) error
 	// UpdateMode 原子更新模式与模式版本。
@@ -140,6 +145,13 @@ type SupportRepository interface {
 	ClaimCommand(ctx context.Context, rec *CommandRecord) (bool, *CommandRecord, error)
 	// EnsureIndexes 创建跨模块约束所需的唯一索引。
 	EnsureIndexes(ctx context.Context) error
+}
+
+// DriverCodeRepository 司机登录验证码读写：一个号码只保留最新一条记录，
+// 历史记录保留是为了让重发间隔与连续错误锁定继续生效。
+type DriverCodeRepository interface {
+	Save(ctx context.Context, code *VerificationCode) error
+	Load(ctx context.Context, phone string) (*VerificationCode, error)
 }
 
 // VehicleRepository 是车辆资料、草稿、证件、审核版本与绑定的读写能力。

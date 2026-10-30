@@ -37,6 +37,7 @@ func (r *MongoRepositories) Drivers() entity.DriverRepository { return &driverRe
 func (r *MongoRepositories) Orders() entity.HallOrderRepository { return &orderRepo{db: r.db, log: r.log} }
 func (r *MongoRepositories) Incomes() entity.IncomeRepository { return &incomeRepo{db: r.db, log: r.log} }
 func (r *MongoRepositories) Support() entity.SupportRepository { return &supportRepo{db: r.db, log: r.log} }
+func (r *MongoRepositories) Codes() entity.DriverCodeRepository { return &codeRepo{db: r.db, log: r.log} }
 
 func isNoDocuments(err error) bool {
 	return errors.Is(err, mongo.ErrNoDocuments) || errors.Is(err, mongox.ErrNotFound)
@@ -57,6 +58,51 @@ type driverRepo struct {
 }
 
 func (r *driverRepo) coll() *mongo.Collection { return r.db.Collection(dbmodel.DriverCollectionName) }
+
+// FindByPhone 按手机号定位司机；同一号码存在多份历史档案时取最近创建的一份。
+func (r *driverRepo) FindByPhone(ctx context.Context, phone string) (*entity.Driver, error) {
+	normalized, err := entity.NormalizePhone(phone)
+	if err != nil {
+		return nil, err
+	}
+	cur, err := r.coll().Find(ctx, bson.M{"phone": normalized},
+		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).SetLimit(1))
+	if err != nil {
+		logRepoOp(r.log, "driver.FindByPhone", normalized, err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if !cur.Next(ctx) {
+		return nil, entity.ErrDriverNotFound
+	}
+	var doc dbmodel.DriverDocument
+	if err := cur.Decode(&doc); err != nil {
+		logRepoOp(r.log, "driver.FindByPhone.decode", normalized, err)
+		return nil, err
+	}
+	return driverFromDocument(&doc), nil
+}
+
+// MaxDriverNo 取库内最大的司机编号：按字符串倒序取第一条即可（编号定长 D%06d）。
+func (r *driverRepo) MaxDriverNo(ctx context.Context) (string, error) {
+	cur, err := r.coll().Find(ctx, bson.M{"driver_no": bson.M{"$regex": "^D\\d{6}$"}},
+		options.Find().SetSort(bson.D{{Key: "driver_no", Value: -1}}).SetLimit(1).
+			SetProjection(bson.M{"driver_no": 1}))
+	if err != nil {
+		logRepoOp(r.log, "driver.MaxDriverNo", "", err)
+		return "", err
+	}
+	defer cur.Close(ctx)
+	if !cur.Next(ctx) {
+		return "", nil
+	}
+	var doc dbmodel.DriverDocument
+	if err := cur.Decode(&doc); err != nil {
+		logRepoOp(r.log, "driver.MaxDriverNo.decode", "", err)
+		return "", err
+	}
+	return doc.DriverNo, nil
+}
 
 func (r *driverRepo) Create(ctx context.Context, d *entity.Driver) error {
 	_, err := r.coll().InsertOne(ctx, toDriverDocument(d))

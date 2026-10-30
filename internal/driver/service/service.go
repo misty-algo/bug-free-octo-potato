@@ -52,7 +52,9 @@ type Service struct {
 	orders    entity.HallOrderRepository
 	incomes   entity.IncomeRepository
 	support   entity.SupportRepository
+	codes     entity.DriverCodeRepository
 	cfg       BusinessConfig
+	auth      AuthConfig
 	log       *zap.Logger
 	publisher func(ctx context.Context, routingKey string, body []byte) error
 }
@@ -61,6 +63,26 @@ type Service struct {
 func NewService(drivers entity.DriverRepository, orders entity.HallOrderRepository,
 	incomes entity.IncomeRepository, support entity.SupportRepository, cfg BusinessConfig, log *zap.Logger) *Service {
 	return &Service{drivers: drivers, orders: orders, incomes: incomes, support: support, cfg: cfg, log: log}
+}
+
+// WithAuth 注入司机登录所需的验证码仓储与令牌密钥，返回同一实例便于链式配置。
+func (s *Service) WithAuth(codes entity.DriverCodeRepository, auth AuthConfig) *Service {
+	s.codes = codes
+	s.auth = auth
+	return s
+}
+
+// SyncDriverNoSequence 用库内已有最大编号校准内存序列，避免重启后编号重复。
+func (s *Service) SyncDriverNoSequence(ctx context.Context) {
+	max, err := s.drivers.MaxDriverNo(ctx)
+	if err != nil {
+		s.log.Warn("read max driver_no failed", zap.Error(err))
+		return
+	}
+	entity.PrimeDriverNoSequence(max)
+	if max != "" {
+		s.log.Info("driver no sequence synced", zap.String("max_driver_no", max))
+	}
 }
 
 // ───────────────────────── 司机档案 ─────────────────────────

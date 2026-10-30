@@ -19,6 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	DriverService_SendDriverCode_FullMethodName         = "/driver.v1.DriverService/SendDriverCode"
+	DriverService_DriverLogin_FullMethodName            = "/driver.v1.DriverService/DriverLogin"
 	DriverService_RegisterDriver_FullMethodName         = "/driver.v1.DriverService/RegisterDriver"
 	DriverService_GetDriverProfile_FullMethodName       = "/driver.v1.DriverService/GetDriverProfile"
 	DriverService_UpdateDriverStatus_FullMethodName     = "/driver.v1.DriverService/UpdateDriverStatus"
@@ -60,6 +62,9 @@ const (
 //   - 司机四态 offline/idle/busy/pre_occupied；
 //   - 每个写命令可携带幂等键，服务端保证重复请求返回同一结果。
 type DriverServiceClient interface {
+	// ── 司机账号（手机号 + 验证码登录，未注册自动建档）──
+	SendDriverCode(ctx context.Context, in *SendDriverCodeRequest, opts ...grpc.CallOption) (*SendDriverCodeResponse, error)
+	DriverLogin(ctx context.Context, in *DriverLoginRequest, opts ...grpc.CallOption) (*DriverLoginResponse, error)
 	// ── 司机档案 / 状态 / 模式 / 区域 / 心跳 ──
 	RegisterDriver(ctx context.Context, in *RegisterDriverRequest, opts ...grpc.CallOption) (*DriverProfileResponse, error)
 	GetDriverProfile(ctx context.Context, in *GetDriverProfileRequest, opts ...grpc.CallOption) (*DriverProfileResponse, error)
@@ -99,6 +104,26 @@ type driverServiceClient struct {
 
 func NewDriverServiceClient(cc grpc.ClientConnInterface) DriverServiceClient {
 	return &driverServiceClient{cc}
+}
+
+func (c *driverServiceClient) SendDriverCode(ctx context.Context, in *SendDriverCodeRequest, opts ...grpc.CallOption) (*SendDriverCodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendDriverCodeResponse)
+	err := c.cc.Invoke(ctx, DriverService_SendDriverCode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *driverServiceClient) DriverLogin(ctx context.Context, in *DriverLoginRequest, opts ...grpc.CallOption) (*DriverLoginResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DriverLoginResponse)
+	err := c.cc.Invoke(ctx, DriverService_DriverLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *driverServiceClient) RegisterDriver(ctx context.Context, in *RegisterDriverRequest, opts ...grpc.CallOption) (*DriverProfileResponse, error) {
@@ -374,6 +399,9 @@ func (c *driverServiceClient) CompleteWithdraw(ctx context.Context, in *Complete
 //   - 司机四态 offline/idle/busy/pre_occupied；
 //   - 每个写命令可携带幂等键，服务端保证重复请求返回同一结果。
 type DriverServiceServer interface {
+	// ── 司机账号（手机号 + 验证码登录，未注册自动建档）──
+	SendDriverCode(context.Context, *SendDriverCodeRequest) (*SendDriverCodeResponse, error)
+	DriverLogin(context.Context, *DriverLoginRequest) (*DriverLoginResponse, error)
 	// ── 司机档案 / 状态 / 模式 / 区域 / 心跳 ──
 	RegisterDriver(context.Context, *RegisterDriverRequest) (*DriverProfileResponse, error)
 	GetDriverProfile(context.Context, *GetDriverProfileRequest) (*DriverProfileResponse, error)
@@ -415,6 +443,12 @@ type DriverServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDriverServiceServer struct{}
 
+func (UnimplementedDriverServiceServer) SendDriverCode(context.Context, *SendDriverCodeRequest) (*SendDriverCodeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SendDriverCode not implemented")
+}
+func (UnimplementedDriverServiceServer) DriverLogin(context.Context, *DriverLoginRequest) (*DriverLoginResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DriverLogin not implemented")
+}
 func (UnimplementedDriverServiceServer) RegisterDriver(context.Context, *RegisterDriverRequest) (*DriverProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RegisterDriver not implemented")
 }
@@ -512,6 +546,42 @@ func RegisterDriverServiceServer(s grpc.ServiceRegistrar, srv DriverServiceServe
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&DriverService_ServiceDesc, srv)
+}
+
+func _DriverService_SendDriverCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendDriverCodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DriverServiceServer).SendDriverCode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DriverService_SendDriverCode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DriverServiceServer).SendDriverCode(ctx, req.(*SendDriverCodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DriverService_DriverLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DriverLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DriverServiceServer).DriverLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DriverService_DriverLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DriverServiceServer).DriverLogin(ctx, req.(*DriverLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _DriverService_RegisterDriver_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -989,6 +1059,14 @@ var DriverService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "driver.v1.DriverService",
 	HandlerType: (*DriverServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SendDriverCode",
+			Handler:    _DriverService_SendDriverCode_Handler,
+		},
+		{
+			MethodName: "DriverLogin",
+			Handler:    _DriverService_DriverLogin_Handler,
+		},
 		{
 			MethodName: "RegisterDriver",
 			Handler:    _DriverService_RegisterDriver_Handler,

@@ -47,6 +47,9 @@ const S = {
   sheet: null,
   codeSent: '',
   orderError: '',
+  // 个人资料（含注册引导完成状态）与引导表单草稿。
+  profile: null,
+  profileDraft: { nickname: '', avatar: '', emergencyName: '', emergencyPhone: '' },
   // 实名状态：state 为 UNVERIFIED/VERIFIED，mask 为服务端脱敏值。
   realname: null,
   // 我的券 / 领券中心 / 当前选中的券 / 客服页数据。
@@ -100,6 +103,7 @@ function renderOverlay() {
   let body = '';
   if (S.sheet.type === 'poi') body = poiSheet(S.sheet.kind);
   else if (S.sheet.type === 'login') body = loginSheet();
+  else if (S.sheet.type === 'register') body = registerSheet();
   else if (S.sheet.type === 'detail') body = orderDetailSheet(S.sheet.order);
   else if (S.sheet.type === 'realname') body = realNameSheet();
   else if (S.sheet.type === 'claim') body = claimCouponSheet();
@@ -310,8 +314,13 @@ function paxHomeView() {
   const est = S.estimate;
   let h = '';
 
-  h += `<div style="background:#ffc300;padding:10px 14px 4px;"><b style="font-size:15px;">花小猪打车</b>` +
-    `<div style="font-size:10px;color:#6b5900;">${S.phone ? esc(S.phone) + ' · 已登录' : '未登录 · 叫车前需登录'}</div></div>`;
+  // 顶部常驻登录/注册入口：未登录时不用等触发叫车才看到登录入口。
+  h += '<div style="background:#ffc300;padding:10px 14px 4px;display:flex;justify-content:space-between;align-items:center;">' +
+    '<div><b style="font-size:15px;">花小猪打车</b>' +
+    `<div style="font-size:10px;color:#6b5900;">${S.phone ? esc(S.phone) + ' · 已登录' : '未登录 · 叫车前需登录'}</div></div>` +
+    (S.phone ? ''
+      : '<button class="btn blue" style="flex:none;padding:6px 14px;" onclick="paxOpenLogin()">登录 / 注册</button>') +
+    '</div>';
 
   h += mapMock(start, end);
 
@@ -435,8 +444,11 @@ function paxOrdersView() {
 }
 
 function paxMeView() {
+  const profile = S.profile || {};
+  const displayName = profile.nickname || '乘客';
+  const avatar = profile.avatar || '乘';
   let h = '<div style="background:#ffc300;padding:14px;"><div class="drvcard">' +
-    '<div class="avatar" style="background:#fff;">乘</div><div><b>乘客</b>' +
+    `<div class="avatar" style="background:#fff;">${esc(avatar)}</div><div><b>${esc(displayName)}</b>` +
     `<div style="font-size:11px;">${S.phone ? esc(S.phone) : '未登录'} · ${S.accountId ? '已登录' : '未登录'}</div></div></div></div>`;
   const rn = S.realname;
   const verified = rn && rn.state === 'VERIFIED';
@@ -451,7 +463,26 @@ function paxMeView() {
   h += '<div class="card"><h4>账号信息</h4><div class="feelist">' +
     `<div><span>账号 ID</span><span>${S.accountId ? esc(S.accountId) : '-'}</span></div>` +
     `<div><span>手机号</span><span>${S.phone ? esc(S.phone) : '-'}</span></div>` +
-    `<div><span>我的优惠券</span><span>${S.coupons.length} 张可用</span></div></div></div>`;
+    `<div><span>我的优惠券</span><span>${S.coupons.length} 张可用</span></div></div>` +
+    (loggedIn()
+      ? '<div class="btnrow" style="margin-top:8px;"><button class="btn ghost" onclick="paxEditProfile()">编辑个人资料</button></div>'
+      : '') + '</div>';
+  // 未登录时「我的」页给出登录/注册入口，避免用户卡在空页面。
+  if (!loggedIn()) {
+    h += '<div class="card" style="text-align:center;padding:20px 0;">' +
+      '<div class="note" style="margin-bottom:10px;">登录后可使用叫车、实名、优惠券等功能</div>' +
+      '<div class="btnrow">' +
+      '<button class="btn blue" onclick="paxOpenLogin()">登录</button>' +
+      '<button class="btn ghost" onclick="paxOpenRegisterEntry()">注册</button></div></div>';
+  }
+  // 紧急联系人：仅本人可见，注册引导补全后在这里回显脱敏号码。
+  if (loggedIn()) {
+    h += '<div class="card"><h4>紧急联系人</h4><div class="feelist">' +
+      `<div><span>姓名</span><span>${profile.emergency_name ? esc(profile.emergency_name) : '未填写'}</span></div>` +
+      `<div><span>电话</span><span>${profile.emergency_phone_mask ? esc(profile.emergency_phone_mask) : '未填写'}</span></div></div>` +
+      (profile.completed ? '' : '<div class="note" style="color:#e6a23c;">资料未填完，补全后可在行程异常时联系紧急联系人。</div>') +
+      '</div>';
+  }
   // 我的券：列出已领取未使用的券，点击即可选中并回到首页下单时抵扣。
   h += '<div class="card"><div class="cardhead"><h4>我的券</h4>' +
     '<span class="link" onclick="paxOpenClaim()">领券中心 ›</span></div>';
@@ -500,7 +531,125 @@ function loginSheet() {
     `<input id="loginCode" placeholder="验证码" value="${esc(S.codeSent)}" style="flex:1">` +
     '<button class="btn dark" style="flex:none;padding:8px 18px;" onclick="paxDoLogin()">登录</button></div>';
   if (S.sheet.error) h += `<div class="note" style="color:#f56c6c;">${esc(S.sheet.error)}</div>`;
+  // 注册入口：验证码登录即自动建号，这里引导未注册用户补齐昵称与紧急联系人。
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:11px;color:#909399;">' +
+    '<span>还没有账号？用手机号登录即自动注册</span>' +
+    '<button class="btn blue" style="flex:none;padding:5px 12px;font-size:11px;" onclick="paxOpenRegister()">注册</button></div>';
   return h;
+}
+
+// ---------------------------------------------------------------- 注册引导
+
+// AVATAR_CHOICES 头像候选：预置 emoji，避免图片上传与审核成本。
+const AVATAR_CHOICES = ['🚕', '🐷', '🐰', '🐼', '🦊', '🐯', '🦁', '🐨'];
+
+// paxOpenRegister 从未登录状态直接打开注册引导：先走验证码登录，登录成功后自动填资料。
+function paxOpenRegister() {
+  S.sheet = { type: 'login', phone: S.sheet ? S.sheet.phone : '', error: '', registerMode: true };
+  renderAll();
+}
+
+// registerSheet 注册引导表单：昵称、头像与紧急联系人。
+function registerSheet() {
+  const draft = S.profileDraft;
+  let h = '<h3>完善资料 <button class="x" onclick="paxSkipRegister()">跳过</button></h3>';
+  h += '<div class="note" style="margin-bottom:8px;">首次登录请补充昵称与紧急联系人，紧急联系人仅用于行程安全保障。</div>';
+  h += `<input id="rgNickname" placeholder="昵称（如：小王）" value="${esc(draft.nickname)}" oninput="paxRegInput()" style="width:100%;box-sizing:border-box;margin-bottom:8px;">`;
+  h += '<div style="font-size:11px;color:#606266;margin-bottom:4px;">选择头像</div>';
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">' +
+    AVATAR_CHOICES.map((emoji) => `<button class="btn ${draft.avatar === emoji ? 'blue' : 'ghost'}" ` +
+      `style="flex:none;padding:6px 10px;font-size:16px;" onclick="paxPickAvatar('${emoji}')">${emoji}</button>`).join('') +
+    '</div>';
+  h += '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
+    `<input id="rgEmergencyName" placeholder="紧急联系人姓名" value="${esc(draft.emergencyName)}" oninput="paxRegInput()" style="flex:1">` +
+    `<input id="rgEmergencyPhone" type="tel" maxlength="11" placeholder="紧急联系电话" value="${esc(draft.emergencyPhone)}" oninput="paxRegInput()" style="flex:1"></div>`;
+  h += '<button class="btn dark" style="width:100%;" onclick="paxSubmitRegister()">完成注册</button>';
+  if (S.sheet.error) h += `<div class="note" style="color:#f56c6c;margin-top:6px;">${esc(S.sheet.error)}</div>`;
+  return h;
+}
+
+// paxRegInput 实时把输入同步到草稿：弹层会因选头像等操作重绘，
+// 不实时同步就会把用户已填的内容冲掉。
+function paxRegInput() {
+  const draft = S.profileDraft;
+  const nickname = document.getElementById('rgNickname');
+  const emergencyName = document.getElementById('rgEmergencyName');
+  const emergencyPhone = document.getElementById('rgEmergencyPhone');
+  if (nickname) draft.nickname = nickname.value;
+  if (emergencyName) draft.emergencyName = emergencyName.value;
+  if (emergencyPhone) draft.emergencyPhone = emergencyPhone.value;
+}
+
+function paxPickAvatar(emoji) {
+  // 重绘前先把已填内容收进草稿，避免选头像时冲掉输入。
+  paxRegInput();
+  S.profileDraft.avatar = emoji;
+  renderAll();
+}
+
+// paxSkipRegister 跳过引导：资料可稍后在「我的 → 个人资料」补齐。
+function paxSkipRegister() {
+  S.sheet = null;
+  renderAll();
+}
+
+async function paxSubmitRegister() {
+  const draft = S.profileDraft;
+  draft.nickname = (document.getElementById('rgNickname') || {}).value || '';
+  draft.emergencyName = (document.getElementById('rgEmergencyName') || {}).value || '';
+  draft.emergencyPhone = (document.getElementById('rgEmergencyPhone') || {}).value || '';
+  S.sheet.error = '';
+  if (!draft.nickname.trim()) { S.sheet.error = '请填写昵称'; renderAll(); return; }
+  if (!draft.emergencyName.trim() || !draft.emergencyPhone.trim()) {
+    S.sheet.error = '紧急联系人姓名与电话需同时填写';
+    renderAll();
+    return;
+  }
+  try {
+    const data = await api('/passenger/profile', {
+      method: 'POST',
+      accountId: S.accountId,
+      token: S.token,
+      body: {
+        nickname: draft.nickname.trim(),
+        avatar: draft.avatar,
+        emergencyName: draft.emergencyName.trim(),
+        emergencyPhone: draft.emergencyPhone.trim(),
+      },
+    });
+    S.profile = data;
+    S.sheet = null;
+    toast('资料已保存，注册完成');
+    renderAll();
+  } catch (error) {
+    S.sheet.error = error.message;
+    renderAll();
+  }
+}
+
+// loadProfile 拉取个人资料：判断是否已填完注册引导。
+async function loadProfile() {
+  if (!loggedIn()) return;
+  try {
+    S.profile = await api(`/passenger/profile?accountId=${encodeURIComponent(S.accountId)}`, {
+      accountId: S.accountId, token: S.token,
+    });
+  } catch (error) {
+    S.profile = null;
+  }
+}
+
+// paxEditProfile 从「我的」页再次编辑资料。
+function paxEditProfile() {
+  const profile = S.profile || {};
+  S.profileDraft = {
+    nickname: profile.nickname || '',
+    avatar: profile.avatar || AVATAR_CHOICES[0],
+    emergencyName: profile.emergency_name || '',
+    emergencyPhone: '',
+  };
+  S.sheet = { type: 'register', error: '' };
+  renderAll();
 }
 
 function orderDetailSheet(order) {
@@ -785,6 +934,12 @@ async function refreshEstimate() {
 
 function openLogin() { S.sheet = { type: 'login' }; renderAll(); }
 
+// paxOpenRegisterEntry 未登录状态下从首页/我的页进入注册引导。
+function paxOpenRegisterEntry() {
+  S.sheet = { type: 'login', registerMode: true };
+  renderAll();
+}
+
 async function sendCode() {
   const input = document.getElementById('loginPhone');
   const phone = input ? input.value.trim() : '';
@@ -809,14 +964,28 @@ async function doLogin() {
       method: 'POST',
       body: { channel: 'sms', phone: phone.trim(), code: code.trim(), role: 'passenger' },
     });
+    const registerMode = Boolean(S.sheet && S.sheet.registerMode);
     S.accountId = data.account_id;
     S.token = data.access_token;
     S.phone = phone.trim();
-    S.sheet = null;
-    toast('登录成功');
     await loadHome();
-    // 登录后补齐实名、券包与客服数据，供首页用车与「我的」页使用。
-    await Promise.all([loadRealname(), loadCoupons(), loadService()]);
+    // 登录后补齐实名、券包、客服与个人资料，供首页用车与「我的」页使用。
+    await Promise.all([loadRealname(), loadCoupons(), loadService(), loadProfile()]);
+    // 新用户或从注册入口进来：直接弹出资料引导，填完即可进入登录态。
+    const needGuide = registerMode || data.is_new || !(S.profile && S.profile.completed);
+    if (needGuide) {
+      S.profileDraft = {
+        nickname: (S.profile && S.profile.nickname) || '',
+        avatar: (S.profile && S.profile.avatar) || AVATAR_CHOICES[0],
+        emergencyName: (S.profile && S.profile.emergency_name) || '',
+        emergencyPhone: '',
+      };
+      S.sheet = { type: 'register', error: '' };
+      renderAll();
+    } else {
+      S.sheet = null;
+      toast('登录成功');
+    }
     // 登录后恢复进行中订单：页面刷新或换设备后仍能看到行程状态并继续轮询。
     await restoreCurrentOrder();
     await refreshEstimate();
@@ -996,6 +1165,14 @@ window.paxCancelRide = cancelRide;
 // 联调临时调试把手：验证完成后移除。
 window.paxSendCode = sendCode;
 window.paxDoLogin = doLogin;
+window.paxOpenLogin = openLogin;
+window.paxOpenRegisterEntry = paxOpenRegisterEntry;
+window.paxOpenRegister = paxOpenRegister;
+window.paxPickAvatar = paxPickAvatar;
+window.paxRegInput = paxRegInput;
+window.paxSkipRegister = paxSkipRegister;
+window.paxSubmitRegister = paxSubmitRegister;
+window.paxEditProfile = paxEditProfile;
 window.paxOrderDetail = orderDetail;
 window.paxLogout = logout;
 window.paxOpenRealName = openRealName;

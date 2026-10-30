@@ -42,6 +42,9 @@ type AccountDocument struct {
 	// 脱敏后的实名信息，仅用于「我的」页回显，不落真值。
 	RealNameName  string `bson:"real_name_name,omitempty"`
 	RealNameIDNo  string `bson:"real_name_id_no,omitempty"`
+	// 紧急联系人：注册引导补全，电话对外只输出掩码值。
+	EmergencyName  string `bson:"emergency_name,omitempty"`
+	EmergencyPhone string `bson:"emergency_phone,omitempty"`
 	CreatedAt         time.Time `bson:"created_at"`
 	UpdatedAt         time.Time `bson:"updated_at"`
 	IsDeleted         bool   `bson:"is_deleted"`

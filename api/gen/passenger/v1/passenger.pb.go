@@ -912,6 +912,214 @@ func (x *CancelAccountRequest) GetAccountId() string {
 	return ""
 }
 
+type UpdateProfileRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	AccountId string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Nickname  string                 `protobuf:"bytes,2,opt,name=nickname,proto3" json:"nickname,omitempty"`
+	// avatar 为头像标识（前端用 emoji 或预设图标，不上传文件）。
+	Avatar string `protobuf:"bytes,3,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	// emergency_name / emergency_phone 为紧急联系人，仅本人可见与编辑。
+	EmergencyName  string `protobuf:"bytes,4,opt,name=emergency_name,json=emergencyName,proto3" json:"emergency_name,omitempty"`
+	EmergencyPhone string `protobuf:"bytes,5,opt,name=emergency_phone,json=emergencyPhone,proto3" json:"emergency_phone,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UpdateProfileRequest) Reset() {
+	*x = UpdateProfileRequest{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateProfileRequest) ProtoMessage() {}
+
+func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateProfileRequest.ProtoReflect.Descriptor instead.
+func (*UpdateProfileRequest) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *UpdateProfileRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *UpdateProfileRequest) GetNickname() string {
+	if x != nil {
+		return x.Nickname
+	}
+	return ""
+}
+
+func (x *UpdateProfileRequest) GetAvatar() string {
+	if x != nil {
+		return x.Avatar
+	}
+	return ""
+}
+
+func (x *UpdateProfileRequest) GetEmergencyName() string {
+	if x != nil {
+		return x.EmergencyName
+	}
+	return ""
+}
+
+func (x *UpdateProfileRequest) GetEmergencyPhone() string {
+	if x != nil {
+		return x.EmergencyPhone
+	}
+	return ""
+}
+
+type GetProfileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProfileRequest) Reset() {
+	*x = GetProfileRequest{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProfileRequest) ProtoMessage() {}
+
+func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProfileRequest.ProtoReflect.Descriptor instead.
+func (*GetProfileRequest) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetProfileRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+type ProfileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Nickname      string                 `protobuf:"bytes,2,opt,name=nickname,proto3" json:"nickname,omitempty"`
+	Avatar        string                 `protobuf:"bytes,3,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	EmergencyName string                 `protobuf:"bytes,4,opt,name=emergency_name,json=emergencyName,proto3" json:"emergency_name,omitempty"`
+	// emergency_phone_mask 为脱敏后的紧急联系电话。
+	EmergencyPhoneMask string `protobuf:"bytes,5,opt,name=emergency_phone_mask,json=emergencyPhoneMask,proto3" json:"emergency_phone_mask,omitempty"`
+	// completed 表示注册引导是否已填完（昵称与紧急联系人齐全）。
+	Completed     bool `protobuf:"varint,6,opt,name=completed,proto3" json:"completed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProfileResponse) Reset() {
+	*x = ProfileResponse{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProfileResponse) ProtoMessage() {}
+
+func (x *ProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProfileResponse.ProtoReflect.Descriptor instead.
+func (*ProfileResponse) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ProfileResponse) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *ProfileResponse) GetNickname() string {
+	if x != nil {
+		return x.Nickname
+	}
+	return ""
+}
+
+func (x *ProfileResponse) GetAvatar() string {
+	if x != nil {
+		return x.Avatar
+	}
+	return ""
+}
+
+func (x *ProfileResponse) GetEmergencyName() string {
+	if x != nil {
+		return x.EmergencyName
+	}
+	return ""
+}
+
+func (x *ProfileResponse) GetEmergencyPhoneMask() string {
+	if x != nil {
+		return x.EmergencyPhoneMask
+	}
+	return ""
+}
+
+func (x *ProfileResponse) GetCompleted() bool {
+	if x != nil {
+		return x.Completed
+	}
+	return false
+}
+
 type HomeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
@@ -924,7 +1132,7 @@ type HomeRequest struct {
 
 func (x *HomeRequest) Reset() {
 	*x = HomeRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[15]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -936,7 +1144,7 @@ func (x *HomeRequest) String() string {
 func (*HomeRequest) ProtoMessage() {}
 
 func (x *HomeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[15]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -949,7 +1157,7 @@ func (x *HomeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HomeRequest.ProtoReflect.Descriptor instead.
 func (*HomeRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{15}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *HomeRequest) GetAccountId() string {
@@ -994,7 +1202,7 @@ type CarType struct {
 
 func (x *CarType) Reset() {
 	*x = CarType{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[16]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1006,7 +1214,7 @@ func (x *CarType) String() string {
 func (*CarType) ProtoMessage() {}
 
 func (x *CarType) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[16]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1019,7 +1227,7 @@ func (x *CarType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CarType.ProtoReflect.Descriptor instead.
 func (*CarType) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{16}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CarType) GetCarType() int32 {
@@ -1070,7 +1278,7 @@ type QuickEntry struct {
 
 func (x *QuickEntry) Reset() {
 	*x = QuickEntry{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[17]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1082,7 +1290,7 @@ func (x *QuickEntry) String() string {
 func (*QuickEntry) ProtoMessage() {}
 
 func (x *QuickEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[17]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1095,7 +1303,7 @@ func (x *QuickEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuickEntry.ProtoReflect.Descriptor instead.
 func (*QuickEntry) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{17}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *QuickEntry) GetEntryId() string {
@@ -1150,7 +1358,7 @@ type Address struct {
 
 func (x *Address) Reset() {
 	*x = Address{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[18]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1162,7 +1370,7 @@ func (x *Address) String() string {
 func (*Address) ProtoMessage() {}
 
 func (x *Address) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[18]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1175,7 +1383,7 @@ func (x *Address) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Address.ProtoReflect.Descriptor instead.
 func (*Address) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{18}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Address) GetId() string {
@@ -1256,7 +1464,7 @@ type HomeResponse struct {
 
 func (x *HomeResponse) Reset() {
 	*x = HomeResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[19]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1268,7 +1476,7 @@ func (x *HomeResponse) String() string {
 func (*HomeResponse) ProtoMessage() {}
 
 func (x *HomeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[19]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1281,7 +1489,7 @@ func (x *HomeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HomeResponse.ProtoReflect.Descriptor instead.
 func (*HomeResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{19}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *HomeResponse) GetCarTypes() []*CarType {
@@ -1348,7 +1556,7 @@ type SearchPOIRequest struct {
 
 func (x *SearchPOIRequest) Reset() {
 	*x = SearchPOIRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[20]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1360,7 +1568,7 @@ func (x *SearchPOIRequest) String() string {
 func (*SearchPOIRequest) ProtoMessage() {}
 
 func (x *SearchPOIRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[20]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1373,7 +1581,7 @@ func (x *SearchPOIRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchPOIRequest.ProtoReflect.Descriptor instead.
 func (*SearchPOIRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{20}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *SearchPOIRequest) GetAccountId() string {
@@ -1437,7 +1645,7 @@ type RecommendPickupRequest struct {
 
 func (x *RecommendPickupRequest) Reset() {
 	*x = RecommendPickupRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[21]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1449,7 +1657,7 @@ func (x *RecommendPickupRequest) String() string {
 func (*RecommendPickupRequest) ProtoMessage() {}
 
 func (x *RecommendPickupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[21]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1462,7 +1670,7 @@ func (x *RecommendPickupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecommendPickupRequest.ProtoReflect.Descriptor instead.
 func (*RecommendPickupRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{21}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RecommendPickupRequest) GetAccountId() string {
@@ -1509,7 +1717,7 @@ type POI struct {
 
 func (x *POI) Reset() {
 	*x = POI{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[22]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1521,7 +1729,7 @@ func (x *POI) String() string {
 func (*POI) ProtoMessage() {}
 
 func (x *POI) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[22]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1534,7 +1742,7 @@ func (x *POI) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use POI.ProtoReflect.Descriptor instead.
 func (*POI) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{22}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *POI) GetId() string {
@@ -1602,7 +1810,7 @@ type SearchPOIResponse struct {
 
 func (x *SearchPOIResponse) Reset() {
 	*x = SearchPOIResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[23]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1614,7 +1822,7 @@ func (x *SearchPOIResponse) String() string {
 func (*SearchPOIResponse) ProtoMessage() {}
 
 func (x *SearchPOIResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[23]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1627,7 +1835,7 @@ func (x *SearchPOIResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchPOIResponse.ProtoReflect.Descriptor instead.
 func (*SearchPOIResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{23}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *SearchPOIResponse) GetList() []*POI {
@@ -1647,7 +1855,7 @@ type ListAddressesRequest struct {
 
 func (x *ListAddressesRequest) Reset() {
 	*x = ListAddressesRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[24]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1659,7 +1867,7 @@ func (x *ListAddressesRequest) String() string {
 func (*ListAddressesRequest) ProtoMessage() {}
 
 func (x *ListAddressesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[24]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1672,7 +1880,7 @@ func (x *ListAddressesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAddressesRequest.ProtoReflect.Descriptor instead.
 func (*ListAddressesRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{24}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListAddressesRequest) GetAccountId() string {
@@ -1698,7 +1906,7 @@ type AddressListResponse struct {
 
 func (x *AddressListResponse) Reset() {
 	*x = AddressListResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[25]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1710,7 +1918,7 @@ func (x *AddressListResponse) String() string {
 func (*AddressListResponse) ProtoMessage() {}
 
 func (x *AddressListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[25]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1723,7 +1931,7 @@ func (x *AddressListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddressListResponse.ProtoReflect.Descriptor instead.
 func (*AddressListResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{25}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *AddressListResponse) GetList() []*Address {
@@ -1750,7 +1958,7 @@ type SaveAddressRequest struct {
 
 func (x *SaveAddressRequest) Reset() {
 	*x = SaveAddressRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[26]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1762,7 +1970,7 @@ func (x *SaveAddressRequest) String() string {
 func (*SaveAddressRequest) ProtoMessage() {}
 
 func (x *SaveAddressRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[26]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1775,7 +1983,7 @@ func (x *SaveAddressRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveAddressRequest.ProtoReflect.Descriptor instead.
 func (*SaveAddressRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{26}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SaveAddressRequest) GetAccountId() string {
@@ -1850,7 +2058,7 @@ type AddressResponse struct {
 
 func (x *AddressResponse) Reset() {
 	*x = AddressResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[27]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1862,7 +2070,7 @@ func (x *AddressResponse) String() string {
 func (*AddressResponse) ProtoMessage() {}
 
 func (x *AddressResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[27]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1875,7 +2083,7 @@ func (x *AddressResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddressResponse.ProtoReflect.Descriptor instead.
 func (*AddressResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{27}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *AddressResponse) GetAddress() *Address {
@@ -1895,7 +2103,7 @@ type DeleteAddressRequest struct {
 
 func (x *DeleteAddressRequest) Reset() {
 	*x = DeleteAddressRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[28]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1907,7 +2115,7 @@ func (x *DeleteAddressRequest) String() string {
 func (*DeleteAddressRequest) ProtoMessage() {}
 
 func (x *DeleteAddressRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[28]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1920,7 +2128,7 @@ func (x *DeleteAddressRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAddressRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAddressRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{28}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *DeleteAddressRequest) GetAccountId() string {
@@ -1951,7 +2159,7 @@ type RecordHistoryRequest struct {
 
 func (x *RecordHistoryRequest) Reset() {
 	*x = RecordHistoryRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[29]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1963,7 +2171,7 @@ func (x *RecordHistoryRequest) String() string {
 func (*RecordHistoryRequest) ProtoMessage() {}
 
 func (x *RecordHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[29]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1976,7 +2184,7 @@ func (x *RecordHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordHistoryRequest.ProtoReflect.Descriptor instead.
 func (*RecordHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{29}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *RecordHistoryRequest) GetAccountId() string {
@@ -2030,7 +2238,7 @@ type ClearHistoryRequest struct {
 
 func (x *ClearHistoryRequest) Reset() {
 	*x = ClearHistoryRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[30]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2042,7 +2250,7 @@ func (x *ClearHistoryRequest) String() string {
 func (*ClearHistoryRequest) ProtoMessage() {}
 
 func (x *ClearHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[30]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2055,7 +2263,7 @@ func (x *ClearHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearHistoryRequest.ProtoReflect.Descriptor instead.
 func (*ClearHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{30}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ClearHistoryRequest) GetAccountId() string {
@@ -2075,7 +2283,7 @@ type UseQuickEntryRequest struct {
 
 func (x *UseQuickEntryRequest) Reset() {
 	*x = UseQuickEntryRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[31]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2087,7 +2295,7 @@ func (x *UseQuickEntryRequest) String() string {
 func (*UseQuickEntryRequest) ProtoMessage() {}
 
 func (x *UseQuickEntryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[31]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2100,7 +2308,7 @@ func (x *UseQuickEntryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UseQuickEntryRequest.ProtoReflect.Descriptor instead.
 func (*UseQuickEntryRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{31}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *UseQuickEntryRequest) GetAccountId() string {
@@ -2133,7 +2341,7 @@ type Coupon struct {
 
 func (x *Coupon) Reset() {
 	*x = Coupon{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[32]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2145,7 +2353,7 @@ func (x *Coupon) String() string {
 func (*Coupon) ProtoMessage() {}
 
 func (x *Coupon) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[32]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2158,7 +2366,7 @@ func (x *Coupon) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Coupon.ProtoReflect.Descriptor instead.
 func (*Coupon) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{32}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *Coupon) GetCouponId() string {
@@ -2212,7 +2420,7 @@ type ListCouponsRequest struct {
 
 func (x *ListCouponsRequest) Reset() {
 	*x = ListCouponsRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[33]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2224,7 +2432,7 @@ func (x *ListCouponsRequest) String() string {
 func (*ListCouponsRequest) ProtoMessage() {}
 
 func (x *ListCouponsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[33]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2237,7 +2445,7 @@ func (x *ListCouponsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCouponsRequest.ProtoReflect.Descriptor instead.
 func (*ListCouponsRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{33}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ListCouponsRequest) GetAccountId() string {
@@ -2256,7 +2464,7 @@ type CouponListResponse struct {
 
 func (x *CouponListResponse) Reset() {
 	*x = CouponListResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[34]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2268,7 +2476,7 @@ func (x *CouponListResponse) String() string {
 func (*CouponListResponse) ProtoMessage() {}
 
 func (x *CouponListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[34]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2281,7 +2489,7 @@ func (x *CouponListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CouponListResponse.ProtoReflect.Descriptor instead.
 func (*CouponListResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{34}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *CouponListResponse) GetList() []*Coupon {
@@ -2305,7 +2513,7 @@ type SubmitRealNameRequest struct {
 
 func (x *SubmitRealNameRequest) Reset() {
 	*x = SubmitRealNameRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[35]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2317,7 +2525,7 @@ func (x *SubmitRealNameRequest) String() string {
 func (*SubmitRealNameRequest) ProtoMessage() {}
 
 func (x *SubmitRealNameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[35]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2330,7 +2538,7 @@ func (x *SubmitRealNameRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitRealNameRequest.ProtoReflect.Descriptor instead.
 func (*SubmitRealNameRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{35}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *SubmitRealNameRequest) GetAccountId() string {
@@ -2370,7 +2578,7 @@ type GetRealNameStatusRequest struct {
 
 func (x *GetRealNameStatusRequest) Reset() {
 	*x = GetRealNameStatusRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[36]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2382,7 +2590,7 @@ func (x *GetRealNameStatusRequest) String() string {
 func (*GetRealNameStatusRequest) ProtoMessage() {}
 
 func (x *GetRealNameStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[36]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2395,7 +2603,7 @@ func (x *GetRealNameStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRealNameStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetRealNameStatusRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{36}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *GetRealNameStatusRequest) GetAccountId() string {
@@ -2417,7 +2625,7 @@ type RealNameStatusResponse struct {
 
 func (x *RealNameStatusResponse) Reset() {
 	*x = RealNameStatusResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[37]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2429,7 +2637,7 @@ func (x *RealNameStatusResponse) String() string {
 func (*RealNameStatusResponse) ProtoMessage() {}
 
 func (x *RealNameStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[37]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2442,7 +2650,7 @@ func (x *RealNameStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealNameStatusResponse.ProtoReflect.Descriptor instead.
 func (*RealNameStatusResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{37}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *RealNameStatusResponse) GetState() string {
@@ -2476,7 +2684,7 @@ type ListClaimableCouponsRequest struct {
 
 func (x *ListClaimableCouponsRequest) Reset() {
 	*x = ListClaimableCouponsRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[38]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2488,7 +2696,7 @@ func (x *ListClaimableCouponsRequest) String() string {
 func (*ListClaimableCouponsRequest) ProtoMessage() {}
 
 func (x *ListClaimableCouponsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[38]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2501,7 +2709,7 @@ func (x *ListClaimableCouponsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListClaimableCouponsRequest.ProtoReflect.Descriptor instead.
 func (*ListClaimableCouponsRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{38}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ListClaimableCouponsRequest) GetAccountId() string {
@@ -2529,7 +2737,7 @@ type ClaimCouponRequest struct {
 
 func (x *ClaimCouponRequest) Reset() {
 	*x = ClaimCouponRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[39]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2541,7 +2749,7 @@ func (x *ClaimCouponRequest) String() string {
 func (*ClaimCouponRequest) ProtoMessage() {}
 
 func (x *ClaimCouponRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[39]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2554,7 +2762,7 @@ func (x *ClaimCouponRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClaimCouponRequest.ProtoReflect.Descriptor instead.
 func (*ClaimCouponRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{39}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ClaimCouponRequest) GetAccountId() string {
@@ -2591,7 +2799,7 @@ type EstimateRequest struct {
 
 func (x *EstimateRequest) Reset() {
 	*x = EstimateRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[40]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2603,7 +2811,7 @@ func (x *EstimateRequest) String() string {
 func (*EstimateRequest) ProtoMessage() {}
 
 func (x *EstimateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[40]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2616,7 +2824,7 @@ func (x *EstimateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EstimateRequest.ProtoReflect.Descriptor instead.
 func (*EstimateRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{40}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *EstimateRequest) GetAccountId() string {
@@ -2722,7 +2930,7 @@ type EstimateResponse struct {
 
 func (x *EstimateResponse) Reset() {
 	*x = EstimateResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[41]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2734,7 +2942,7 @@ func (x *EstimateResponse) String() string {
 func (*EstimateResponse) ProtoMessage() {}
 
 func (x *EstimateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[41]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2747,7 +2955,7 @@ func (x *EstimateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EstimateResponse.ProtoReflect.Descriptor instead.
 func (*EstimateResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{41}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *EstimateResponse) GetEstimateNo() string {
@@ -2834,7 +3042,7 @@ type CreateOrderRequest struct {
 
 func (x *CreateOrderRequest) Reset() {
 	*x = CreateOrderRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[42]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2846,7 +3054,7 @@ func (x *CreateOrderRequest) String() string {
 func (*CreateOrderRequest) ProtoMessage() {}
 
 func (x *CreateOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[42]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2859,7 +3067,7 @@ func (x *CreateOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateOrderRequest.ProtoReflect.Descriptor instead.
 func (*CreateOrderRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{42}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *CreateOrderRequest) GetAccountId() string {
@@ -2976,7 +3184,7 @@ type Order struct {
 
 func (x *Order) Reset() {
 	*x = Order{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[43]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2988,7 +3196,7 @@ func (x *Order) String() string {
 func (*Order) ProtoMessage() {}
 
 func (x *Order) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[43]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3001,7 +3209,7 @@ func (x *Order) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Order.ProtoReflect.Descriptor instead.
 func (*Order) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{43}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *Order) GetOrderId() string {
@@ -3111,7 +3319,7 @@ type OrderResponse struct {
 
 func (x *OrderResponse) Reset() {
 	*x = OrderResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[44]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3123,7 +3331,7 @@ func (x *OrderResponse) String() string {
 func (*OrderResponse) ProtoMessage() {}
 
 func (x *OrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[44]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3136,7 +3344,7 @@ func (x *OrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderResponse.ProtoReflect.Descriptor instead.
 func (*OrderResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{44}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *OrderResponse) GetOrder() *Order {
@@ -3156,7 +3364,7 @@ type GetOrderRequest struct {
 
 func (x *GetOrderRequest) Reset() {
 	*x = GetOrderRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[45]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3168,7 +3376,7 @@ func (x *GetOrderRequest) String() string {
 func (*GetOrderRequest) ProtoMessage() {}
 
 func (x *GetOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[45]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3181,7 +3389,7 @@ func (x *GetOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrderRequest.ProtoReflect.Descriptor instead.
 func (*GetOrderRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{45}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *GetOrderRequest) GetAccountId() string {
@@ -3207,7 +3415,7 @@ type CurrentOrderRequest struct {
 
 func (x *CurrentOrderRequest) Reset() {
 	*x = CurrentOrderRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[46]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3219,7 +3427,7 @@ func (x *CurrentOrderRequest) String() string {
 func (*CurrentOrderRequest) ProtoMessage() {}
 
 func (x *CurrentOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[46]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3232,7 +3440,7 @@ func (x *CurrentOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentOrderRequest.ProtoReflect.Descriptor instead.
 func (*CurrentOrderRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{46}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *CurrentOrderRequest) GetAccountId() string {
@@ -3254,7 +3462,7 @@ type ListOrdersRequest struct {
 
 func (x *ListOrdersRequest) Reset() {
 	*x = ListOrdersRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[47]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3266,7 +3474,7 @@ func (x *ListOrdersRequest) String() string {
 func (*ListOrdersRequest) ProtoMessage() {}
 
 func (x *ListOrdersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[47]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3279,7 +3487,7 @@ func (x *ListOrdersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOrdersRequest.ProtoReflect.Descriptor instead.
 func (*ListOrdersRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{47}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *ListOrdersRequest) GetAccountId() string {
@@ -3320,7 +3528,7 @@ type OrderListResponse struct {
 
 func (x *OrderListResponse) Reset() {
 	*x = OrderListResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[48]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3332,7 +3540,7 @@ func (x *OrderListResponse) String() string {
 func (*OrderListResponse) ProtoMessage() {}
 
 func (x *OrderListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[48]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3345,7 +3553,7 @@ func (x *OrderListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderListResponse.ProtoReflect.Descriptor instead.
 func (*OrderListResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{48}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *OrderListResponse) GetTotal() int32 {
@@ -3372,7 +3580,7 @@ type CancelQuoteRequest struct {
 
 func (x *CancelQuoteRequest) Reset() {
 	*x = CancelQuoteRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[49]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3384,7 +3592,7 @@ func (x *CancelQuoteRequest) String() string {
 func (*CancelQuoteRequest) ProtoMessage() {}
 
 func (x *CancelQuoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[49]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3397,7 +3605,7 @@ func (x *CancelQuoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelQuoteRequest.ProtoReflect.Descriptor instead.
 func (*CancelQuoteRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{49}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *CancelQuoteRequest) GetAccountId() string {
@@ -3426,7 +3634,7 @@ type CancelOrderRequest struct {
 
 func (x *CancelOrderRequest) Reset() {
 	*x = CancelOrderRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[50]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3438,7 +3646,7 @@ func (x *CancelOrderRequest) String() string {
 func (*CancelOrderRequest) ProtoMessage() {}
 
 func (x *CancelOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[50]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3451,7 +3659,7 @@ func (x *CancelOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelOrderRequest.ProtoReflect.Descriptor instead.
 func (*CancelOrderRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{50}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *CancelOrderRequest) GetAccountId() string {
@@ -3494,7 +3702,7 @@ type CancelQuoteResponse struct {
 
 func (x *CancelQuoteResponse) Reset() {
 	*x = CancelQuoteResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[51]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3506,7 +3714,7 @@ func (x *CancelQuoteResponse) String() string {
 func (*CancelQuoteResponse) ProtoMessage() {}
 
 func (x *CancelQuoteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[51]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3519,7 +3727,7 @@ func (x *CancelQuoteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelQuoteResponse.ProtoReflect.Descriptor instead.
 func (*CancelQuoteResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{51}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *CancelQuoteResponse) GetNeedConfirm() bool {
@@ -3560,7 +3768,7 @@ type DriverLocationRequest struct {
 
 func (x *DriverLocationRequest) Reset() {
 	*x = DriverLocationRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[52]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3572,7 +3780,7 @@ func (x *DriverLocationRequest) String() string {
 func (*DriverLocationRequest) ProtoMessage() {}
 
 func (x *DriverLocationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[52]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3585,7 +3793,7 @@ func (x *DriverLocationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriverLocationRequest.ProtoReflect.Descriptor instead.
 func (*DriverLocationRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{52}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *DriverLocationRequest) GetAccountId() string {
@@ -3620,7 +3828,7 @@ type DriverLocationResponse struct {
 
 func (x *DriverLocationResponse) Reset() {
 	*x = DriverLocationResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[53]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3632,7 +3840,7 @@ func (x *DriverLocationResponse) String() string {
 func (*DriverLocationResponse) ProtoMessage() {}
 
 func (x *DriverLocationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[53]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3645,7 +3853,7 @@ func (x *DriverLocationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriverLocationResponse.ProtoReflect.Descriptor instead.
 func (*DriverLocationResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{53}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *DriverLocationResponse) GetDriverId() string {
@@ -3788,7 +3996,25 @@ const file_passenger_v1_passenger_proto_rawDesc = "" +
 	"\achannel\x18\x02 \x01(\tR\achannel\"5\n" +
 	"\x14CancelAccountRequest\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x01 \x01(\tR\taccountId\"s\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\"\xb9\x01\n" +
+	"\x14UpdateProfileRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x1a\n" +
+	"\bnickname\x18\x02 \x01(\tR\bnickname\x12\x16\n" +
+	"\x06avatar\x18\x03 \x01(\tR\x06avatar\x12%\n" +
+	"\x0eemergency_name\x18\x04 \x01(\tR\remergencyName\x12'\n" +
+	"\x0femergency_phone\x18\x05 \x01(\tR\x0eemergencyPhone\"2\n" +
+	"\x11GetProfileRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\"\xdb\x01\n" +
+	"\x0fProfileResponse\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x1a\n" +
+	"\bnickname\x18\x02 \x01(\tR\bnickname\x12\x16\n" +
+	"\x06avatar\x18\x03 \x01(\tR\x06avatar\x12%\n" +
+	"\x0eemergency_name\x18\x04 \x01(\tR\remergencyName\x120\n" +
+	"\x14emergency_phone_mask\x18\x05 \x01(\tR\x12emergencyPhoneMask\x12\x1c\n" +
+	"\tcompleted\x18\x06 \x01(\bR\tcompleted\"s\n" +
 	"\vHomeRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x10\n" +
@@ -4052,7 +4278,7 @@ const file_passenger_v1_passenger_proto_rawDesc = "" +
 	"\adelayed\x18\t \x01(\bR\adelayed\x12\x1f\n" +
 	"\vreported_at\x18\n" +
 	" \x01(\x03R\n" +
-	"reportedAt2\x92\x15\n" +
+	"reportedAt2\xb4\x16\n" +
 	"\x10PassengerService\x12I\n" +
 	"\bSendCode\x12\x1d.passenger.v1.SendCodeRequest\x1a\x1e.passenger.v1.SendCodeResponse\x12@\n" +
 	"\x05Login\x12\x1a.passenger.v1.LoginRequest\x1a\x1b.passenger.v1.LoginResponse\x12R\n" +
@@ -4062,7 +4288,10 @@ const file_passenger_v1_passenger_proto_rawDesc = "" +
 	"\x06Logout\x12\x1b.passenger.v1.LogoutRequest\x1a\x1c.passenger.v1.LogoutResponse\x12Q\n" +
 	"\rUnbindChannel\x12\".passenger.v1.UnbindChannelRequest\x1a\x1c.passenger.v1.LogoutResponse\x12Q\n" +
 	"\rCancelAccount\x12\".passenger.v1.CancelAccountRequest\x1a\x1c.passenger.v1.LogoutResponse\x12Y\n" +
-	"\x15WithdrawCancelAccount\x12\".passenger.v1.CancelAccountRequest\x1a\x1c.passenger.v1.LogoutResponse\x12=\n" +
+	"\x15WithdrawCancelAccount\x12\".passenger.v1.CancelAccountRequest\x1a\x1c.passenger.v1.LogoutResponse\x12R\n" +
+	"\rUpdateProfile\x12\".passenger.v1.UpdateProfileRequest\x1a\x1d.passenger.v1.ProfileResponse\x12L\n" +
+	"\n" +
+	"GetProfile\x12\x1f.passenger.v1.GetProfileRequest\x1a\x1d.passenger.v1.ProfileResponse\x12=\n" +
 	"\x04Home\x12\x19.passenger.v1.HomeRequest\x1a\x1a.passenger.v1.HomeResponse\x12L\n" +
 	"\tSearchPOI\x12\x1e.passenger.v1.SearchPOIRequest\x1a\x1f.passenger.v1.SearchPOIResponse\x12X\n" +
 	"\x0fRecommendPickup\x12$.passenger.v1.RecommendPickupRequest\x1a\x1f.passenger.v1.SearchPOIResponse\x12V\n" +
@@ -4102,7 +4331,7 @@ func file_passenger_v1_passenger_proto_rawDescGZIP() []byte {
 	return file_passenger_v1_passenger_proto_rawDescData
 }
 
-var file_passenger_v1_passenger_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
+var file_passenger_v1_passenger_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
 var file_passenger_v1_passenger_proto_goTypes = []any{
 	(*MarkOrderPaidRequest)(nil),        // 0: passenger.v1.MarkOrderPaidRequest
 	(*MarkOrderPaidResponse)(nil),       // 1: passenger.v1.MarkOrderPaidResponse
@@ -4119,57 +4348,60 @@ var file_passenger_v1_passenger_proto_goTypes = []any{
 	(*LogoutResponse)(nil),              // 12: passenger.v1.LogoutResponse
 	(*UnbindChannelRequest)(nil),        // 13: passenger.v1.UnbindChannelRequest
 	(*CancelAccountRequest)(nil),        // 14: passenger.v1.CancelAccountRequest
-	(*HomeRequest)(nil),                 // 15: passenger.v1.HomeRequest
-	(*CarType)(nil),                     // 16: passenger.v1.CarType
-	(*QuickEntry)(nil),                  // 17: passenger.v1.QuickEntry
-	(*Address)(nil),                     // 18: passenger.v1.Address
-	(*HomeResponse)(nil),                // 19: passenger.v1.HomeResponse
-	(*SearchPOIRequest)(nil),            // 20: passenger.v1.SearchPOIRequest
-	(*RecommendPickupRequest)(nil),      // 21: passenger.v1.RecommendPickupRequest
-	(*POI)(nil),                         // 22: passenger.v1.POI
-	(*SearchPOIResponse)(nil),           // 23: passenger.v1.SearchPOIResponse
-	(*ListAddressesRequest)(nil),        // 24: passenger.v1.ListAddressesRequest
-	(*AddressListResponse)(nil),         // 25: passenger.v1.AddressListResponse
-	(*SaveAddressRequest)(nil),          // 26: passenger.v1.SaveAddressRequest
-	(*AddressResponse)(nil),             // 27: passenger.v1.AddressResponse
-	(*DeleteAddressRequest)(nil),        // 28: passenger.v1.DeleteAddressRequest
-	(*RecordHistoryRequest)(nil),        // 29: passenger.v1.RecordHistoryRequest
-	(*ClearHistoryRequest)(nil),         // 30: passenger.v1.ClearHistoryRequest
-	(*UseQuickEntryRequest)(nil),        // 31: passenger.v1.UseQuickEntryRequest
-	(*Coupon)(nil),                      // 32: passenger.v1.Coupon
-	(*ListCouponsRequest)(nil),          // 33: passenger.v1.ListCouponsRequest
-	(*CouponListResponse)(nil),          // 34: passenger.v1.CouponListResponse
-	(*SubmitRealNameRequest)(nil),       // 35: passenger.v1.SubmitRealNameRequest
-	(*GetRealNameStatusRequest)(nil),    // 36: passenger.v1.GetRealNameStatusRequest
-	(*RealNameStatusResponse)(nil),      // 37: passenger.v1.RealNameStatusResponse
-	(*ListClaimableCouponsRequest)(nil), // 38: passenger.v1.ListClaimableCouponsRequest
-	(*ClaimCouponRequest)(nil),          // 39: passenger.v1.ClaimCouponRequest
-	(*EstimateRequest)(nil),             // 40: passenger.v1.EstimateRequest
-	(*EstimateResponse)(nil),            // 41: passenger.v1.EstimateResponse
-	(*CreateOrderRequest)(nil),          // 42: passenger.v1.CreateOrderRequest
-	(*Order)(nil),                       // 43: passenger.v1.Order
-	(*OrderResponse)(nil),               // 44: passenger.v1.OrderResponse
-	(*GetOrderRequest)(nil),             // 45: passenger.v1.GetOrderRequest
-	(*CurrentOrderRequest)(nil),         // 46: passenger.v1.CurrentOrderRequest
-	(*ListOrdersRequest)(nil),           // 47: passenger.v1.ListOrdersRequest
-	(*OrderListResponse)(nil),           // 48: passenger.v1.OrderListResponse
-	(*CancelQuoteRequest)(nil),          // 49: passenger.v1.CancelQuoteRequest
-	(*CancelOrderRequest)(nil),          // 50: passenger.v1.CancelOrderRequest
-	(*CancelQuoteResponse)(nil),         // 51: passenger.v1.CancelQuoteResponse
-	(*DriverLocationRequest)(nil),       // 52: passenger.v1.DriverLocationRequest
-	(*DriverLocationResponse)(nil),      // 53: passenger.v1.DriverLocationResponse
+	(*UpdateProfileRequest)(nil),        // 15: passenger.v1.UpdateProfileRequest
+	(*GetProfileRequest)(nil),           // 16: passenger.v1.GetProfileRequest
+	(*ProfileResponse)(nil),             // 17: passenger.v1.ProfileResponse
+	(*HomeRequest)(nil),                 // 18: passenger.v1.HomeRequest
+	(*CarType)(nil),                     // 19: passenger.v1.CarType
+	(*QuickEntry)(nil),                  // 20: passenger.v1.QuickEntry
+	(*Address)(nil),                     // 21: passenger.v1.Address
+	(*HomeResponse)(nil),                // 22: passenger.v1.HomeResponse
+	(*SearchPOIRequest)(nil),            // 23: passenger.v1.SearchPOIRequest
+	(*RecommendPickupRequest)(nil),      // 24: passenger.v1.RecommendPickupRequest
+	(*POI)(nil),                         // 25: passenger.v1.POI
+	(*SearchPOIResponse)(nil),           // 26: passenger.v1.SearchPOIResponse
+	(*ListAddressesRequest)(nil),        // 27: passenger.v1.ListAddressesRequest
+	(*AddressListResponse)(nil),         // 28: passenger.v1.AddressListResponse
+	(*SaveAddressRequest)(nil),          // 29: passenger.v1.SaveAddressRequest
+	(*AddressResponse)(nil),             // 30: passenger.v1.AddressResponse
+	(*DeleteAddressRequest)(nil),        // 31: passenger.v1.DeleteAddressRequest
+	(*RecordHistoryRequest)(nil),        // 32: passenger.v1.RecordHistoryRequest
+	(*ClearHistoryRequest)(nil),         // 33: passenger.v1.ClearHistoryRequest
+	(*UseQuickEntryRequest)(nil),        // 34: passenger.v1.UseQuickEntryRequest
+	(*Coupon)(nil),                      // 35: passenger.v1.Coupon
+	(*ListCouponsRequest)(nil),          // 36: passenger.v1.ListCouponsRequest
+	(*CouponListResponse)(nil),          // 37: passenger.v1.CouponListResponse
+	(*SubmitRealNameRequest)(nil),       // 38: passenger.v1.SubmitRealNameRequest
+	(*GetRealNameStatusRequest)(nil),    // 39: passenger.v1.GetRealNameStatusRequest
+	(*RealNameStatusResponse)(nil),      // 40: passenger.v1.RealNameStatusResponse
+	(*ListClaimableCouponsRequest)(nil), // 41: passenger.v1.ListClaimableCouponsRequest
+	(*ClaimCouponRequest)(nil),          // 42: passenger.v1.ClaimCouponRequest
+	(*EstimateRequest)(nil),             // 43: passenger.v1.EstimateRequest
+	(*EstimateResponse)(nil),            // 44: passenger.v1.EstimateResponse
+	(*CreateOrderRequest)(nil),          // 45: passenger.v1.CreateOrderRequest
+	(*Order)(nil),                       // 46: passenger.v1.Order
+	(*OrderResponse)(nil),               // 47: passenger.v1.OrderResponse
+	(*GetOrderRequest)(nil),             // 48: passenger.v1.GetOrderRequest
+	(*CurrentOrderRequest)(nil),         // 49: passenger.v1.CurrentOrderRequest
+	(*ListOrdersRequest)(nil),           // 50: passenger.v1.ListOrdersRequest
+	(*OrderListResponse)(nil),           // 51: passenger.v1.OrderListResponse
+	(*CancelQuoteRequest)(nil),          // 52: passenger.v1.CancelQuoteRequest
+	(*CancelOrderRequest)(nil),          // 53: passenger.v1.CancelOrderRequest
+	(*CancelQuoteResponse)(nil),         // 54: passenger.v1.CancelQuoteResponse
+	(*DriverLocationRequest)(nil),       // 55: passenger.v1.DriverLocationRequest
+	(*DriverLocationResponse)(nil),      // 56: passenger.v1.DriverLocationResponse
 }
 var file_passenger_v1_passenger_proto_depIdxs = []int32{
-	16, // 0: passenger.v1.HomeResponse.car_types:type_name -> passenger.v1.CarType
-	17, // 1: passenger.v1.HomeResponse.quick_entries:type_name -> passenger.v1.QuickEntry
-	18, // 2: passenger.v1.HomeResponse.common_addresses:type_name -> passenger.v1.Address
-	18, // 3: passenger.v1.HomeResponse.history_addresses:type_name -> passenger.v1.Address
-	22, // 4: passenger.v1.SearchPOIResponse.list:type_name -> passenger.v1.POI
-	18, // 5: passenger.v1.AddressListResponse.list:type_name -> passenger.v1.Address
-	18, // 6: passenger.v1.AddressResponse.address:type_name -> passenger.v1.Address
-	32, // 7: passenger.v1.CouponListResponse.list:type_name -> passenger.v1.Coupon
-	43, // 8: passenger.v1.OrderResponse.order:type_name -> passenger.v1.Order
-	43, // 9: passenger.v1.OrderListResponse.list:type_name -> passenger.v1.Order
+	19, // 0: passenger.v1.HomeResponse.car_types:type_name -> passenger.v1.CarType
+	20, // 1: passenger.v1.HomeResponse.quick_entries:type_name -> passenger.v1.QuickEntry
+	21, // 2: passenger.v1.HomeResponse.common_addresses:type_name -> passenger.v1.Address
+	21, // 3: passenger.v1.HomeResponse.history_addresses:type_name -> passenger.v1.Address
+	25, // 4: passenger.v1.SearchPOIResponse.list:type_name -> passenger.v1.POI
+	21, // 5: passenger.v1.AddressListResponse.list:type_name -> passenger.v1.Address
+	21, // 6: passenger.v1.AddressResponse.address:type_name -> passenger.v1.Address
+	35, // 7: passenger.v1.CouponListResponse.list:type_name -> passenger.v1.Coupon
+	46, // 8: passenger.v1.OrderResponse.order:type_name -> passenger.v1.Order
+	46, // 9: passenger.v1.OrderListResponse.list:type_name -> passenger.v1.Order
 	2,  // 10: passenger.v1.PassengerService.SendCode:input_type -> passenger.v1.SendCodeRequest
 	4,  // 11: passenger.v1.PassengerService.Login:input_type -> passenger.v1.LoginRequest
 	6,  // 12: passenger.v1.PassengerService.SetPassword:input_type -> passenger.v1.SetPasswordRequest
@@ -4179,65 +4411,69 @@ var file_passenger_v1_passenger_proto_depIdxs = []int32{
 	13, // 16: passenger.v1.PassengerService.UnbindChannel:input_type -> passenger.v1.UnbindChannelRequest
 	14, // 17: passenger.v1.PassengerService.CancelAccount:input_type -> passenger.v1.CancelAccountRequest
 	14, // 18: passenger.v1.PassengerService.WithdrawCancelAccount:input_type -> passenger.v1.CancelAccountRequest
-	15, // 19: passenger.v1.PassengerService.Home:input_type -> passenger.v1.HomeRequest
-	20, // 20: passenger.v1.PassengerService.SearchPOI:input_type -> passenger.v1.SearchPOIRequest
-	21, // 21: passenger.v1.PassengerService.RecommendPickup:input_type -> passenger.v1.RecommendPickupRequest
-	24, // 22: passenger.v1.PassengerService.ListAddresses:input_type -> passenger.v1.ListAddressesRequest
-	26, // 23: passenger.v1.PassengerService.SaveAddress:input_type -> passenger.v1.SaveAddressRequest
-	28, // 24: passenger.v1.PassengerService.DeleteAddress:input_type -> passenger.v1.DeleteAddressRequest
-	29, // 25: passenger.v1.PassengerService.RecordHistory:input_type -> passenger.v1.RecordHistoryRequest
-	30, // 26: passenger.v1.PassengerService.ClearHistory:input_type -> passenger.v1.ClearHistoryRequest
-	31, // 27: passenger.v1.PassengerService.UseQuickEntry:input_type -> passenger.v1.UseQuickEntryRequest
-	33, // 28: passenger.v1.PassengerService.ListCoupons:input_type -> passenger.v1.ListCouponsRequest
-	35, // 29: passenger.v1.PassengerService.SubmitRealName:input_type -> passenger.v1.SubmitRealNameRequest
-	36, // 30: passenger.v1.PassengerService.GetRealNameStatus:input_type -> passenger.v1.GetRealNameStatusRequest
-	38, // 31: passenger.v1.PassengerService.ListClaimableCoupons:input_type -> passenger.v1.ListClaimableCouponsRequest
-	39, // 32: passenger.v1.PassengerService.ClaimCoupon:input_type -> passenger.v1.ClaimCouponRequest
-	40, // 33: passenger.v1.PassengerService.Estimate:input_type -> passenger.v1.EstimateRequest
-	40, // 34: passenger.v1.PassengerService.QuotePrice:input_type -> passenger.v1.EstimateRequest
-	42, // 35: passenger.v1.PassengerService.CreateOrder:input_type -> passenger.v1.CreateOrderRequest
-	45, // 36: passenger.v1.PassengerService.GetOrder:input_type -> passenger.v1.GetOrderRequest
-	46, // 37: passenger.v1.PassengerService.CurrentOrder:input_type -> passenger.v1.CurrentOrderRequest
-	47, // 38: passenger.v1.PassengerService.ListOrders:input_type -> passenger.v1.ListOrdersRequest
-	49, // 39: passenger.v1.PassengerService.CancelQuote:input_type -> passenger.v1.CancelQuoteRequest
-	50, // 40: passenger.v1.PassengerService.CancelOrder:input_type -> passenger.v1.CancelOrderRequest
-	52, // 41: passenger.v1.PassengerService.DriverLocation:input_type -> passenger.v1.DriverLocationRequest
-	0,  // 42: passenger.v1.PassengerService.MarkOrderPaid:input_type -> passenger.v1.MarkOrderPaidRequest
-	3,  // 43: passenger.v1.PassengerService.SendCode:output_type -> passenger.v1.SendCodeResponse
-	5,  // 44: passenger.v1.PassengerService.Login:output_type -> passenger.v1.LoginResponse
-	7,  // 45: passenger.v1.PassengerService.SetPassword:output_type -> passenger.v1.SetPasswordResponse
-	9,  // 46: passenger.v1.PassengerService.BindPhone:output_type -> passenger.v1.BindPhoneResponse
-	5,  // 47: passenger.v1.PassengerService.Refresh:output_type -> passenger.v1.LoginResponse
-	12, // 48: passenger.v1.PassengerService.Logout:output_type -> passenger.v1.LogoutResponse
-	12, // 49: passenger.v1.PassengerService.UnbindChannel:output_type -> passenger.v1.LogoutResponse
-	12, // 50: passenger.v1.PassengerService.CancelAccount:output_type -> passenger.v1.LogoutResponse
-	12, // 51: passenger.v1.PassengerService.WithdrawCancelAccount:output_type -> passenger.v1.LogoutResponse
-	19, // 52: passenger.v1.PassengerService.Home:output_type -> passenger.v1.HomeResponse
-	23, // 53: passenger.v1.PassengerService.SearchPOI:output_type -> passenger.v1.SearchPOIResponse
-	23, // 54: passenger.v1.PassengerService.RecommendPickup:output_type -> passenger.v1.SearchPOIResponse
-	25, // 55: passenger.v1.PassengerService.ListAddresses:output_type -> passenger.v1.AddressListResponse
-	27, // 56: passenger.v1.PassengerService.SaveAddress:output_type -> passenger.v1.AddressResponse
-	12, // 57: passenger.v1.PassengerService.DeleteAddress:output_type -> passenger.v1.LogoutResponse
-	12, // 58: passenger.v1.PassengerService.RecordHistory:output_type -> passenger.v1.LogoutResponse
-	12, // 59: passenger.v1.PassengerService.ClearHistory:output_type -> passenger.v1.LogoutResponse
-	12, // 60: passenger.v1.PassengerService.UseQuickEntry:output_type -> passenger.v1.LogoutResponse
-	34, // 61: passenger.v1.PassengerService.ListCoupons:output_type -> passenger.v1.CouponListResponse
-	37, // 62: passenger.v1.PassengerService.SubmitRealName:output_type -> passenger.v1.RealNameStatusResponse
-	37, // 63: passenger.v1.PassengerService.GetRealNameStatus:output_type -> passenger.v1.RealNameStatusResponse
-	34, // 64: passenger.v1.PassengerService.ListClaimableCoupons:output_type -> passenger.v1.CouponListResponse
-	32, // 65: passenger.v1.PassengerService.ClaimCoupon:output_type -> passenger.v1.Coupon
-	41, // 66: passenger.v1.PassengerService.Estimate:output_type -> passenger.v1.EstimateResponse
-	41, // 67: passenger.v1.PassengerService.QuotePrice:output_type -> passenger.v1.EstimateResponse
-	44, // 68: passenger.v1.PassengerService.CreateOrder:output_type -> passenger.v1.OrderResponse
-	44, // 69: passenger.v1.PassengerService.GetOrder:output_type -> passenger.v1.OrderResponse
-	44, // 70: passenger.v1.PassengerService.CurrentOrder:output_type -> passenger.v1.OrderResponse
-	48, // 71: passenger.v1.PassengerService.ListOrders:output_type -> passenger.v1.OrderListResponse
-	51, // 72: passenger.v1.PassengerService.CancelQuote:output_type -> passenger.v1.CancelQuoteResponse
-	51, // 73: passenger.v1.PassengerService.CancelOrder:output_type -> passenger.v1.CancelQuoteResponse
-	53, // 74: passenger.v1.PassengerService.DriverLocation:output_type -> passenger.v1.DriverLocationResponse
-	1,  // 75: passenger.v1.PassengerService.MarkOrderPaid:output_type -> passenger.v1.MarkOrderPaidResponse
-	43, // [43:76] is the sub-list for method output_type
-	10, // [10:43] is the sub-list for method input_type
+	15, // 19: passenger.v1.PassengerService.UpdateProfile:input_type -> passenger.v1.UpdateProfileRequest
+	16, // 20: passenger.v1.PassengerService.GetProfile:input_type -> passenger.v1.GetProfileRequest
+	18, // 21: passenger.v1.PassengerService.Home:input_type -> passenger.v1.HomeRequest
+	23, // 22: passenger.v1.PassengerService.SearchPOI:input_type -> passenger.v1.SearchPOIRequest
+	24, // 23: passenger.v1.PassengerService.RecommendPickup:input_type -> passenger.v1.RecommendPickupRequest
+	27, // 24: passenger.v1.PassengerService.ListAddresses:input_type -> passenger.v1.ListAddressesRequest
+	29, // 25: passenger.v1.PassengerService.SaveAddress:input_type -> passenger.v1.SaveAddressRequest
+	31, // 26: passenger.v1.PassengerService.DeleteAddress:input_type -> passenger.v1.DeleteAddressRequest
+	32, // 27: passenger.v1.PassengerService.RecordHistory:input_type -> passenger.v1.RecordHistoryRequest
+	33, // 28: passenger.v1.PassengerService.ClearHistory:input_type -> passenger.v1.ClearHistoryRequest
+	34, // 29: passenger.v1.PassengerService.UseQuickEntry:input_type -> passenger.v1.UseQuickEntryRequest
+	36, // 30: passenger.v1.PassengerService.ListCoupons:input_type -> passenger.v1.ListCouponsRequest
+	38, // 31: passenger.v1.PassengerService.SubmitRealName:input_type -> passenger.v1.SubmitRealNameRequest
+	39, // 32: passenger.v1.PassengerService.GetRealNameStatus:input_type -> passenger.v1.GetRealNameStatusRequest
+	41, // 33: passenger.v1.PassengerService.ListClaimableCoupons:input_type -> passenger.v1.ListClaimableCouponsRequest
+	42, // 34: passenger.v1.PassengerService.ClaimCoupon:input_type -> passenger.v1.ClaimCouponRequest
+	43, // 35: passenger.v1.PassengerService.Estimate:input_type -> passenger.v1.EstimateRequest
+	43, // 36: passenger.v1.PassengerService.QuotePrice:input_type -> passenger.v1.EstimateRequest
+	45, // 37: passenger.v1.PassengerService.CreateOrder:input_type -> passenger.v1.CreateOrderRequest
+	48, // 38: passenger.v1.PassengerService.GetOrder:input_type -> passenger.v1.GetOrderRequest
+	49, // 39: passenger.v1.PassengerService.CurrentOrder:input_type -> passenger.v1.CurrentOrderRequest
+	50, // 40: passenger.v1.PassengerService.ListOrders:input_type -> passenger.v1.ListOrdersRequest
+	52, // 41: passenger.v1.PassengerService.CancelQuote:input_type -> passenger.v1.CancelQuoteRequest
+	53, // 42: passenger.v1.PassengerService.CancelOrder:input_type -> passenger.v1.CancelOrderRequest
+	55, // 43: passenger.v1.PassengerService.DriverLocation:input_type -> passenger.v1.DriverLocationRequest
+	0,  // 44: passenger.v1.PassengerService.MarkOrderPaid:input_type -> passenger.v1.MarkOrderPaidRequest
+	3,  // 45: passenger.v1.PassengerService.SendCode:output_type -> passenger.v1.SendCodeResponse
+	5,  // 46: passenger.v1.PassengerService.Login:output_type -> passenger.v1.LoginResponse
+	7,  // 47: passenger.v1.PassengerService.SetPassword:output_type -> passenger.v1.SetPasswordResponse
+	9,  // 48: passenger.v1.PassengerService.BindPhone:output_type -> passenger.v1.BindPhoneResponse
+	5,  // 49: passenger.v1.PassengerService.Refresh:output_type -> passenger.v1.LoginResponse
+	12, // 50: passenger.v1.PassengerService.Logout:output_type -> passenger.v1.LogoutResponse
+	12, // 51: passenger.v1.PassengerService.UnbindChannel:output_type -> passenger.v1.LogoutResponse
+	12, // 52: passenger.v1.PassengerService.CancelAccount:output_type -> passenger.v1.LogoutResponse
+	12, // 53: passenger.v1.PassengerService.WithdrawCancelAccount:output_type -> passenger.v1.LogoutResponse
+	17, // 54: passenger.v1.PassengerService.UpdateProfile:output_type -> passenger.v1.ProfileResponse
+	17, // 55: passenger.v1.PassengerService.GetProfile:output_type -> passenger.v1.ProfileResponse
+	22, // 56: passenger.v1.PassengerService.Home:output_type -> passenger.v1.HomeResponse
+	26, // 57: passenger.v1.PassengerService.SearchPOI:output_type -> passenger.v1.SearchPOIResponse
+	26, // 58: passenger.v1.PassengerService.RecommendPickup:output_type -> passenger.v1.SearchPOIResponse
+	28, // 59: passenger.v1.PassengerService.ListAddresses:output_type -> passenger.v1.AddressListResponse
+	30, // 60: passenger.v1.PassengerService.SaveAddress:output_type -> passenger.v1.AddressResponse
+	12, // 61: passenger.v1.PassengerService.DeleteAddress:output_type -> passenger.v1.LogoutResponse
+	12, // 62: passenger.v1.PassengerService.RecordHistory:output_type -> passenger.v1.LogoutResponse
+	12, // 63: passenger.v1.PassengerService.ClearHistory:output_type -> passenger.v1.LogoutResponse
+	12, // 64: passenger.v1.PassengerService.UseQuickEntry:output_type -> passenger.v1.LogoutResponse
+	37, // 65: passenger.v1.PassengerService.ListCoupons:output_type -> passenger.v1.CouponListResponse
+	40, // 66: passenger.v1.PassengerService.SubmitRealName:output_type -> passenger.v1.RealNameStatusResponse
+	40, // 67: passenger.v1.PassengerService.GetRealNameStatus:output_type -> passenger.v1.RealNameStatusResponse
+	37, // 68: passenger.v1.PassengerService.ListClaimableCoupons:output_type -> passenger.v1.CouponListResponse
+	35, // 69: passenger.v1.PassengerService.ClaimCoupon:output_type -> passenger.v1.Coupon
+	44, // 70: passenger.v1.PassengerService.Estimate:output_type -> passenger.v1.EstimateResponse
+	44, // 71: passenger.v1.PassengerService.QuotePrice:output_type -> passenger.v1.EstimateResponse
+	47, // 72: passenger.v1.PassengerService.CreateOrder:output_type -> passenger.v1.OrderResponse
+	47, // 73: passenger.v1.PassengerService.GetOrder:output_type -> passenger.v1.OrderResponse
+	47, // 74: passenger.v1.PassengerService.CurrentOrder:output_type -> passenger.v1.OrderResponse
+	51, // 75: passenger.v1.PassengerService.ListOrders:output_type -> passenger.v1.OrderListResponse
+	54, // 76: passenger.v1.PassengerService.CancelQuote:output_type -> passenger.v1.CancelQuoteResponse
+	54, // 77: passenger.v1.PassengerService.CancelOrder:output_type -> passenger.v1.CancelQuoteResponse
+	56, // 78: passenger.v1.PassengerService.DriverLocation:output_type -> passenger.v1.DriverLocationResponse
+	1,  // 79: passenger.v1.PassengerService.MarkOrderPaid:output_type -> passenger.v1.MarkOrderPaidResponse
+	45, // [45:80] is the sub-list for method output_type
+	10, // [10:45] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
@@ -4254,7 +4490,7 @@ func file_passenger_v1_passenger_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_passenger_v1_passenger_proto_rawDesc), len(file_passenger_v1_passenger_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   54,
+			NumMessages:   57,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

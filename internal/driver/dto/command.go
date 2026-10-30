@@ -5,6 +5,21 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/contracts"
 )
 
+// ── 司机账号命令 ──
+
+// SendDriverCodeCommand 下发司机登录验证码。
+type SendDriverCodeCommand struct {
+	Phone string
+}
+
+// DriverLoginCommand 司机登录（手机号 + 验证码）。
+type DriverLoginCommand struct {
+	Phone string
+	Code  string
+	// Name 仅首次登录自动建档时需要。
+	Name string
+}
+
 // ── 司机档案命令 ──
 
 // RegisterDriverCommand 注册司机。

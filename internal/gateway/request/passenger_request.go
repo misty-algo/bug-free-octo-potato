@@ -174,6 +174,17 @@ type PassengerRealNameRequest struct {
 	IdempotencyKey string `json:"idempotencyKey" binding:"required"`
 }
 
+// PassengerUpdateProfileRequest 是 POST /api/v1/passenger/profile 使用的 JSON 载荷。
+type PassengerUpdateProfileRequest struct {
+	// Nickname 昵称，注册引导必填。
+	Nickname string `json:"nickname"`
+	// Avatar 头像标识（emoji 或预设图标），可空。
+	Avatar string `json:"avatar"`
+	// EmergencyName / EmergencyPhone 紧急联系人，需成对提交。
+	EmergencyName  string `json:"emergencyName"`
+	EmergencyPhone string `json:"emergencyPhone"`
+}
+
 // PassengerClaimCouponRequest 是 POST /api/v1/passenger/coupons/claim 使用的 JSON 载荷。
 type PassengerClaimCouponRequest struct {
 	// CouponNo 为管理端营销中心发放的平台券码。

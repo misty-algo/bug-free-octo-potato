@@ -28,6 +28,8 @@ const (
 	PassengerService_UnbindChannel_FullMethodName         = "/passenger.v1.PassengerService/UnbindChannel"
 	PassengerService_CancelAccount_FullMethodName         = "/passenger.v1.PassengerService/CancelAccount"
 	PassengerService_WithdrawCancelAccount_FullMethodName = "/passenger.v1.PassengerService/WithdrawCancelAccount"
+	PassengerService_UpdateProfile_FullMethodName         = "/passenger.v1.PassengerService/UpdateProfile"
+	PassengerService_GetProfile_FullMethodName            = "/passenger.v1.PassengerService/GetProfile"
 	PassengerService_Home_FullMethodName                  = "/passenger.v1.PassengerService/Home"
 	PassengerService_SearchPOI_FullMethodName             = "/passenger.v1.PassengerService/SearchPOI"
 	PassengerService_RecommendPickup_FullMethodName       = "/passenger.v1.PassengerService/RecommendPickup"
@@ -73,6 +75,9 @@ type PassengerServiceClient interface {
 	UnbindChannel(ctx context.Context, in *UnbindChannelRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	CancelAccount(ctx context.Context, in *CancelAccountRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	WithdrawCancelAccount(ctx context.Context, in *CancelAccountRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
+	// 注册引导：首次登录补全昵称、头像与紧急联系人。
+	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error)
+	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error)
 	// 首页相关
 	Home(ctx context.Context, in *HomeRequest, opts ...grpc.CallOption) (*HomeResponse, error)
 	SearchPOI(ctx context.Context, in *SearchPOIRequest, opts ...grpc.CallOption) (*SearchPOIResponse, error)
@@ -197,6 +202,26 @@ func (c *passengerServiceClient) WithdrawCancelAccount(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LogoutResponse)
 	err := c.cc.Invoke(ctx, PassengerService_WithdrawCancelAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *passengerServiceClient) UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProfileResponse)
+	err := c.cc.Invoke(ctx, PassengerService_UpdateProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *passengerServiceClient) GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProfileResponse)
+	err := c.cc.Invoke(ctx, PassengerService_GetProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -462,6 +487,9 @@ type PassengerServiceServer interface {
 	UnbindChannel(context.Context, *UnbindChannelRequest) (*LogoutResponse, error)
 	CancelAccount(context.Context, *CancelAccountRequest) (*LogoutResponse, error)
 	WithdrawCancelAccount(context.Context, *CancelAccountRequest) (*LogoutResponse, error)
+	// 注册引导：首次登录补全昵称、头像与紧急联系人。
+	UpdateProfile(context.Context, *UpdateProfileRequest) (*ProfileResponse, error)
+	GetProfile(context.Context, *GetProfileRequest) (*ProfileResponse, error)
 	// 首页相关
 	Home(context.Context, *HomeRequest) (*HomeResponse, error)
 	SearchPOI(context.Context, *SearchPOIRequest) (*SearchPOIResponse, error)
@@ -528,6 +556,12 @@ func (UnimplementedPassengerServiceServer) CancelAccount(context.Context, *Cance
 }
 func (UnimplementedPassengerServiceServer) WithdrawCancelAccount(context.Context, *CancelAccountRequest) (*LogoutResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method WithdrawCancelAccount not implemented")
+}
+func (UnimplementedPassengerServiceServer) UpdateProfile(context.Context, *UpdateProfileRequest) (*ProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateProfile not implemented")
+}
+func (UnimplementedPassengerServiceServer) GetProfile(context.Context, *GetProfileRequest) (*ProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProfile not implemented")
 }
 func (UnimplementedPassengerServiceServer) Home(context.Context, *HomeRequest) (*HomeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Home not implemented")
@@ -780,6 +814,42 @@ func _PassengerService_WithdrawCancelAccount_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PassengerServiceServer).WithdrawCancelAccount(ctx, req.(*CancelAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PassengerService_UpdateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).UpdateProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_UpdateProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).UpdateProfile(ctx, req.(*UpdateProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PassengerService_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).GetProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_GetProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).GetProfile(ctx, req.(*GetProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1258,6 +1328,14 @@ var PassengerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WithdrawCancelAccount",
 			Handler:    _PassengerService_WithdrawCancelAccount_Handler,
+		},
+		{
+			MethodName: "UpdateProfile",
+			Handler:    _PassengerService_UpdateProfile_Handler,
+		},
+		{
+			MethodName: "GetProfile",
+			Handler:    _PassengerService_GetProfile_Handler,
 		},
 		{
 			MethodName: "Home",

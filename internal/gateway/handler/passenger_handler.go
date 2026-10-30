@@ -382,6 +382,39 @@ func (h *PassengerHandler) SubmitRealName(c *gin.Context) {
 	httpx.OK(c, resp)
 }
 
+// GetProfile 处理个人资料查询（注册引导回显用）。
+func (h *PassengerHandler) GetProfile(c *gin.Context) {
+	resp, err := h.client.GetProfile(outgoingContext(c), &passengerv1.GetProfileRequest{
+		AccountId: passengerAccountID(c),
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
+// UpdateProfile 处理注册引导：补全昵称、头像与紧急联系人。
+func (h *PassengerHandler) UpdateProfile(c *gin.Context) {
+	var req request.PassengerUpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
+		return
+	}
+	resp, err := h.client.UpdateProfile(outgoingContext(c), &passengerv1.UpdateProfileRequest{
+		AccountId:      passengerAccountID(c),
+		Nickname:       req.Nickname,
+		Avatar:         req.Avatar,
+		EmergencyName:  req.EmergencyName,
+		EmergencyPhone: req.EmergencyPhone,
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
 // GetRealNameStatus 处理实名状态查询。
 func (h *PassengerHandler) GetRealNameStatus(c *gin.Context) {
 	resp, err := h.client.GetRealNameStatus(outgoingContext(c), &passengerv1.GetRealNameStatusRequest{

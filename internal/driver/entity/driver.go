@@ -380,3 +380,18 @@ func newDriverNo() string {
 	}
 	return fmt.Sprintf("D%06d", noSeq)
 }
+
+// PrimeDriverNoSequence 用库里已有的最大司机编号推进序号起点。
+// 进程重启后内存序号归零，不校准就会发出与历史重复的司机编号。
+func PrimeDriverNoSequence(existingMax string) {
+	var value int64
+	for _, r := range strings.TrimSpace(existingMax) {
+		if r < '0' || r > '9' {
+			continue
+		}
+		value = value*10 + int64(r-'0')
+	}
+	if value > noSeq {
+		noSeq = value
+	}
+}

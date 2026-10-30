@@ -90,8 +90,19 @@ func main() {
 			Success:  cfg.Driver.Weights.Success,
 		},
 	}
-	svc := driverservice.NewService(repos.Drivers(), repos.Orders(), repos.Incomes(), repos.Support(), bizCfg, log)
+	// 司机端令牌的密钥与签发者必须与网关 JWT 中间件一致，否则网关会拒收。
+	// 密钥同样走环境变量注入，签发者沿用同一份配置文件的 middleware.jwt.issuer。
+	if value := strings.TrimSpace(os.Getenv("PASSENGER_TOKEN_SECRET")); value != "" {
+		cfg.Middleware.JWT.Secret = value
+	}
+	svc := driverservice.NewService(repos.Drivers(), repos.Orders(), repos.Incomes(), repos.Support(), bizCfg, log).
+		WithAuth(repos.Codes(), driverservice.AuthConfig{
+			TokenSecret: cfg.Middleware.JWT.Secret,
+			TokenIssuer: cfg.Middleware.JWT.Issuer,
+		})
 	svc.SetEventPublisher(mqClient.Publish)
+	// 校准司机编号序列，避免重启后从 D000001 重新开始导致编号重复。
+	svc.SyncDriverNoSequence(ctx)
 
 	// ── 4. 消费订单事件：order.created → 任务进入接单大厅 ──
 	go consumeOrderEvents(svc, mqClient, mqCfg.Queue, mqCfg.RoutingKeys, log)

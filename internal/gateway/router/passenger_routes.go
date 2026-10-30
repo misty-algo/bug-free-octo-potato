@@ -41,6 +41,10 @@ func registerPassengerRoutes(v1 *gin.RouterGroup, passengerHandler *handler.Pass
 	passenger.GET("/coupons/claimable", passengerHandler.ListClaimableCoupons)
 	passenger.POST("/coupons/claim", passengerHandler.ClaimCoupon)
 
+	// 注册引导与个人资料：身份走 X-Account-Id 头。
+	passenger.GET("/profile", passengerHandler.GetProfile)
+	passenger.POST("/profile", passengerHandler.UpdateProfile)
+
 	// 实名认证（P20）：v1 组无 JWT，身份走 X-Account-Id 头。
 	passenger.GET("/realname", passengerHandler.GetRealNameStatus)
 	passenger.POST("/realname", passengerHandler.SubmitRealName)

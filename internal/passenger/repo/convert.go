@@ -119,6 +119,8 @@ func toAccountDocument(account *entity.Account) *model.AccountDocument {
 		RealNameVerified: account.RealNameVerified,
 		RealNameName:     account.RealNameName,
 		RealNameIDNo:     account.RealNameIDNo,
+		EmergencyName:    account.EmergencyName,
+		EmergencyPhone:   account.EmergencyPhone,
 		CreatedAt:        account.CreatedAt,
 		UpdatedAt:        account.UpdatedAt,
 	}
@@ -151,6 +153,8 @@ func toAccountEntity(document *model.AccountDocument) *entity.Account {
 		RealNameVerified: document.RealNameVerified,
 		RealNameName:     document.RealNameName,
 		RealNameIDNo:     document.RealNameIDNo,
+		EmergencyName:    document.EmergencyName,
+		EmergencyPhone:   document.EmergencyPhone,
 		CreatedAt:        document.CreatedAt,
 		UpdatedAt:        document.UpdatedAt,
 	}
