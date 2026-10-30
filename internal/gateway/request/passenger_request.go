@@ -164,3 +164,18 @@ type OrderQueryRequest struct {
 	AccountID string `json:"accountId"`
 	OrderID   string `json:"orderId"`
 }
+
+// PassengerRealNameRequest 是 POST /api/v1/passenger/realname 使用的 JSON 载荷。
+type PassengerRealNameRequest struct {
+	Name string `json:"name" binding:"required"`
+	// IDNo 为身份证号，15/18 位；服务端只落脱敏值。
+	IDNo string `json:"idNo" binding:"required"`
+	// IdempotencyKey 由客户端生成；提交本身幂等，重复提交返回当前状态。
+	IdempotencyKey string `json:"idempotencyKey" binding:"required"`
+}
+
+// PassengerClaimCouponRequest 是 POST /api/v1/passenger/coupons/claim 使用的 JSON 载荷。
+type PassengerClaimCouponRequest struct {
+	// CouponNo 为管理端营销中心发放的平台券码。
+	CouponNo string `json:"couponNo" binding:"required"`
+}

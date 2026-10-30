@@ -271,6 +271,29 @@ func (r *driverRepo) MoveFunds(ctx context.Context, id, fromBucket, toBucket str
 	return err
 }
 
+// DeductFunds 从指定桶原子扣款出账（提现打款）；余额不足返回 ErrInsufficientFunds。
+func (r *driverRepo) DeductFunds(ctx context.Context, id, bucket string, amountFen int64) error {
+	if amountFen <= 0 {
+		return entity.ErrInvalidBucket
+	}
+	field, err := bucketField(bucket)
+	if err != nil {
+		return err
+	}
+	res, err := r.coll().UpdateOne(ctx, bson.M{
+		"_id":     id,
+		field:     bson.M{"$gte": amountFen},
+	}, bson.M{
+		"$inc": bson.M{field: -amountFen, "version": int64(1)},
+		"$set": bson.M{"updated_at": biztime.UTC()},
+	})
+	logRepoOp(r.log, "driver.DeductFunds", id, err)
+	if err == nil && res.MatchedCount == 0 {
+		return entity.ErrInsufficientFunds
+	}
+	return err
+}
+
 func bucketField(bucket string) (string, error) {
 	switch bucket {
 	case entity.BucketPending:

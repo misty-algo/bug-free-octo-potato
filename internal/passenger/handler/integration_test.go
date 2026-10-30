@@ -256,6 +256,16 @@ func (s *memStore) FindOrderByEstimate(ctx context.Context, estimateNo string) (
 	return nil, entity.ErrOrderNotFound
 }
 
+func (s *memStore) FindOrderByOrderNo(ctx context.Context, orderNo string) (*entity.Order, error) {
+	for _, order := range s.orders {
+		if order.OrderNo == orderNo {
+			copied := *order
+			return &copied, nil
+		}
+	}
+	return nil, entity.ErrOrderNotFound
+}
+
 func (s *memStore) FindOrderByIdempotency(ctx context.Context, accountID, key string) (*entity.Order, error) {
 	for _, order := range s.orders {
 		if order.AccountID == accountID && order.IdempotencyKey == key {
@@ -344,11 +354,28 @@ func (c *memCoupons) ListUsable(ctx context.Context, accountID string, now time.
 	return list, nil
 }
 
+// ListIDsByAccount 列出该账号名下所有券标识（不限状态）。
+func (c *memCoupons) ListIDsByAccount(ctx context.Context, accountID string) ([]string, error) {
+	ids := make([]string, 0)
+	for id, item := range c.items {
+		if item.AccountID == accountID {
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}
+
 func (c *memCoupons) Lock(ctx context.Context, id string, orderID string, now time.Time) error {
 	return nil
 }
 
 func (c *memCoupons) Unlock(ctx context.Context, id string, now time.Time) error { return nil }
+
+func (c *memCoupons) Save(ctx context.Context, coupon *entity.Coupon) error {
+	copied := *coupon
+	c.items[coupon.ID] = &copied
+	return nil
+}
 
 // memDrivers 是集成测试用的司机仓储。
 type memDrivers struct{}
@@ -589,6 +616,9 @@ func (m *memOrders) FindByID(ctx context.Context, id string) (*entity.Order, err
 }
 func (m *memOrders) FindByEstimateNo(ctx context.Context, no string) (*entity.Order, error) {
 	return m.store.FindOrderByEstimate(ctx, no)
+}
+func (m *memOrders) FindByOrderNo(ctx context.Context, orderNo string) (*entity.Order, error) {
+	return m.store.FindOrderByOrderNo(ctx, orderNo)
 }
 func (m *memOrders) FindByIdempotencyKey(ctx context.Context, accountID, key string) (*entity.Order, error) {
 	return m.store.FindOrderByIdempotency(ctx, accountID, key)

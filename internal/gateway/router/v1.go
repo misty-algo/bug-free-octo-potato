@@ -22,7 +22,7 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 	svcH := handler.NewPaxServiceHandler(clients.Order, clients.User, log)
 	registerPaxRoutes(api, handler.NewPaxOrderHandler(clients.Order, log), userH, svcH, middlewareCfg.JWT)
 	registerOrderRoutes(v1, handler.NewOrderHandler(clients.Order, log))
-	registerPassengerRoutes(v1, handler.NewPassengerHandler(clients.Passenger, log))
+	registerPassengerRoutes(v1, handler.NewPassengerHandler(clients.Passenger, log), svcH)
 	registerDriverRoutes(v1, handler.NewDriverHandler(clients.Driver, log))
 	writes := strings.EqualFold(os.Getenv("ARRIVAL_ENABLED"), "true")
 	if writes || strings.EqualFold(os.Getenv("ARRIVAL_READ_ENABLED"), "true") {
@@ -41,7 +41,7 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 		handler.NewSafetyHandler(clients.Safety, authn.Config{Secret: middlewareCfg.JWT.Secret, Issuer: middlewareCfg.JWT.Issuer}),
 	)
 	registerShopRoutes(v1, handler.NewShopHandler(clients.Shop, log))
-	registerPaymentRoutes(v1, handler.NewPaymentHandler(clients.Payment, log))
+	registerPaymentRoutes(v1, handler.NewPaymentHandler(clients.Payment, clients.Passenger, clients.Driver, log))
 	registerSettlementRoutes(v1, handler.NewSettlementHandler(clients.Settlement, log))
 	// 行程六态链路走 shop-service，与 dev 主干的 /api/v1/passenger 相互独立。
 	registerTripRoutes(api, handler.NewTripHandler(clients.Shop, log))

@@ -10,7 +10,7 @@ import (
 //
 // 登录、发码、刷新与游客看价是公开路由；其余需要会话，
 // 由调用方在请求头带上账号标识或令牌。
-func registerPassengerRoutes(v1 *gin.RouterGroup, passengerHandler *handler.PassengerHandler) {
+func registerPassengerRoutes(v1 *gin.RouterGroup, passengerHandler *handler.PassengerHandler, serviceHandler *handler.PaxServiceHandler) {
 	passenger := v1.Group("/passenger")
 
 	// 公开路由：登录前就能调用。
@@ -38,6 +38,15 @@ func registerPassengerRoutes(v1 *gin.RouterGroup, passengerHandler *handler.Pass
 	passenger.POST("/addresses/history/clear", passengerHandler.ClearHistory)
 	passenger.POST("/home/quick-entries/use", passengerHandler.UseQuickEntry)
 	passenger.GET("/coupons", passengerHandler.ListCoupons)
+	passenger.GET("/coupons/claimable", passengerHandler.ListClaimableCoupons)
+	passenger.POST("/coupons/claim", passengerHandler.ClaimCoupon)
+
+	// 实名认证（P20）：v1 组无 JWT，身份走 X-Account-Id 头。
+	passenger.GET("/realname", passengerHandler.GetRealNameStatus)
+	passenger.POST("/realname", passengerHandler.SubmitRealName)
+
+	// 客服页（契约 3.7.3）：order 域工单 + user 域客服配置合并，身份走 X-Account-Id 头。
+	passenger.GET("/service", serviceHandler.GetServiceHeader)
 
 	// 打车下单。
 	passenger.POST("/estimate", passengerHandler.Estimate)

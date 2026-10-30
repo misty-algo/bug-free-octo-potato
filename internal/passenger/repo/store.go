@@ -479,6 +479,18 @@ func (r *OrderRepository) FindByEstimateNo(ctx context.Context, estimateNo strin
 	return toOrderEntity(document), nil
 }
 
+// FindByOrderNo 按订单号查订单（支付回调按订单号定位订单）。
+func (r *OrderRepository) FindByOrderNo(ctx context.Context, orderNo string) (*entity.Order, error) {
+	document, err := r.store.orders.FindOne(ctx, bson.M{"order_no": orderNo, "is_deleted": bson.M{"$ne": true}})
+	if err != nil {
+		if errors.Is(err, mongox.ErrNotFound) {
+			return nil, entity.ErrOrderNotFound
+		}
+		return nil, err
+	}
+	return toOrderEntity(document), nil
+}
+
 // FindByIdempotencyKey 按幂等键查订单。
 func (r *OrderRepository) FindByIdempotencyKey(ctx context.Context, accountID, key string) (*entity.Order, error) {
 	document, err := r.store.orders.FindOne(ctx, bson.M{
@@ -536,9 +548,11 @@ func (r *OrderRepository) UpdateState(ctx context.Context, order *entity.Order) 
 		"is_deleted":  false,
 	}, bson.M{
 		"$set": bson.M{
-			"state":      string(order.State),
-			"cancel_fee": order.CancelFee,
-			"updated_at": time.Now().UTC(),
+			"state":        string(order.State),
+			"cancel_fee":   order.CancelFee,
+			"driver_name":  order.DriverName,
+			"driver_plate": order.DriverPlate,
+			"updated_at":   time.Now().UTC(),
 		},
 		"$inc": bson.M{"version": 1},
 	})
@@ -548,6 +562,9 @@ func (r *OrderRepository) UpdateState(ctx context.Context, order *entity.Order) 
 	if result == nil || result.MatchedCount == 0 {
 		return entity.ErrOrderStateConflict
 	}
+	// 回写自增后的版本号：同一实体在同一请求内连续多次状态更新时，
+	// 乐观锁条件才能继续匹配（派单状态回传会连写司机信息与状态）。
+	order.Version++
 	return nil
 }
 

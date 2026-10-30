@@ -39,6 +39,9 @@ type AccountDocument struct {
 	// PasswordHash 为登录密码摘要，未设密码时为空。
 	PasswordHash      string `bson:"password_hash"`
 	RealNameVerified  bool   `bson:"real_name_verified"`
+	// 脱敏后的实名信息，仅用于「我的」页回显，不落真值。
+	RealNameName  string `bson:"real_name_name,omitempty"`
+	RealNameIDNo  string `bson:"real_name_id_no,omitempty"`
 	CreatedAt         time.Time `bson:"created_at"`
 	UpdatedAt         time.Time `bson:"updated_at"`
 	IsDeleted         bool   `bson:"is_deleted"`
@@ -163,6 +166,9 @@ type OrderDocument struct {
 	Remark          string    `bson:"remark"`
 	PricingSnapshot string    `bson:"pricing_snapshot"`
 	IdempotencyKey  string    `bson:"idempotency_key"`
+	// 司机接单后由派单任务回传，仅用于乘客端展示。
+	DriverName  string `bson:"driver_name,omitempty"`
+	DriverPlate string `bson:"driver_plate,omitempty"`
 	Version         int64     `bson:"version"`
 	CreatedAt       time.Time `bson:"created_at"`
 	UpdatedAt       time.Time `bson:"updated_at"`

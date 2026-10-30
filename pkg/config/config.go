@@ -197,7 +197,6 @@ type DriverConfig struct {
 	DispatchWindowSeconds   int                   `mapstructure:"dispatch_window_seconds" yaml:"dispatch_window_seconds"`
 	HeartbeatTimeoutSeconds int                   `mapstructure:"heartbeat_timeout_seconds" yaml:"heartbeat_timeout_seconds"`
 	HallListLimit           int                   `mapstructure:"hall_list_limit" yaml:"hall_list_limit"`
-	AutoSettleOnTripEnd     bool                  `mapstructure:"auto_settle_on_trip_end" yaml:"auto_settle_on_trip_end"`
 	Weights                 DispatchWeightsConfig `mapstructure:"dispatch_weights" yaml:"dispatch_weights"`
 }
 
@@ -519,7 +518,6 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("driver.dispatch_window_seconds", 120)
 	v.SetDefault("driver.heartbeat_timeout_seconds", 60)
 	v.SetDefault("driver.hall_list_limit", 50)
-	v.SetDefault("driver.auto_settle_on_trip_end", true)
 	// 评分权重总和必须等于 10000（距离 40%、好评 25%、在线 15%、成功率 20%）。
 	v.SetDefault("driver.dispatch_weights.distance", 4000)
 	v.SetDefault("driver.dispatch_weights.rating", 2500)

@@ -38,6 +38,10 @@ const (
 	PassengerService_ClearHistory_FullMethodName          = "/passenger.v1.PassengerService/ClearHistory"
 	PassengerService_UseQuickEntry_FullMethodName         = "/passenger.v1.PassengerService/UseQuickEntry"
 	PassengerService_ListCoupons_FullMethodName           = "/passenger.v1.PassengerService/ListCoupons"
+	PassengerService_SubmitRealName_FullMethodName        = "/passenger.v1.PassengerService/SubmitRealName"
+	PassengerService_GetRealNameStatus_FullMethodName     = "/passenger.v1.PassengerService/GetRealNameStatus"
+	PassengerService_ListClaimableCoupons_FullMethodName  = "/passenger.v1.PassengerService/ListClaimableCoupons"
+	PassengerService_ClaimCoupon_FullMethodName           = "/passenger.v1.PassengerService/ClaimCoupon"
 	PassengerService_Estimate_FullMethodName              = "/passenger.v1.PassengerService/Estimate"
 	PassengerService_QuotePrice_FullMethodName            = "/passenger.v1.PassengerService/QuotePrice"
 	PassengerService_CreateOrder_FullMethodName           = "/passenger.v1.PassengerService/CreateOrder"
@@ -47,6 +51,7 @@ const (
 	PassengerService_CancelQuote_FullMethodName           = "/passenger.v1.PassengerService/CancelQuote"
 	PassengerService_CancelOrder_FullMethodName           = "/passenger.v1.PassengerService/CancelOrder"
 	PassengerService_DriverLocation_FullMethodName        = "/passenger.v1.PassengerService/DriverLocation"
+	PassengerService_MarkOrderPaid_FullMethodName         = "/passenger.v1.PassengerService/MarkOrderPaid"
 )
 
 // PassengerServiceClient is the client API for PassengerService service.
@@ -79,6 +84,13 @@ type PassengerServiceClient interface {
 	ClearHistory(ctx context.Context, in *ClearHistoryRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	UseQuickEntry(ctx context.Context, in *UseQuickEntryRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	ListCoupons(ctx context.Context, in *ListCouponsRequest, opts ...grpc.CallOption) (*CouponListResponse, error)
+	// 实名认证（P20）：提交后写回账号实名状态，作为叫车前置校验。
+	SubmitRealName(ctx context.Context, in *SubmitRealNameRequest, opts ...grpc.CallOption) (*RealNameStatusResponse, error)
+	GetRealNameStatus(ctx context.Context, in *GetRealNameStatusRequest, opts ...grpc.CallOption) (*RealNameStatusResponse, error)
+	// 领取平台券：管理端营销中心发到共享库 coupons 集合的券，
+	// 乘客领取后落入本域 passenger_coupons，后续估价锁券复用既有链路。
+	ListClaimableCoupons(ctx context.Context, in *ListClaimableCouponsRequest, opts ...grpc.CallOption) (*CouponListResponse, error)
+	ClaimCoupon(ctx context.Context, in *ClaimCouponRequest, opts ...grpc.CallOption) (*Coupon, error)
 	// 下单相关
 	Estimate(ctx context.Context, in *EstimateRequest, opts ...grpc.CallOption) (*EstimateResponse, error)
 	QuotePrice(ctx context.Context, in *EstimateRequest, opts ...grpc.CallOption) (*EstimateResponse, error)
@@ -89,6 +101,8 @@ type PassengerServiceClient interface {
 	CancelQuote(ctx context.Context, in *CancelQuoteRequest, opts ...grpc.CallOption) (*CancelQuoteResponse, error)
 	CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*CancelQuoteResponse, error)
 	DriverLocation(ctx context.Context, in *DriverLocationRequest, opts ...grpc.CallOption) (*DriverLocationResponse, error)
+	// 支付成功回调：订单 待支付 → 已完成，并返回司机域结算要素。
+	MarkOrderPaid(ctx context.Context, in *MarkOrderPaidRequest, opts ...grpc.CallOption) (*MarkOrderPaidResponse, error)
 }
 
 type passengerServiceClient struct {
@@ -289,6 +303,46 @@ func (c *passengerServiceClient) ListCoupons(ctx context.Context, in *ListCoupon
 	return out, nil
 }
 
+func (c *passengerServiceClient) SubmitRealName(ctx context.Context, in *SubmitRealNameRequest, opts ...grpc.CallOption) (*RealNameStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RealNameStatusResponse)
+	err := c.cc.Invoke(ctx, PassengerService_SubmitRealName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *passengerServiceClient) GetRealNameStatus(ctx context.Context, in *GetRealNameStatusRequest, opts ...grpc.CallOption) (*RealNameStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RealNameStatusResponse)
+	err := c.cc.Invoke(ctx, PassengerService_GetRealNameStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *passengerServiceClient) ListClaimableCoupons(ctx context.Context, in *ListClaimableCouponsRequest, opts ...grpc.CallOption) (*CouponListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CouponListResponse)
+	err := c.cc.Invoke(ctx, PassengerService_ListClaimableCoupons_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *passengerServiceClient) ClaimCoupon(ctx context.Context, in *ClaimCouponRequest, opts ...grpc.CallOption) (*Coupon, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Coupon)
+	err := c.cc.Invoke(ctx, PassengerService_ClaimCoupon_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *passengerServiceClient) Estimate(ctx context.Context, in *EstimateRequest, opts ...grpc.CallOption) (*EstimateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EstimateResponse)
@@ -379,6 +433,16 @@ func (c *passengerServiceClient) DriverLocation(ctx context.Context, in *DriverL
 	return out, nil
 }
 
+func (c *passengerServiceClient) MarkOrderPaid(ctx context.Context, in *MarkOrderPaidRequest, opts ...grpc.CallOption) (*MarkOrderPaidResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MarkOrderPaidResponse)
+	err := c.cc.Invoke(ctx, PassengerService_MarkOrderPaid_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PassengerServiceServer is the server API for PassengerService service.
 // All implementations must embed UnimplementedPassengerServiceServer
 // for forward compatibility.
@@ -409,6 +473,13 @@ type PassengerServiceServer interface {
 	ClearHistory(context.Context, *ClearHistoryRequest) (*LogoutResponse, error)
 	UseQuickEntry(context.Context, *UseQuickEntryRequest) (*LogoutResponse, error)
 	ListCoupons(context.Context, *ListCouponsRequest) (*CouponListResponse, error)
+	// 实名认证（P20）：提交后写回账号实名状态，作为叫车前置校验。
+	SubmitRealName(context.Context, *SubmitRealNameRequest) (*RealNameStatusResponse, error)
+	GetRealNameStatus(context.Context, *GetRealNameStatusRequest) (*RealNameStatusResponse, error)
+	// 领取平台券：管理端营销中心发到共享库 coupons 集合的券，
+	// 乘客领取后落入本域 passenger_coupons，后续估价锁券复用既有链路。
+	ListClaimableCoupons(context.Context, *ListClaimableCouponsRequest) (*CouponListResponse, error)
+	ClaimCoupon(context.Context, *ClaimCouponRequest) (*Coupon, error)
 	// 下单相关
 	Estimate(context.Context, *EstimateRequest) (*EstimateResponse, error)
 	QuotePrice(context.Context, *EstimateRequest) (*EstimateResponse, error)
@@ -419,6 +490,8 @@ type PassengerServiceServer interface {
 	CancelQuote(context.Context, *CancelQuoteRequest) (*CancelQuoteResponse, error)
 	CancelOrder(context.Context, *CancelOrderRequest) (*CancelQuoteResponse, error)
 	DriverLocation(context.Context, *DriverLocationRequest) (*DriverLocationResponse, error)
+	// 支付成功回调：订单 待支付 → 已完成，并返回司机域结算要素。
+	MarkOrderPaid(context.Context, *MarkOrderPaidRequest) (*MarkOrderPaidResponse, error)
 	mustEmbedUnimplementedPassengerServiceServer()
 }
 
@@ -486,6 +559,18 @@ func (UnimplementedPassengerServiceServer) UseQuickEntry(context.Context, *UseQu
 func (UnimplementedPassengerServiceServer) ListCoupons(context.Context, *ListCouponsRequest) (*CouponListResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCoupons not implemented")
 }
+func (UnimplementedPassengerServiceServer) SubmitRealName(context.Context, *SubmitRealNameRequest) (*RealNameStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitRealName not implemented")
+}
+func (UnimplementedPassengerServiceServer) GetRealNameStatus(context.Context, *GetRealNameStatusRequest) (*RealNameStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRealNameStatus not implemented")
+}
+func (UnimplementedPassengerServiceServer) ListClaimableCoupons(context.Context, *ListClaimableCouponsRequest) (*CouponListResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListClaimableCoupons not implemented")
+}
+func (UnimplementedPassengerServiceServer) ClaimCoupon(context.Context, *ClaimCouponRequest) (*Coupon, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClaimCoupon not implemented")
+}
 func (UnimplementedPassengerServiceServer) Estimate(context.Context, *EstimateRequest) (*EstimateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Estimate not implemented")
 }
@@ -512,6 +597,9 @@ func (UnimplementedPassengerServiceServer) CancelOrder(context.Context, *CancelO
 }
 func (UnimplementedPassengerServiceServer) DriverLocation(context.Context, *DriverLocationRequest) (*DriverLocationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DriverLocation not implemented")
+}
+func (UnimplementedPassengerServiceServer) MarkOrderPaid(context.Context, *MarkOrderPaidRequest) (*MarkOrderPaidResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MarkOrderPaid not implemented")
 }
 func (UnimplementedPassengerServiceServer) mustEmbedUnimplementedPassengerServiceServer() {}
 func (UnimplementedPassengerServiceServer) testEmbeddedByValue()                          {}
@@ -876,6 +964,78 @@ func _PassengerService_ListCoupons_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PassengerService_SubmitRealName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitRealNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).SubmitRealName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_SubmitRealName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).SubmitRealName(ctx, req.(*SubmitRealNameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PassengerService_GetRealNameStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRealNameStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).GetRealNameStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_GetRealNameStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).GetRealNameStatus(ctx, req.(*GetRealNameStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PassengerService_ListClaimableCoupons_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListClaimableCouponsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).ListClaimableCoupons(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_ListClaimableCoupons_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).ListClaimableCoupons(ctx, req.(*ListClaimableCouponsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PassengerService_ClaimCoupon_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClaimCouponRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).ClaimCoupon(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_ClaimCoupon_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).ClaimCoupon(ctx, req.(*ClaimCouponRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PassengerService_Estimate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(EstimateRequest)
 	if err := dec(in); err != nil {
@@ -1038,6 +1198,24 @@ func _PassengerService_DriverLocation_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PassengerService_MarkOrderPaid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkOrderPaidRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).MarkOrderPaid(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_MarkOrderPaid_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).MarkOrderPaid(ctx, req.(*MarkOrderPaidRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PassengerService_ServiceDesc is the grpc.ServiceDesc for PassengerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1122,6 +1300,22 @@ var PassengerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PassengerService_ListCoupons_Handler,
 		},
 		{
+			MethodName: "SubmitRealName",
+			Handler:    _PassengerService_SubmitRealName_Handler,
+		},
+		{
+			MethodName: "GetRealNameStatus",
+			Handler:    _PassengerService_GetRealNameStatus_Handler,
+		},
+		{
+			MethodName: "ListClaimableCoupons",
+			Handler:    _PassengerService_ListClaimableCoupons_Handler,
+		},
+		{
+			MethodName: "ClaimCoupon",
+			Handler:    _PassengerService_ClaimCoupon_Handler,
+		},
+		{
 			MethodName: "Estimate",
 			Handler:    _PassengerService_Estimate_Handler,
 		},
@@ -1156,6 +1350,10 @@ var PassengerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DriverLocation",
 			Handler:    _PassengerService_DriverLocation_Handler,
+		},
+		{
+			MethodName: "MarkOrderPaid",
+			Handler:    _PassengerService_MarkOrderPaid_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

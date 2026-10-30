@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>花小猪打车 · 司机端</title>
+  <link rel="stylesheet" href="/assets/app.css?v=2" />
+</head>
+<body>
+  <header id="topbar">
+    <div class="logo"><span class="pig">花</span>花小猪打车</div>
+    <div class="sub">乘客端 · 司机端 · 管理端联调</div>
+    <div class="grow"></div>
+    <a href="/">乘客端</a>
+    <a class="on" href="/driver/">司机端</a>
+  </header>
+
+  <main id="stage">
+    <section class="phone drv">
+      <div class="band">花小猪司机 · 司机端</div>
+      <div class="sbar"><span>中国移动</span><span id="drvClock">--:--</span><span>电量 64%</span></div>
+      <div class="screen" id="drvScreen"></div>
+      <div class="overlay" id="drvOverlay" style="display:none;"></div>
+      <div class="navbar" id="drvNav"></div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+  <script type="module" src="/assets/driver.js"></script>
+</body>
+</html>

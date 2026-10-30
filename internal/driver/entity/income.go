@@ -232,6 +232,15 @@ func (w *Withdrawal) MarkPaid() error {
 	return nil
 }
 
+// RollbackPaid 出账失败时把已置 success 的单据回滚到已核准：
+// 状态与资金必须一致，不能出现"单据已到账但 W 桶没扣"的中间态。
+func (w *Withdrawal) RollbackPaid() {
+	if w.Status == WithdrawStatusSuccess {
+		w.Status = WithdrawStatusApproved
+		w.UpdatedAt = biztime.UTC()
+	}
+}
+
 // MarkRejected 驳回：预占额度需返还可用桶（由服务层执行返还）。
 func (w *Withdrawal) MarkRejected(reason string) error {
 	if w.Status == WithdrawStatusSuccess || w.Status == WithdrawStatusRejected {

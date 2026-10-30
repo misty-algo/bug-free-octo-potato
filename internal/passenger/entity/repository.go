@@ -85,6 +85,11 @@ type CouponRepository interface {
 	FindByID(ctx context.Context, id string) (*Coupon, error)
 	// ListUsable 列出该账号可用的券。
 	ListUsable(ctx context.Context, accountID string, now time.Time) ([]*Coupon, error)
+	// ListIDsByAccount 列出该账号名下所有券的标识（不限状态），
+	// 供领券中心判断「是否已领取过」。
+	ListIDsByAccount(ctx context.Context, accountID string) ([]string, error)
+	// Save 新增或覆盖券。领券写入走这里；锁券与核销必须走 Lock/Unlock 条件更新。
+	Save(ctx context.Context, coupon *Coupon) error
 	// Lock 在原子条件更新下锁定券。已被其他订单锁定时返回 ErrCouponLocked。
 	Lock(ctx context.Context, id string, orderID string, now time.Time) error
 	// Unlock 释放锁定的券，用于订单取消或支付超时。
@@ -104,6 +109,8 @@ type OrderRepository interface {
 	Save(ctx context.Context, order *Order) error
 	FindByID(ctx context.Context, id string) (*Order, error)
 	FindByEstimateNo(ctx context.Context, estimateNo string) (*Order, error)
+	// FindByOrderNo 按订单号查订单（支付回调按订单号定位订单）。
+	FindByOrderNo(ctx context.Context, orderNo string) (*Order, error)
 	FindByIdempotencyKey(ctx context.Context, accountID, key string) (*Order, error)
 	// FindActive 返回该账号进行中的订单。
 	FindActive(ctx context.Context, accountID string) (*Order, error)

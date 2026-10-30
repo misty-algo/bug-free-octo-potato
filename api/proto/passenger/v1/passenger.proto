@@ -32,6 +32,15 @@ service PassengerService {
   rpc UseQuickEntry(UseQuickEntryRequest) returns (LogoutResponse);
   rpc ListCoupons(ListCouponsRequest) returns (CouponListResponse);
 
+  // 实名认证（P20）：提交后写回账号实名状态，作为叫车前置校验。
+  rpc SubmitRealName(SubmitRealNameRequest) returns (RealNameStatusResponse);
+  rpc GetRealNameStatus(GetRealNameStatusRequest) returns (RealNameStatusResponse);
+
+  // 领取平台券：管理端营销中心发到共享库 coupons 集合的券，
+  // 乘客领取后落入本域 passenger_coupons，后续估价锁券复用既有链路。
+  rpc ListClaimableCoupons(ListClaimableCouponsRequest) returns (CouponListResponse);
+  rpc ClaimCoupon(ClaimCouponRequest) returns (Coupon);
+
   // 下单相关
   rpc Estimate(EstimateRequest) returns (EstimateResponse);
   rpc QuotePrice(EstimateRequest) returns (EstimateResponse);
@@ -42,6 +51,24 @@ service PassengerService {
   rpc CancelQuote(CancelQuoteRequest) returns (CancelQuoteResponse);
   rpc CancelOrder(CancelOrderRequest) returns (CancelQuoteResponse);
   rpc DriverLocation(DriverLocationRequest) returns (DriverLocationResponse);
+  // 支付成功回调：订单 待支付 → 已完成，并返回司机域结算要素。
+  rpc MarkOrderPaid(MarkOrderPaidRequest) returns (MarkOrderPaidResponse);
+}
+
+message MarkOrderPaidRequest {
+  string order_no = 1;
+  string payment_no = 2;
+  string trade_no = 3;
+  int64 paid_fen = 4;
+}
+
+message MarkOrderPaidResponse {
+  string order_id = 1;
+  string order_no = 2;
+  string state = 3;
+  string driver_id = 4;
+  int64 paid_fen = 5;
+  int64 driver_income_fen = 6;
 }
 
 message SendCodeRequest {
@@ -256,6 +283,8 @@ message Coupon {
   int64 face_value = 3;
   int64 threshold = 4;
   int64 expire_at = 5;
+  // claimed 标记该券当前账号是否已领取过（领券中心据此置灰，不受券状态影响）。
+  bool claimed = 6;
 }
 
 message ListCouponsRequest {
@@ -264,6 +293,37 @@ message ListCouponsRequest {
 
 message CouponListResponse {
   repeated Coupon list = 1;
+}
+
+message SubmitRealNameRequest {
+  string account_id = 1;
+  string name = 2;
+  // id_no 为身份证号；本地演示通道提交即通过，不落真值，只存脱敏值。
+  string id_no = 3;
+  // idempotency_key 由客户端生成；提交本身幂等（重复提交返回当前状态）。
+  string idempotency_key = 4;
+}
+
+message GetRealNameStatusRequest {
+  string account_id = 1;
+}
+
+message RealNameStatusResponse {
+  // state: UNVERIFIED / VERIFIED
+  string state = 1;
+  string name_mask = 2;
+  string id_no_mask = 3;
+}
+
+message ListClaimableCouponsRequest {
+  string account_id = 1;
+  int32 limit = 2;
+}
+
+message ClaimCouponRequest {
+  string account_id = 1;
+  // coupon_no 为管理端营销中心发放的券码。
+  string coupon_no = 2;
 }
 
 message EstimateRequest {

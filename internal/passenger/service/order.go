@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/BwCloudWeGo/bw-cli/internal/passenger/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/passenger/entity"
@@ -71,19 +72,33 @@ func (s *Service) Estimate(ctx context.Context, cmd dto.EstimateCommand) (*dto.E
 	estimate.DurationS = quote.DurationS
 	estimate.PricingVersion = quote.Version
 	estimate.CouponID = cmd.CouponID
+	// 指定优惠券：校验可用性并把抵扣计入估价单（试算不锁定）。
+	// 真正的占用发生在下单成功时；取消订单释放锁定。
+	// 指定券不满足门槛或已过期时直接报错，不做静默降级。
+	if cmd.CouponID != "" {
+		coupon, couponErr := s.BestCoupon(ctx, cmd.AccountID, cmd.CouponID, cmd.CarType, estimate.BaseFee)
+		if couponErr != nil {
+			return nil, couponErr
+		}
+		estimate.DiscountFee = coupon.FaceValue
+		estimate.PayFee = estimate.BaseFee + estimate.ServiceFee - coupon.FaceValue
+		if estimate.PayFee < 0 {
+			estimate.PayFee = 0
+		}
+	}
 	if err := s.estimates.Save(ctx, estimate); err != nil {
 		return nil, err
 	}
 	return &dto.EstimateDTO{
-		EstimateNo: estimate.No,
-		CarType:    estimate.CarType,
-		BaseFee:    estimate.BaseFee,
-		ServiceFee: estimate.ServiceFee,
+		EstimateNo:  estimate.No,
+		CarType:     estimate.CarType,
+		BaseFee:     estimate.BaseFee,
+		ServiceFee:  estimate.ServiceFee,
 		DiscountFee: estimate.DiscountFee,
-		PayFee:     estimate.PayFee,
-		DistanceM:  estimate.DistanceM,
-		DurationS:  estimate.DurationS,
-		ExpiresAt:  estimate.ExpiresAt,
+		PayFee:      estimate.PayFee,
+		DistanceM:   estimate.DistanceM,
+		DurationS:   estimate.DurationS,
+		ExpiresAt:   estimate.ExpiresAt,
 	}, nil
 }
 
@@ -185,6 +200,14 @@ func (s *Service) CreateOrder(ctx context.Context, cmd dto.CreateOrderCommand) (
 	// 冻结计价规则快照，规则改价只影响新订单，历史订单金额永不变。
 	order.PricingSnapshot = estimate.PricingVersion
 
+	// 估价选中了优惠券：下单即锁定占用，同券并发只允许一单使用，
+	// 锁定失败说明券已被其他订单使用；取消订单时释放锁定。
+	if estimate.CouponID != "" {
+		if err := s.coupons.Lock(ctx, estimate.CouponID, order.ID, now); err != nil {
+			return nil, err
+		}
+	}
+
 	if err := s.orders.Save(ctx, order); err != nil {
 		return nil, err
 	}
@@ -193,7 +216,120 @@ func (s *Service) CreateOrder(ctx context.Context, cmd dto.CreateOrderCommand) (
 	if err := s.orders.AppendStatusLog(ctx, log); err != nil {
 		return nil, err
 	}
+	// 投单进司机域派单池：司机端「听单/抢单」大厅消费的就是这份任务。
+	// 投单失败返回错误（订单已建但无人可见，宁可让乘客重试也不静默丢单）。
+	if s.hall != nil {
+		task := entity.DispatchTask{
+			OrderNo:           order.OrderNo,
+			PassengerName:     entity.MaskPhone(account.Phone),
+			OriginName:        order.StartName,
+			OriginLat:         order.StartLat,
+			OriginLng:         order.StartLng,
+			DestName:          order.EndName,
+			DestLat:           order.EndLat,
+			DestLng:           order.EndLng,
+			PaidFen:           order.TotalFee,
+			PlatformCouponFen: order.CouponFee,
+			// 平台佣金投单时冻结：司机净得 = 实付 - 佣金。
+			CommissionFen: s.platformCommissionFen(order.TotalFee),
+		}
+		if err := s.hall.CreateDispatchTask(ctx, task); err != nil {
+			return nil, err
+		}
+	}
 	return toOrderDTO(order), nil
+}
+
+// orphanOrderTimeout 是订单在派单池中查无任务时的宽限期：
+// 超过该时长仍无派单任务的历史/孤儿订单在查询时自动终结。
+const orphanOrderTimeout = 10 * time.Minute
+
+// hallToOrderState 把司机域任务状态映射为乘客域订单状态；ok=false 表示无需变更。
+func hallToOrderState(taskStatus string) (entity.OrderState, bool) {
+	switch taskStatus {
+	case "ACCEPTED":
+		return entity.OrderStateAccepted, true
+	case "ARRIVED":
+		return entity.OrderStateArrived, true
+	case "IN_TRIP":
+		return entity.OrderStateInService, true
+	case "ENDED":
+		return entity.OrderStateCompletedUnpaid, true
+	case "CANCELLED":
+		return entity.OrderStateCancelled, true
+	default:
+		// WAITING 与未知状态不触发乘客侧流转。
+		return "", false
+	}
+}
+
+// advanceTo 按 states 链逐级推进订单状态，保证中间状态留痕完整。
+// reason 写入状态留痕，用于区分派单回传、支付成功等不同触发来源。
+func (s *Service) advanceTo(ctx context.Context, order *entity.Order, chain []entity.OrderState, reason string, now time.Time) error {
+	for _, next := range chain {
+		// 订单已经过该中间态时继续往后推进，而不是终止：
+		// 司机从"已接单"直接送达时链是 ACCEPTED→ARRIVED→IN_SERVICE→COMPLETED_UNPAID，
+		// 首项就等于当前状态，若在此返回订单会永远卡在"已接单"推不到待支付。
+		if order.State == next {
+			continue
+		}
+		if !order.State.CanTransitionTo(next) {
+			continue
+		}
+		from := order.State
+		if err := order.ApplyTransition(next, now); err != nil {
+			return err
+		}
+		if err := s.orders.UpdateState(ctx, order); err != nil {
+			return err
+		}
+		log := entity.NewOrderStatusLog(s.ids.NewID(), order.ID, from, next, "platform", reason, now)
+		if err := s.orders.AppendStatusLog(ctx, log); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// syncOrderFromHall 从司机域派单任务回传订单状态与司机信息。
+// 查询路径上懒同步，无需额外的后台轮询进程。
+func (s *Service) syncOrderFromHall(ctx context.Context, order *entity.Order) {
+	if s.hall == nil || order.State.Terminal() {
+		return
+	}
+	task, err := s.hall.FindTaskByOrderNo(ctx, order.OrderNo)
+	if err != nil {
+		// 派单池查不到任务（桥上线前创建的历史订单没有投单记录）：
+		// 超过派单窗口仍无任务视为派单失效，自动终结，避免订单永远卡在等待接单。
+		if errors.Is(err, entity.ErrOrderNotFound) && s.now().UTC().Sub(order.CreatedAt) > orphanOrderTimeout {
+			_ = s.advanceTo(ctx, order, []entity.OrderState{entity.OrderStateCancelled}, "派单失效自动取消", s.now().UTC())
+		}
+		return
+	}
+	now := s.now().UTC()
+	if task.DriverName != "" && order.DriverName != task.DriverName {
+		order.DriverName = task.DriverName
+		order.DriverPlate = task.DriverPlate
+		if err := s.orders.UpdateState(ctx, order); err != nil {
+			return
+		}
+	}
+	next, ok := hallToOrderState(task.Status)
+	if !ok || next == order.State {
+		return
+	}
+	switch next {
+	case entity.OrderStateAccepted:
+		_ = s.advanceTo(ctx, order, []entity.OrderState{entity.OrderStateAccepted}, "派单状态回传", now)
+	case entity.OrderStateArrived:
+		_ = s.advanceTo(ctx, order, []entity.OrderState{entity.OrderStateAccepted, entity.OrderStateArrived}, "派单状态回传", now)
+	case entity.OrderStateInService:
+		_ = s.advanceTo(ctx, order, []entity.OrderState{entity.OrderStateAccepted, entity.OrderStateArrived, entity.OrderStateInService}, "派单状态回传", now)
+	case entity.OrderStateCompletedUnpaid:
+		_ = s.advanceTo(ctx, order, []entity.OrderState{entity.OrderStateAccepted, entity.OrderStateArrived, entity.OrderStateInService, entity.OrderStateCompletedUnpaid}, "派单状态回传", now)
+	case entity.OrderStateCancelled:
+		_ = s.advanceTo(ctx, order, []entity.OrderState{entity.OrderStateCancelled}, "派单状态回传", now)
+	}
 }
 
 // GetOrder 返回订单详情。
@@ -205,6 +341,7 @@ func (s *Service) GetOrder(ctx context.Context, accountID, orderID string) (*dto
 	if order.AccountID != accountID {
 		return nil, entity.ErrForbidden
 	}
+	s.syncOrderFromHall(ctx, order)
 	return toOrderDTO(order), nil
 }
 
@@ -217,6 +354,7 @@ func (s *Service) CurrentOrder(ctx context.Context, accountID string) (*dto.Orde
 		}
 		return nil, err
 	}
+	s.syncOrderFromHall(ctx, order)
 	return toOrderDTO(order), nil
 }
 
@@ -233,13 +371,13 @@ func (s *Service) QuotePrice(ctx context.Context, cmd dto.EstimateCommand) (*dto
 		return nil, err
 	}
 	return &dto.EstimateDTO{
-		CarType:    cmd.CarType,
-		BaseFee:    quote.BaseFee,
-		ServiceFee: quote.ServiceFee,
+		CarType:     cmd.CarType,
+		BaseFee:     quote.BaseFee,
+		ServiceFee:  quote.ServiceFee,
 		DiscountFee: quote.DiscountFee,
-		PayFee:     quote.PayFee,
-		DistanceM:  quote.DistanceM,
-		DurationS:  quote.DurationS,
+		PayFee:      quote.PayFee,
+		DistanceM:   quote.DistanceM,
+		DurationS:   quote.DurationS,
 	}, nil
 }
 
@@ -323,18 +461,20 @@ func toOrderDTO(order *entity.Order) *dto.OrderDTO {
 		return nil
 	}
 	return &dto.OrderDTO{
-		OrderID:   order.ID,
-		OrderNo:   order.OrderNo,
-		State:     string(order.State),
-		CarType:   order.CarType,
-		StartName: order.StartName,
-		StartAddr: order.StartAddr,
-		EndName:   order.EndName,
-		EndAddr:   order.EndAddr,
-		TotalFee:  order.TotalFee,
-		CancelFee: order.CancelFee,
-		Remark:    order.Remark,
-		CreatedAt: order.CreatedAt,
+		OrderID:     order.ID,
+		OrderNo:     order.OrderNo,
+		State:       string(order.State),
+		CarType:     order.CarType,
+		StartName:   order.StartName,
+		StartAddr:   order.StartAddr,
+		EndName:     order.EndName,
+		EndAddr:     order.EndAddr,
+		TotalFee:    order.TotalFee,
+		CancelFee:   order.CancelFee,
+		Remark:      order.Remark,
+		DriverName:  order.DriverName,
+		DriverPlate: order.DriverPlate,
+		CreatedAt:   order.CreatedAt,
 	}
 }
 

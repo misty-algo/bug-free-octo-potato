@@ -179,7 +179,7 @@ func TestCancelOrderIsTwoStage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOrder() error = %v", err)
 	}
-	// 推进到已接单，此时取消费不为零。
+	// 推进到已接单：派单任务已投给司机，乘客端不再允许自助取消。
 	stored, err := orders.FindByID(context.Background(), order.OrderID)
 	if err != nil {
 		t.Fatalf("FindByID() error = %v", err)
@@ -190,47 +190,17 @@ func TestCancelOrderIsTwoStage(t *testing.T) {
 	if err := orders.UpdateState(context.Background(), stored); err != nil {
 		t.Fatalf("UpdateState() error = %v", err)
 	}
-
-	// 第一次调用只报价不取消。
-	quote, err := svc.CancelOrder(context.Background(), dto.CancelOrderCommand{
+	if _, err := svc.CancelOrder(context.Background(), dto.CancelOrderCommand{
 		AccountID: "account-1", OrderID: order.OrderID, Reason: "临时有事",
-	})
-	if err != nil {
-		t.Fatalf("CancelOrder() error = %v", err)
-	}
-	if !quote.NeedConfirm {
-		t.Fatal("NeedConfirm = false, want the two-stage confirmation")
-	}
-	if quote.CancelFee != 500 {
-		t.Fatalf("CancelFee = %d, want 500", quote.CancelFee)
+	}); !errors.Is(err, entity.ErrCancelNotAllowed) {
+		t.Fatalf("CancelOrder() error = %v, want ErrCancelNotAllowed once accepted", err)
 	}
 	after, err := orders.FindByID(context.Background(), order.OrderID)
 	if err != nil {
 		t.Fatalf("FindByID() error = %v", err)
 	}
 	if after.State != entity.OrderStateAccepted {
-		t.Fatalf("state = %q, want the order untouched before confirmation", after.State)
-	}
-
-	// 带上确认标记才真正取消。
-	final, err := svc.CancelOrder(context.Background(), dto.CancelOrderCommand{
-		AccountID: "account-1", OrderID: order.OrderID, Reason: "临时有事", ConfirmFee: true,
-	})
-	if err != nil {
-		t.Fatalf("second CancelOrder() error = %v", err)
-	}
-	if final.NeedConfirm {
-		t.Fatal("NeedConfirm = true, want the cancellation to be executed")
-	}
-	done, err := orders.FindByID(context.Background(), order.OrderID)
-	if err != nil {
-		t.Fatalf("FindByID() error = %v", err)
-	}
-	if done.State != entity.OrderStateCancelled {
-		t.Fatalf("state = %q, want CANCELLED", done.State)
-	}
-	if len(orders.logs) < 2 {
-		t.Fatalf("status logs = %d, want the cancel transition recorded", len(orders.logs))
+		t.Fatalf("state = %q, want the order untouched", after.State)
 	}
 }
 

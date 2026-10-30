@@ -290,6 +290,81 @@ func (s *Server) ListCoupons(ctx context.Context, req *passengerv1.ListCouponsRe
 	return &passengerv1.CouponListResponse{List: list}, nil
 }
 
+// SubmitRealName 处理实名提交（P20）。
+func (s *Server) SubmitRealName(ctx context.Context, req *passengerv1.SubmitRealNameRequest) (*passengerv1.RealNameStatusResponse, error) {
+	out, err := s.svc.SubmitRealName(ctx, dto.SubmitRealNameCommand{
+		AccountID:      req.GetAccountId(),
+		Name:           req.GetName(),
+		IDNo:           req.GetIdNo(),
+		IdempotencyKey: req.GetIdempotencyKey(),
+	})
+	if err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return toRealNameProto(out), nil
+}
+
+// GetRealNameStatus 处理实名状态查询。
+func (s *Server) GetRealNameStatus(ctx context.Context, req *passengerv1.GetRealNameStatusRequest) (*passengerv1.RealNameStatusResponse, error) {
+	out, err := s.svc.GetRealNameStatus(ctx, req.GetAccountId())
+	if err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return toRealNameProto(out), nil
+}
+
+// toRealNameProto 把实名状态出参转成 proto 响应。
+func toRealNameProto(out *dto.RealNameStatusDTO) *passengerv1.RealNameStatusResponse {
+	return &passengerv1.RealNameStatusResponse{
+		State:    out.State,
+		NameMask: out.NameMask,
+		IdNoMask: out.IDNoMask,
+	}
+}
+
+// ListClaimableCoupons 处理领券中心列表。
+func (s *Server) ListClaimableCoupons(ctx context.Context, req *passengerv1.ListClaimableCouponsRequest) (*passengerv1.CouponListResponse, error) {
+	out, err := s.svc.ListClaimableCoupons(ctx, req.GetAccountId(), int(req.GetLimit()))
+	if err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return toCouponListProto(out), nil
+}
+
+// ClaimCoupon 处理领取平台券。
+func (s *Server) ClaimCoupon(ctx context.Context, req *passengerv1.ClaimCouponRequest) (*passengerv1.Coupon, error) {
+	out, err := s.svc.ClaimCoupon(ctx, dto.ClaimCouponCommand{
+		AccountID: req.GetAccountId(),
+		CouponNo:  req.GetCouponNo(),
+	})
+	if err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return &passengerv1.Coupon{
+		CouponId:  out.CouponID,
+		Name:      out.Name,
+		FaceValue: out.FaceValue,
+		Threshold: out.Threshold,
+		ExpireAt:  out.ExpiresAt.Unix(),
+	}, nil
+}
+
+// toCouponListProto 把券列表出参转成 proto 响应。
+func toCouponListProto(items []*dto.CouponDTO) *passengerv1.CouponListResponse {
+	list := make([]*passengerv1.Coupon, 0, len(items))
+	for _, item := range items {
+		list = append(list, &passengerv1.Coupon{
+			CouponId:  item.CouponID,
+			Name:      item.Name,
+			FaceValue: item.FaceValue,
+			Threshold: item.Threshold,
+			ExpireAt:  item.ExpiresAt.Unix(),
+			Claimed:   item.Claimed,
+		})
+	}
+	return &passengerv1.CouponListResponse{List: list}
+}
+
 // Estimate 处理生成估价单。
 func (s *Server) Estimate(ctx context.Context, req *passengerv1.EstimateRequest) (*passengerv1.EstimateResponse, error) {
 	out, err := s.svc.Estimate(ctx, dto.EstimateCommand{
@@ -417,6 +492,27 @@ func (s *Server) CancelOrder(ctx context.Context, req *passengerv1.CancelOrderRe
 }
 
 // DriverLocation 处理司机实时位置查询。
+// MarkOrderPaid 支付成功回调：订单推进到已完成并返回司机结算要素。
+func (s *Server) MarkOrderPaid(ctx context.Context, req *passengerv1.MarkOrderPaidRequest) (*passengerv1.MarkOrderPaidResponse, error) {
+	out, err := s.svc.MarkOrderPaid(ctx, dto.MarkOrderPaidCommand{
+		OrderNo:   req.GetOrderNo(),
+		PaymentNo: req.GetPaymentNo(),
+		TradeNo:   req.GetTradeNo(),
+		PaidFen:   req.GetPaidFen(),
+	})
+	if err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return &passengerv1.MarkOrderPaidResponse{
+		OrderId:         out.OrderID,
+		OrderNo:         out.OrderNo,
+		State:           out.State,
+		DriverId:        out.DriverID,
+		PaidFen:         out.PaidFen,
+		DriverIncomeFen: out.DriverIncomeFen,
+	}, nil
+}
+
 func (s *Server) DriverLocation(ctx context.Context, req *passengerv1.DriverLocationRequest) (*passengerv1.DriverLocationResponse, error) {
 	out, err := s.svc.DriverLocation(ctx, req.GetAccountId(), req.GetOrderId())
 	if err != nil {

@@ -38,6 +38,8 @@ type DriverRepository interface {
 	FindIdleHeartbeatExpired(ctx context.Context, before time.Time, limit int) ([]*Driver, error)
 	// MoveFunds 资金五桶原子转移（源桶余额不足返回 ErrInsufficientFunds）。
 	MoveFunds(ctx context.Context, id, fromBucket, toBucket string, amountFen int64) error
+	// DeductFunds 从指定桶扣款出账（提现打款 W→平台代付，桶内余额不足返回 ErrInsufficientFunds）。
+	DeductFunds(ctx context.Context, id, bucket string, amountFen int64) error
 	// AddFunds 外部资金入账到指定桶（如乘客支付 → 待结算 U）。
 	AddFunds(ctx context.Context, id, bucket string, amountFen int64) error
 	// AddMonthlyIncome 累加本月累计已结算收入（用于派单优先级）。

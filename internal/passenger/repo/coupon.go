@@ -99,6 +99,31 @@ func (r *CouponRepository) ListUsable(ctx context.Context, accountID string, now
 	return list, nil
 }
 
+// ListIDsByAccount 列出该账号名下所有券的标识（不限状态）。
+// 领券中心用它判断券是否已被领取过（领取幂等的判定源）。
+func (r *CouponRepository) ListIDsByAccount(ctx context.Context, accountID string) ([]string, error) {
+	documents, err := r.collection.FindMany(ctx, bson.M{
+		"account_id": accountID,
+		"is_deleted": false,
+	}, options.Find().SetProjection(bson.M{"_id": 1}))
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(documents))
+	for i := range documents {
+		ids = append(ids, documents[i].ID)
+	}
+	return ids, nil
+}
+
+// Save 新增或覆盖券。领券写入走这里；锁券与核销必须走 Lock/Unlock
+// 的原子条件更新，不能用 Save 覆盖并发状态。
+func (r *CouponRepository) Save(ctx context.Context, coupon *entity.Coupon) error {
+	document := fromCouponEntity(coupon)
+	_, err := r.collection.UpsertByID(ctx, document.ID, &document)
+	return err
+}
+
 // Lock 在原子条件更新下锁定券。
 //
 // 用条件更新而不是先查后改：并发下同一张券只能被一个订单锁住，
@@ -220,6 +245,24 @@ func toCouponEntity(document *CouponDocument) *entity.Coupon {
 		ExpiresAt:   document.ExpiresAt,
 		CreatedAt:   document.CreatedAt,
 		UpdatedAt:   document.UpdatedAt,
+	}
+}
+
+// fromCouponEntity 把优惠券实体转成落库文档。
+func fromCouponEntity(coupon *entity.Coupon) CouponDocument {
+	return CouponDocument{
+		ID:          coupon.ID,
+		AccountID:   coupon.AccountID,
+		TemplateID:  coupon.TemplateID,
+		Name:        coupon.Name,
+		FaceValue:   coupon.FaceValue,
+		Threshold:   coupon.Threshold,
+		CarTypes:    coupon.CarTypes,
+		State:       string(coupon.State),
+		LockOrderID: coupon.LockOrderID,
+		ExpiresAt:   coupon.ExpiresAt,
+		CreatedAt:   coupon.CreatedAt,
+		UpdatedAt:   coupon.UpdatedAt,
 	}
 }
 

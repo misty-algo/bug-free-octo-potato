@@ -18,6 +18,19 @@ func newFakeCouponRepository() *fakeCouponRepository {
 	return &fakeCouponRepository{coupons: map[string]*entity.Coupon{}}
 }
 
+// ListIDsByAccount 列出该账号名下所有券标识（不限状态）。
+func (r *fakeCouponRepository) ListIDsByAccount(ctx context.Context, accountID string) ([]string, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	ids := make([]string, 0)
+	for id, coupon := range r.coupons {
+		if coupon.AccountID == accountID {
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}
+
 func (r *fakeCouponRepository) FindByID(ctx context.Context, id string) (*entity.Coupon, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -27,6 +40,13 @@ func (r *fakeCouponRepository) FindByID(ctx context.Context, id string) (*entity
 	}
 	copied := *coupon
 	return &copied, nil
+}
+
+func (r *fakeCouponRepository) Save(ctx context.Context, coupon *entity.Coupon) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.coupons[coupon.ID] = coupon
+	return nil
 }
 
 func (r *fakeCouponRepository) ListUsable(ctx context.Context, accountID string, now time.Time) ([]*entity.Coupon, error) {

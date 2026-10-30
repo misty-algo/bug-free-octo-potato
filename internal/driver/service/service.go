@@ -43,7 +43,6 @@ type BusinessConfig struct {
 	DispatchWindowSec     int     // 总派单时限（超时平台责任取消）
 	HeartbeatTimeoutSec   int     // 空闲无心跳自动收车
 	HallListLimit         int     // 大厅列表上限
-	AutoSettleOnTripEnd   bool    // 课程模拟：无财务域时行程结束即结算（U→A）
 	Weights               DispatchWeights
 }
 
@@ -375,8 +374,9 @@ func (s *Service) StartTrip(ctx context.Context, cmd dto.StartTripCommand) (*dto
 	return dto.FromHallOrder(started), nil
 }
 
-// EndTrip 送达结束：行程进入 ENDED 并释放运力（与乘客付款无关）。
-// 课程模式下同步模拟"支付成功 → 记账 → 结算"，待支付域/财务域接入后由外部事件驱动。
+// EndTrip 送达结束：行程进入 ENDED 并释放运力。
+// 行程结束 ≠ 收入到账：司机记账由支付成功事件驱动（ReportPaymentSucceeded），
+// 乘客未支付时订单停在待支付，司机完单量与收入不提前计入。
 func (s *Service) EndTrip(ctx context.Context, cmd dto.EndTripCommand) (*dto.HallOrderDTO, error) {
 	ended, err := s.orders.Complete(ctx, cmd.OrderID, cmd.DriverID, 0, cmd.DistanceMeters, cmd.DurationSec)
 	if err != nil {
@@ -391,16 +391,6 @@ func (s *Service) EndTrip(ctx context.Context, cmd dto.EndTripCommand) (*dto.Hal
 		DriverID: ended.DriverID, EndedAt: biztime.RFC3339(ended.EndedAt),
 		DurationSec: cmd.DurationSec, DistanceMeters: cmd.DistanceMeters, Amount: ended.Amount(),
 	}, contracts.EventTripEnded)
-	if s.cfg.AutoSettleOnTripEnd {
-		// 课程模拟：支付域未接入，行程结束后立即按"支付成功"记账（U 桶）并直接结算到可用桶。
-		settleKey := "auto-settle-" + ended.ID
-		if _, err := s.reportPaid(ctx, dto.ReportPaymentCommand{
-			OrderID: ended.OrderID, DriverID: ended.DriverID, EventID: "auto-pay-" + ended.ID,
-			IdempotencyKey: settleKey, Amount: ended.Amount(),
-		}); err != nil {
-			s.log.Warn("auto settle failed", zap.String("order_id", ended.OrderID), zap.Error(err))
-		}
-	}
 	return dto.FromHallOrder(ended), nil
 }
 

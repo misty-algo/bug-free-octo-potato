@@ -72,6 +72,10 @@ type Service struct {
 	quick     entity.QuickEntryRepository
 	coupons   entity.CouponRepository
 	drivers   entity.DriverRepository
+	// platform 读取管理端营销中心发放的平台券，用于领券中心与领取。
+	platform entity.PlatformCouponRepository
+	// hall 把乘客订单投进司机域派单池并回查派单状态。
+	hall entity.HallOrderBridge
 
 	issuer   TokenIssuer
 	hasher   PasswordHasher
@@ -85,7 +89,9 @@ type Service struct {
 	// cancelFeeAccepted 与 cancelFeeArrived 是取消费配置，单位分。
 	cancelFeeAccepted int64
 	cancelFeeArrived  int64
-	now               func() time.Time
+	// commissionBP 为平台抽成基点（如 2000 = 20%），投单时从乘客实付中划扣。
+	commissionBP int64
+	now          func() time.Time
 }
 
 // NewService 创建乘客端用例服务。
@@ -121,6 +127,22 @@ func (s *Service) WithCouponRepository(repo entity.CouponRepository) *Service {
 	return s
 }
 
+// WithPlatformCouponRepository 注入平台券只读仓储；未注入时领券中心不可用。
+func (s *Service) WithPlatformCouponRepository(repo entity.PlatformCouponRepository) *Service {
+	if repo != nil {
+		s.platform = repo
+	}
+	return s
+}
+
+// WithHallOrderBridge 注入派单池桥；未注入时下单不投单（司机端看不到订单）。
+func (s *Service) WithHallOrderBridge(bridge entity.HallOrderBridge) *Service {
+	if bridge != nil {
+		s.hall = bridge
+	}
+	return s
+}
+
 // WithDriverRepository 注入司机档案只读仓储。
 func (s *Service) WithDriverRepository(repo entity.DriverRepository) *Service {
 	if repo != nil {
@@ -133,6 +155,14 @@ func (s *Service) WithDriverRepository(repo entity.DriverRepository) *Service {
 func (s *Service) WithCancelFee(accepted int64, arrived int64) *Service {
 	s.cancelFeeAccepted = accepted
 	s.cancelFeeArrived = arrived
+	return s
+}
+
+// WithCommissionBP 注入平台抽成基点（2000 = 20%）；未注入时默认 2000。
+func (s *Service) WithCommissionBP(bp int64) *Service {
+	if bp > 0 {
+		s.commissionBP = bp
+	}
 	return s
 }
 

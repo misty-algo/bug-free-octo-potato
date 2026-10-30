@@ -83,7 +83,6 @@ func main() {
 		DispatchWindowSec:     cfg.Driver.DispatchWindowSeconds,
 		HeartbeatTimeoutSec:   cfg.Driver.HeartbeatTimeoutSeconds,
 		HallListLimit:         cfg.Driver.HallListLimit,
-		AutoSettleOnTripEnd:   cfg.Driver.AutoSettleOnTripEnd,
 		Weights: driverservice.DispatchWeights{
 			Distance: cfg.Driver.Weights.Distance,
 			Rating:   cfg.Driver.Weights.Rating,

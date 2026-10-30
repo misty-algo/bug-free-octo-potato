@@ -16,6 +16,9 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
+	"github.com/BwCloudWeGo/bw-cli/pkg/contracts"
+	"github.com/BwCloudWeGo/bw-cli/pkg/rabbitmqx"
+
 	passengerv1 "github.com/BwCloudWeGo/bw-cli/api/gen/passenger/v1"
 	passengerhandler "github.com/BwCloudWeGo/bw-cli/internal/passenger/handler"
 	passengerrepo "github.com/BwCloudWeGo/bw-cli/internal/passenger/repo"
@@ -88,6 +91,13 @@ func main() {
 	}
 	db := mongox.Database(client, cfg.MongoDB.Database)
 
+	// 连接 RabbitMQ，订阅司机域的 trip.ended：行程结束即待支付。
+	mqClient, err := rabbitmqx.New(cfg.RabbitMQ.RabbitmqxConfig())
+	if err != nil {
+		log.Fatal("connect rabbitmq failed", zap.Error(err))
+	}
+	defer mqClient.Close()
+
 	store := passengerrepo.NewStore(db)
 	svc := passengerservice.NewService(
 		store.Accounts(),
@@ -106,8 +116,16 @@ func main() {
 		passengerrepo.NewIDGenerator(),
 	)
 	svc.WithCouponRepository(passengerrepo.NewCouponRepository(db))
+	// 平台券只读桥：管理端营销中心发到共享库 coupons 集合的券，供乘客端领取。
+	svc.WithPlatformCouponRepository(passengerrepo.NewPlatformCouponRepository(db))
+	// 派单池桥：乘客下单直写司机域 hall_orders，司机端听单/抢单即可见。
+	svc.WithHallOrderBridge(passengerrepo.NewHallOrderBridge(db))
 	svc.WithDriverRepository(passengerrepo.NewDriverRepository(db))
 	svc.WithCancelFee(passengerConfig().CancelFeeAfterAccepted, passengerConfig().CancelFeeAfterArrived)
+	svc.WithCommissionBP(passengerConfig().CommissionBP)
+
+	// 消费司机送达事件：订单进入待支付，不再依赖乘客端轮询时懒同步。
+	go consumeTripEndedEvents(svc, mqClient, log)
 
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
 	passengerv1.RegisterPassengerServiceServer(server, passengerhandler.NewServer(svc, log))
@@ -122,6 +140,19 @@ func main() {
 	log.Info("passenger service listening", zap.String("addr", addr))
 	if err := server.Serve(listener); err != nil {
 		log.Fatal("passenger service stopped unexpectedly", zap.Error(err))
+	}
+}
+
+// consumeTripEndedEvents 消费司机送达事件；连接断开后 rabbitmqx 会自动重连恢复订阅。
+// 队列与司机域分开，避免多个消费者争抢同一队列导致事件被 side effect 掉。
+func consumeTripEndedEvents(svc *passengerservice.Service, client *rabbitmqx.Client, log *zap.Logger) {
+	const queue = "xiaolanshu.trip.ended.passenger"
+	handler := func(ctx context.Context, body []byte) error {
+		return svc.HandleTripEnded(ctx, body)
+	}
+	log.Info("passenger consuming trip events", zap.String("queue", queue))
+	if err := client.Consume(context.Background(), queue, []string{contracts.EventTripEnded}, handler); err != nil {
+		log.Error("trip event consumer stopped", zap.Error(err))
 	}
 }
 
@@ -142,6 +173,8 @@ type PassengerConfig struct {
 	CancelFeeAfterAccepted int64
 	// CancelFeeAfterArrived 为已到达取消的取消费，单位分。
 	CancelFeeAfterArrived int64
+	// CommissionBP 为平台抽成基点（2000 = 20%），投单时从乘客实付中划扣。
+	CommissionBP int64
 }
 
 // passengerConfig 从环境变量读取乘客端配置。
@@ -149,9 +182,10 @@ type PassengerConfig struct {
 // 密钥类配置 MUST NOT 提交真值到仓库，只提交 .env.example 占位。
 func passengerConfig() PassengerConfig {
 	return PassengerConfig{
-		TokenSecret:           envOr("PASSENGER_TOKEN_SECRET", "local-dev-secret-change-me"),
+		TokenSecret:            envOr("PASSENGER_TOKEN_SECRET", "local-dev-secret-change-me"),
 		CancelFeeAfterAccepted: envInt64("PASSENGER_CANCEL_FEE_ACCEPTED", 500),
 		CancelFeeAfterArrived:  envInt64("PASSENGER_CANCEL_FEE_ARRIVED", 1000),
+		CommissionBP:           envInt64("PASSENGER_COMMISSION_BP", 2000),
 	}
 }
 

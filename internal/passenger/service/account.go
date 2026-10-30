@@ -289,6 +289,20 @@ func (s *Service) CancelOrder(ctx context.Context, cmd dto.CancelOrderCommand) (
 	if order.State.Terminal() {
 		return nil, entity.ErrCancelNotAllowed
 	}
+	// 司机已接单（任务已派）：乘客端不再自助取消，需通过客服协商，避免司机侧状态失联。
+	if order.State != entity.OrderStatePending {
+		return nil, entity.ErrCancelNotAllowed
+	}
+	// 同步取消司机域派单任务；任务刚好被抢单时拒绝取消。
+	if s.hall != nil {
+		ok, err := s.hall.CancelWaitingTask(ctx, order.OrderNo, cmd.Reason)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, entity.ErrCancelNotAllowed
+		}
+	}
 	now := s.now().UTC()
 	fee := entity.CancelFeeFor(order.State, s.cancelFeeAccepted, s.cancelFeeArrived)
 	if fee > 0 && !cmd.ConfirmFee {

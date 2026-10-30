@@ -60,10 +60,8 @@ func (s *Service) reportPaid(ctx context.Context, cmd dto.ReportPaymentCommand) 
 		DriverIncomeFen: flow.DriverIncomeFen, BucketTo: flow.BucketTo,
 		OccurredAt: biztime.RFC3339(flow.CreatedAt),
 	}, contracts.EventIncomeRecorded)
-	// 课程模拟：无财务域时立即结算到可用桶（U → A）。
-	if s.cfg.AutoSettleOnTripEnd {
-		_, _ = s.SettleIncome(ctx, dto.SettleIncomeCommand{DriverID: flow.DriverID, FlowIDs: []string{flow.ID}})
-	}
+	// 支付成功即结算到可用桶（U → A）：钱已到手，无需等待财务域批处理。
+	_, _ = s.SettleIncome(ctx, dto.SettleIncomeCommand{DriverID: flow.DriverID, FlowIDs: []string{flow.ID}})
 	return dto.FromIncomeFlow(flow), nil
 }
 
@@ -406,6 +404,13 @@ func (s *Service) CompleteWithdraw(ctx context.Context, cmd dto.CompleteWithdraw
 			return nil, entity.ErrDualApprovalRequired
 		}
 		if err := w.MarkPaid(); err != nil {
+			return nil, err
+		}
+		// 预占正式出账：W 桶扣款。只记分录不扣桶会让"提现中"永远不减、
+		// 司机看着钱卡在 W 桶，资金也不平衡。
+		if err := s.drivers.DeductFunds(ctx, w.DriverID, entity.BucketWithdraw, w.AmountFen); err != nil {
+			w.RollbackPaid()
+			_ = s.incomes.UpdateWithdraw(ctx, w)
 			return nil, err
 		}
 		_ = s.appendLedger(ctx, w.DriverID, entity.BucketWithdraw, "", w.AmountFen, "withdraw_paid", w.ID, w.IdempotencyKey)

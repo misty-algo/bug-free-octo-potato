@@ -26,7 +26,7 @@ type SendCodeDTO struct {
 type LoginCommand struct {
 	// Channel 决定用哪种凭据：sms 走手机号验证码，wechat/qq 走授权码。
 	Channel entity.Channel
-	Phone  string
+	Phone   string
 	// Code 为短信验证码或第三方授权码。
 	Code string
 	// Password 为密码登录的明文密码。
@@ -103,15 +103,15 @@ type QuickEntryDTO struct {
 
 // AddressDTO 是地址的出参。
 type AddressDTO struct {
-	ID        string `json:"id"`
-	Type      string `json:"type"`
-	Tag       string `json:"tag"`
-	Name      string `json:"name"`
-	Addr      string `json:"addr"`
-	POIID     string `json:"poiId"`
-	Lng       float64 `json:"lng"`
-	Lat       float64 `json:"lat"`
-	UseCount  int    `json:"useCount"`
+	ID       string  `json:"id"`
+	Type     string  `json:"type"`
+	Tag      string  `json:"tag"`
+	Name     string  `json:"name"`
+	Addr     string  `json:"addr"`
+	POIID    string  `json:"poiId"`
+	Lng      float64 `json:"lng"`
+	Lat      float64 `json:"lat"`
+	UseCount int     `json:"useCount"`
 }
 
 // POIDTO 是地点的出参。
@@ -179,30 +179,30 @@ type EstimateDTO struct {
 	EstimateNo string `json:"estimateNo"`
 	CarType    int    `json:"carType"`
 	// BaseFee / ServiceFee / DiscountFee / PayFee 单位均为分。
-	BaseFee     int64  `json:"baseFee"`
-	ServiceFee  int64  `json:"serviceFee"`
-	DiscountFee int64  `json:"discountFee"`
-	PayFee      int64  `json:"payFee"`
-	DistanceM   int64  `json:"distanceM"`
-	DurationS   int64  `json:"durationS"`
+	BaseFee     int64 `json:"baseFee"`
+	ServiceFee  int64 `json:"serviceFee"`
+	DiscountFee int64 `json:"discountFee"`
+	PayFee      int64 `json:"payFee"`
+	DistanceM   int64 `json:"distanceM"`
+	DurationS   int64 `json:"durationS"`
 	// ExpiresAt 为估价单过期时间，游客为空。
 	ExpiresAt time.Time `json:"expiresAt,omitzero"`
 }
 
 // CreateOrderCommand 是创建订单的入参。
 type CreateOrderCommand struct {
-	AccountID string
+	AccountID  string
 	EstimateNo string
-	CarType   int
-	StartName string
-	StartAddr string
-	StartLng  float64
-	StartLat  float64
-	EndName   string
-	EndAddr   string
-	EndLng    float64
-	EndLat    float64
-	Remark    string
+	CarType    int
+	StartName  string
+	StartAddr  string
+	StartLng   float64
+	StartLat   float64
+	EndName    string
+	EndAddr    string
+	EndLng     float64
+	EndLat     float64
+	Remark     string
 	// IdempotencyKey 为业务幂等键，相同键重试返回同一订单。
 	IdempotencyKey string
 }
@@ -218,12 +218,12 @@ type OrderDTO struct {
 	EndName   string `json:"endName"`
 	EndAddr   string `json:"endAddr"`
 	// TotalFee / CancelFee 单位为分。
-	TotalFee int64 `json:"totalFee"`
-	CancelFee int64 `json:"cancelFee"`
-	Remark   string `json:"remark"`
+	TotalFee  int64  `json:"totalFee"`
+	CancelFee int64  `json:"cancelFee"`
+	Remark    string `json:"remark"`
 	// DriverName / DriverPlate 已接单后才有值。
-	DriverName  string `json:"driverName"`
-	DriverPlate string `json:"driverPlate"`
+	DriverName  string    `json:"driverName"`
+	DriverPlate string    `json:"driverPlate"`
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
@@ -239,8 +239,8 @@ type CancelOrderCommand struct {
 // CancelQuoteDTO 是取消报价的出参，两段式取消的第一步。
 type CancelQuoteDTO struct {
 	// NeedConfirm 为真时前端弹确认框，带 confirmFee 再调一次才真正取消。
-	NeedConfirm bool  `json:"needConfirm"`
-	CancelFee   int64 `json:"cancelFee"`
+	NeedConfirm bool   `json:"needConfirm"`
+	CancelFee   int64  `json:"cancelFee"`
 	State       string `json:"state"`
 	// ExpiresAt 为报价有效期，过期后需要重新取价。
 	ExpiresAt time.Time `json:"expiresAt,omitzero"`
@@ -253,6 +253,31 @@ type OrderListDTO struct {
 }
 
 // CouponDTO 是优惠券的出参。
+// MarkOrderPaidCommand 是支付成功回调的入参：按订单号定位订单。
+type MarkOrderPaidCommand struct {
+	// OrderNo 为乘客域订单号（支付单以业务订单号关联）。
+	OrderNo string
+	// PaymentNo / TradeNo 为支付域支付单号与渠道流水号，仅留痕。
+	PaymentNo string
+	TradeNo   string
+	// PaidFen 为渠道实付金额，单位分；0 表示未提供，以订单应付为准。
+	PaidFen int64
+}
+
+// OrderPaidResult 是支付成功联动结果：订单推进到已完成，
+// 附带司机域结算要素，供网关接着调用司机域记账。
+type OrderPaidResult struct {
+	OrderID string `json:"orderId"`
+	OrderNo string `json:"orderNo"`
+	// State 推进后的订单状态（COMPLETED）。
+	State string `json:"state"`
+	// DriverID 为接单司机；任务不存在时为空，调用方应跳过司机入账。
+	DriverID string `json:"driverId,omitempty"`
+	// PaidFen / DriverIncomeFen 单位分：乘客实付与司机净得（已扣平台佣金）。
+	PaidFen         int64 `json:"paidFen"`
+	DriverIncomeFen int64 `json:"driverIncomeFen"`
+}
+
 type CouponDTO struct {
 	CouponID string `json:"couponId"`
 	Name     string `json:"name"`
@@ -260,18 +285,20 @@ type CouponDTO struct {
 	FaceValue int64     `json:"faceValue"`
 	Threshold int64     `json:"threshold"`
 	ExpiresAt time.Time `json:"expiresAt"`
+	// Claimed 标记当前账号是否已领取过（领券中心置灰用，仅 claimable 列表填充）。
+	Claimed bool `json:"claimed,omitempty"`
 }
 
 // SaveAddressCommand 是新增或更新常用地址的入参。
 type SaveAddressCommand struct {
-	ID    string
+	ID       string
 	AddrType string
-	Tag   string
-	Name  string
-	Addr  string
-	POIID string
-	Lng   float64
-	Lat   float64
+	Tag      string
+	Name     string
+	Addr     string
+	POIID    string
+	Lng      float64
+	Lat      float64
 }
 
 // RecordHistoryCommand 是上报一次选中的地点的入参。
@@ -290,11 +317,11 @@ type BindPhoneDTO struct {
 
 // DriverLocationDTO 是司机实时位置的出参。
 type DriverLocationDTO struct {
-	DriverID   string `json:"driverId"`
-	DriverName string `json:"driverName"`
-	PlateNo    string `json:"plateNo"`
-	CarModel   string `json:"carModel"`
-	Rating     string `json:"rating"`
+	DriverID   string  `json:"driverId"`
+	DriverName string  `json:"driverName"`
+	PlateNo    string  `json:"plateNo"`
+	CarModel   string  `json:"carModel"`
+	Rating     string  `json:"rating"`
 	Lng        float64 `json:"lng"`
 	Lat        float64 `json:"lat"`
 	// ETAMin 为预计到达分钟数。

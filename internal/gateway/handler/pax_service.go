@@ -42,7 +42,23 @@ func (h *PaxServiceHandler) GetService(c *gin.Context) {
 		httpx.PaxError(c, http.StatusUnauthorized, httpx.PaxCodeUnauthorized, "unauthorized")
 		return
 	}
-	ticketsResp, err := h.order.ListMyTickets(outgoingContext(c), &orderv1.ListMyTicketsRequest{PassengerId: claims.UserID})
+	h.serveServicePage(c, claims.UserID)
+}
+
+// GetServiceHeader 是 v1 路由（无 JWT，信任 X-Account-Id）使用的客服页入口，
+// 与 GetService 共用同一个合并逻辑。
+func (h *PaxServiceHandler) GetServiceHeader(c *gin.Context) {
+	accountID := passengerAccountID(c)
+	if accountID == "" {
+		httpx.PaxError(c, http.StatusUnauthorized, httpx.PaxCodeUnauthorized, "unauthorized")
+		return
+	}
+	h.serveServicePage(c, accountID)
+}
+
+// serveServicePage 执行客服页合并：order 域工单进度 + user 域客服配置。
+func (h *PaxServiceHandler) serveServicePage(c *gin.Context, passengerID string) {
+	ticketsResp, err := h.order.ListMyTickets(outgoingContext(c), &orderv1.ListMyTicketsRequest{PassengerId: passengerID})
 	if err != nil {
 		httpx.PaxAppError(c, apperrors.FromGRPC(err))
 		return

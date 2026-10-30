@@ -117,8 +117,10 @@ func toAccountDocument(account *entity.Account) *model.AccountDocument {
 		Avatar:          account.Avatar,
 		PasswordHash:    account.PasswordHash,
 		RealNameVerified: account.RealNameVerified,
-		CreatedAt:       account.CreatedAt,
-		UpdatedAt:       account.UpdatedAt,
+		RealNameName:     account.RealNameName,
+		RealNameIDNo:     account.RealNameIDNo,
+		CreatedAt:        account.CreatedAt,
+		UpdatedAt:        account.UpdatedAt,
 	}
 	// 还没绑手机号的账号不写哈希字段，靠稀疏索引跳过。
 	// 否则多个空手机号账号会撞手机号唯一索引。
@@ -147,6 +149,8 @@ func toAccountEntity(document *model.AccountDocument) *entity.Account {
 		Avatar:           document.Avatar,
 		PasswordHash:     document.PasswordHash,
 		RealNameVerified: document.RealNameVerified,
+		RealNameName:     document.RealNameName,
+		RealNameIDNo:     document.RealNameIDNo,
 		CreatedAt:        document.CreatedAt,
 		UpdatedAt:        document.UpdatedAt,
 	}
@@ -228,6 +232,8 @@ func toOrderDocument(order *entity.Order) *model.OrderDocument {
 		Remark:          order.Remark,
 		PricingSnapshot: order.PricingSnapshot,
 		IdempotencyKey:  order.IdempotencyKey,
+		DriverName:      order.DriverName,
+		DriverPlate:     order.DriverPlate,
 		Version:         order.Version,
 		CreatedAt:       order.CreatedAt,
 		UpdatedAt:       order.UpdatedAt,
@@ -257,6 +263,8 @@ func toOrderEntity(document *model.OrderDocument) *entity.Order {
 		Remark:          document.Remark,
 		PricingSnapshot: document.PricingSnapshot,
 		IdempotencyKey:  document.IdempotencyKey,
+		DriverName:      document.DriverName,
+		DriverPlate:     document.DriverPlate,
 		Version:         document.Version,
 		CreatedAt:       document.CreatedAt,
 		UpdatedAt:       document.UpdatedAt,

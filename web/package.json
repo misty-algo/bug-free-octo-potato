@@ -1,0 +1,14 @@
+{
+  "name": "xiaolanshu-passenger-driver-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "花小猪打车 乘客端 / 司机端页面：零依赖静态服务器，并把 /api/v1 同源代理到 Gin 网关",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

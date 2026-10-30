@@ -120,8 +120,12 @@ type Account struct {
 	PasswordHash string
 	// RealNameVerified 表示实名是否通过，下单前置条件之一。
 	RealNameVerified bool
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	// RealNameName 为脱敏姓名，只用于「我的」页回显，不含真值。
+	RealNameName string
+	// RealNameIDNo 为脱敏证件号，只用于「我的」页回显，不含真值。
+	RealNameIDNo string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // NewAccount 校验并创建主账号。

@@ -90,6 +90,7 @@ func (s *Server) NotifyPayment(ctx context.Context, req *paymentv1.NotifyPayment
 		PaidAt:     req.GetPaidAtUnix(),
 	})
 	if err != nil {
+		s.log.Error("notify payment failed", zap.String("order_no", req.GetOrderNo()), zap.Error(err))
 		return nil, mapPaymentError(err)
 	}
 	return &paymentv1.NotifyPaymentResponse{
@@ -201,6 +202,9 @@ func mapPaymentError(err error) error {
 	case stderrors.Is(err, entity.ErrRefundStateTransition):
 		return apperrors.Conflict("refund_state_transition", "invalid refund state transition")
 	default:
+		// 未映射错误记录明细（消息仍不外泄内部实现），否则排障时只见笼统的
+		// payment_service_error 无从下手。
+		zap.L().Error("unmapped payment service error", zap.Error(err))
 		return apperrors.Wrap(apperrors.KindInternal, "payment_service_error", "payment service error", err)
 	}
 }

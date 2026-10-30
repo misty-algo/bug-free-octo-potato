@@ -62,8 +62,10 @@ var orderTransitions = map[OrderState]map[OrderState]bool{
 		OrderStateCompletedUnpaid: true,
 		OrderStateSuspended:       true,
 	},
+	// 行程结束即待支付；支付成功直接完成。UNPAID 保留给"支付中"中间态语义。
 	OrderStateCompletedUnpaid: {
 		OrderStateUnpaid:    true,
+		OrderStateCompleted: true,
 		OrderStateCancelled: true,
 	},
 	OrderStateUnpaid: {
@@ -125,6 +127,9 @@ type Order struct {
 	PricingSnapshot string
 	// IdempotencyKey 保证重复提交不产生第二单。
 	IdempotencyKey string
+	// DriverName / DriverPlate 司机接单后由派单任务回传，仅用于乘客端展示。
+	DriverName  string
+	DriverPlate string
 	// Version 为乐观锁版本号，并发写集合必带。
 	Version int64
 	// CreatedAt / UpdatedAt 统一 UTC 存储。

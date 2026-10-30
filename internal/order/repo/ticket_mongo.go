@@ -50,13 +50,19 @@ func (r *MongoRepository) FindTicketByTicketNo(ctx context.Context, ticketNo str
 }
 
 // ListTicketsByComplainant 按投诉人查工单（P22，D4 归属过滤），createdAt 倒序。
+//
+// 投诉人标识兼容两种形态：24 位 hex（管理端账号 ObjectID）与
+// 乘客端账号 id 字符串（如 "id-xxxx"），按实际存入形态匹配。
 func (r *MongoRepository) ListTicketsByComplainant(ctx context.Context, complainantID string) ([]*entity.Ticket, error) {
-	oid, err := bson.ObjectIDFromHex(complainantID)
-	if err != nil {
+	if complainantID == "" {
 		return nil, entity.ErrInvalidOrder
 	}
+	filter := bson.M{"complainantId": complainantID}
+	if oid, err := bson.ObjectIDFromHex(complainantID); err == nil {
+		filter = bson.M{"complainantId": bson.M{"$in": bson.A{oid, complainantID}}}
+	}
 	docs, err := r.ticketSrv.FindMany(ctx,
-		bson.M{"complainantId": oid},
+		filter,
 		options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}),
 	)
 	if err != nil {

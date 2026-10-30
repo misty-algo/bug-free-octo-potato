@@ -347,6 +347,18 @@ func (r *fakeOrderRepository) FindByID(ctx context.Context, id string) (*entity.
 	return &copied, nil
 }
 
+func (r *fakeOrderRepository) FindByOrderNo(ctx context.Context, orderNo string) (*entity.Order, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	for _, order := range r.orders {
+		if order.OrderNo == orderNo {
+			cp := *order
+			return &cp, nil
+		}
+	}
+	return nil, entity.ErrOrderNotFound
+}
+
 func (r *fakeOrderRepository) FindByEstimateNo(ctx context.Context, estimateNo string) (*entity.Order, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()

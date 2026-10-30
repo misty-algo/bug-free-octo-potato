@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
@@ -352,6 +354,70 @@ func (h *PassengerHandler) UseQuickEntry(c *gin.Context) {
 func (h *PassengerHandler) ListCoupons(c *gin.Context) {
 	resp, err := h.client.ListCoupons(outgoingContext(c), &passengerv1.ListCouponsRequest{
 		AccountId: passengerAccountID(c),
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
+// SubmitRealName 处理实名提交（P20），身份取 X-Account-Id。
+func (h *PassengerHandler) SubmitRealName(c *gin.Context) {
+	var req request.PassengerRealNameRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
+		return
+	}
+	resp, err := h.client.SubmitRealName(outgoingContext(c), &passengerv1.SubmitRealNameRequest{
+		AccountId:      passengerAccountID(c),
+		Name:           req.Name,
+		IdNo:           req.IDNo,
+		IdempotencyKey: req.IdempotencyKey,
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
+// GetRealNameStatus 处理实名状态查询。
+func (h *PassengerHandler) GetRealNameStatus(c *gin.Context) {
+	resp, err := h.client.GetRealNameStatus(outgoingContext(c), &passengerv1.GetRealNameStatusRequest{
+		AccountId: passengerAccountID(c),
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
+// ListClaimableCoupons 处理领券中心列表。
+func (h *PassengerHandler) ListClaimableCoupons(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	resp, err := h.client.ListClaimableCoupons(outgoingContext(c), &passengerv1.ListClaimableCouponsRequest{
+		AccountId: passengerAccountID(c),
+		Limit:     int32(limit),
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
+// ClaimCoupon 处理领取平台券。
+func (h *PassengerHandler) ClaimCoupon(c *gin.Context) {
+	var req request.PassengerClaimCouponRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
+		return
+	}
+	resp, err := h.client.ClaimCoupon(outgoingContext(c), &passengerv1.ClaimCouponRequest{
+		AccountId: passengerAccountID(c),
+		CouponNo:  req.CouponNo,
 	})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))

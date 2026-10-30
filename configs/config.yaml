@@ -52,12 +52,12 @@ services:
 
 database:
   driver: mysql
-  # 连接真值 MUST NOT 提交（约束 §4）：请在本机用环境变量或本地覆盖文件注入，
-  # 仓库内只保留占位值。
-  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
+  # 本地联调临时值：本机 phpStudy MySQL 8.0.12。3306 被 Docker 桌面端端口代理
+  # 长期占用，故 mysqld 以 --port=3307 启动。
+  dsn: "root:root@tcp(127.0.0.1:3307)/xiaolanshu?charset=utf8mb4&parseTime=True&loc=Local"
 
 mysql:
-  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "root:root@tcp(127.0.0.1:3307)/xiaolanshu?charset=utf8mb4&parseTime=True&loc=Local"
   max_idle_conns: 10
   max_open_conns: 100
   conn_max_lifetime_seconds: 3600
@@ -69,15 +69,16 @@ postgresql:
   conn_max_lifetime_seconds: 3600
 
 mongodb:
-  # 连接真值 MUST NOT 提交（约束 §4）：经环境变量 MONGODB_URI / MONGODB_USERNAME /
-  # MONGODB_PASSWORD / MONGODB_DATABASE 注入，下列为占位值。
+  # 本地联调临时值：指向 docker 起的 mongo:7。27017 被 Docker 桌面端的端口代理
+  # 长期占用无法绑定，故容器映射到 27018。
   #
   # 注意（既有缺口）：pkg/config 未实现环境变量覆盖——全包无 os.Getenv、
-  # 也无 viper AutomaticEnv/BindEnv，因此 docker-compose 里声明的上述环境变量
-  # 实际不会生效。后续应补齐该能力再把真值移回环境变量。
-  uri: mongodb://127.0.0.1:27017/?authSource=admin
-  username: ""
-  password: "<MONGO_PASSWORD>"
+  # 也无 viper AutomaticEnv/BindEnv，因此 docker-compose 里声明的
+  # MONGODB_URI / MONGODB_USERNAME / MONGODB_PASSWORD / MONGODB_DATABASE
+  # 实际不会生效，只能落在本文件。后续应补齐该能力再把真值移回环境变量。
+  uri: mongodb://127.0.0.1:27018/?authSource=admin
+  username: "bw"
+  password: "bw-secret"
   database: huazhu
   app_name: bw-cli
   min_pool_size: 0
@@ -120,7 +121,6 @@ driver:
   dispatch_window_seconds: 120      # 总派单时限，超时平台责任取消
   heartbeat_timeout_seconds: 60     # 空闲连续无心跳自动收车
   hall_list_limit: 50               # 接单大厅单页上限
-  auto_settle_on_trip_end: true     # 课程模拟：无财务域时行程结束即结算
   dispatch_weights:                 # 派单评分权重，总和必须等于 10000
     distance: 4000
     rating: 2500
@@ -128,8 +128,8 @@ driver:
     success: 2000
 
 file_storage:
+  # 本地联调临时值：原为 minio，需外部对象存储。改用一个免依赖的后端——
   # order-service 开启 ARRIVAL 时会初始化 private reader，要求能构造出存储后端。
-  # 默认用内置的 local 后端（服务端私有目录，零外部依赖）；生产环境可切回 minio。
   provider: local
   max_size_mb: 100
   object_prefix: uploads
@@ -207,7 +207,9 @@ file_storage:
     bucket_url: ""
 
 redis:
-  addr: 127.0.0.1:6379
+  # 6379 被本机另一个带密码的 redis-server 占用（127.0.0.1 特定绑定优先于
+  # docker 0.0.0.0 绑定），本项目统一走专用无密码实例 huazhu-shared-redis:6380。
+  addr: 127.0.0.1:6380
   username: ""
   password: ""
   db: 0

@@ -1,0 +1,213 @@
+/* 乘客端 / 司机端页面样式。
+   视觉规格来自 Figma 原型「花小猪打车平台 · 三端联调交互原型」（prototype.html）：
+   黄色 #ffc300 为乘客端主色，蓝色 #2f6fed 为司机端主色，Element 灰阶为中性色。 */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #eef0f4;
+  color: #303133;
+  font-size: 13px;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; border-radius: 6px; }
+
+input, select, textarea {
+  font-family: inherit; font-size: 13px;
+  border: 1px solid #dcdfe6; border-radius: 6px;
+  padding: 6px 8px; outline: none; background: #fff; color: #303133;
+}
+input:focus, textarea:focus { border-color: #409eff; }
+
+/* ============ 顶栏：只在乘客端 / 司机端之间切换 ============ */
+#topbar {
+  display: flex; align-items: center; gap: 14px;
+  background: #fff; border-bottom: 1px solid #e4e7ed; padding: 10px 16px;
+}
+#topbar .logo { font-size: 17px; font-weight: 700; }
+#topbar .logo .pig { display: inline-block; background: #ffc300; border-radius: 6px; padding: 1px 7px; margin-right: 6px; }
+#topbar .sub { color: #909399; font-size: 12px; }
+#topbar .grow { flex: 1; }
+#topbar a {
+  color: #606266; text-decoration: none; font-size: 12px;
+  padding: 6px 14px; border-radius: 6px; border: 1px solid #dcdfe6; background: #fff;
+}
+#topbar a.on { background: #409eff; color: #fff; border-color: #409eff; }
+
+#stage { display: flex; justify-content: center; padding: 16px; }
+
+/* ============ 手机壳 ============ */
+.phone {
+  width: 312px; background: #fff; border-radius: 22px;
+  border: 1px solid #e4e7ed; box-shadow: 0 4px 14px rgba(0,0,0,.06);
+  overflow: hidden; position: relative;
+}
+.phone .band { text-align: center; font-weight: 700; padding: 9px 0 7px; font-size: 14px; }
+.phone.pax .band { background: #ffc300; }
+.phone.drv .band { background: #2f6fed; color: #fff; }
+.phone .sbar {
+  display: flex; justify-content: space-between; padding: 3px 14px;
+  font-size: 10px; color: #909399; background: #fafafa; border-bottom: 1px solid #f0f0f0;
+}
+.screen { height: 620px; overflow-y: auto; background: #f7f8fa; position: relative; }
+.screen::-webkit-scrollbar, .sheet::-webkit-scrollbar { width: 5px; }
+.screen::-webkit-scrollbar-thumb, .sheet::-webkit-scrollbar-thumb { background: #d0d3d9; border-radius: 3px; }
+
+.overlay { position: absolute; inset: 0; background: rgba(0,0,0,.45); z-index: 20; display: flex; align-items: flex-end; }
+.overlay .sheet {
+  background: #fff; width: 100%; max-height: 92%; overflow-y: auto;
+  border-radius: 14px 14px 0 0; padding: 14px;
+}
+.sheet h3 { font-size: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.sheet .x { color: #909399; font-size: 16px; cursor: pointer; background: none; }
+
+.navbar { position: sticky; bottom: 0; display: flex; background: #fff; border-top: 1px solid #ebeef5; z-index: 5; }
+.navbar div { flex: 1; text-align: center; padding: 7px 0 6px; font-size: 11px; color: #909399; cursor: pointer; }
+.navbar div.on { color: #2f6fed; font-weight: 700; }
+
+/* ============ 通用组件（与原型一致） ============ */
+.card { background: #fff; border-radius: 10px; padding: 12px; margin: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.card h4 { font-size: 13px; margin-bottom: 8px; color: #303133; }
+
+.poirow { display: flex; align-items: center; gap: 8px; background: #f7f8fa; border-radius: 8px; padding: 10px 10px; margin-bottom: 8px; cursor: pointer; }
+.poirow .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.poirow .txt b { display: block; font-size: 13px; }
+.poirow .txt span { font-size: 11px; color: #909399; }
+.poirow .arrow { margin-left: auto; color: #c0c4cc; }
+
+.mapmock { margin: 10px; height: 120px; border-radius: 10px; background: linear-gradient(135deg,#e8f0e4,#dfe9f5); position: relative; overflow: hidden; }
+.mapmock svg { width: 100%; height: 100%; }
+
+.typelist .trow { display: flex; align-items: center; gap: 8px; border: 1.5px solid #ebeef5; border-radius: 9px; padding: 8px 10px; margin-bottom: 7px; cursor: pointer; }
+.typelist .trow.on { border-color: #ffc300; background: #fffbe6; }
+.typelist .trow b { font-size: 13px; }
+.typelist .trow small { color: #909399; font-size: 10px; display: block; }
+.typelist .trow .pr { margin-left: auto; text-align: right; }
+
+.couponchips { display: flex; gap: 6px; flex-wrap: wrap; }
+.couponchips span { border: 1px dashed #f59e0b; color: #b88200; background: #fff8e6; border-radius: 5px; padding: 3px 8px; font-size: 11px; cursor: pointer; }
+.couponchips span.on { background: #f59e0b; color: #fff; border-style: solid; }
+.couponchips span.dis { border-color: #dcdfe6; color: #c0c4cc; background: #f4f4f5; cursor: not-allowed; }
+
+/* -------- 优惠券行式卡（首页选券 / 我的券 / 领券中心共用） -------- */
+.cardhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.cardhead h4 { margin: 0; }
+.cardhead .link { font-size: 11px; color: #b88200; cursor: pointer; }
+.couponlist .crow { display: flex; align-items: center; gap: 9px; border: 1.5px solid #ebeef5; border-radius: 9px; padding: 8px 10px; margin-bottom: 7px; cursor: pointer; background: #fff; }
+.couponlist .crow.on { border-color: #ffc300; background: #fffbe6; }
+.couponlist .crow.dis { opacity: .55; cursor: not-allowed; background: #fafafa; }
+.couponlist .face { min-width: 54px; text-align: center; background: #fff4d6; color: #b88200; border-radius: 6px; padding: 5px 2px; }
+.couponlist .face b { font-size: 14px; display: block; line-height: 1.2; }
+.couponlist .face small { font-size: 9px; }
+.couponlist .meta { flex: 1; min-width: 0; }
+.couponlist .meta b { font-size: 12px; display: block; }
+.couponlist .meta small { color: #909399; font-size: 10px; display: block; margin-top: 1px; }
+.couponlist .pick { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #dcdfe6; box-sizing: border-box; }
+.couponlist .crow.on .pick { border-color: #ffc300; background: #ffc300; box-shadow: inset 0 0 0 2.5px #fff; }
+.btn.got { background: #f4f4f5; color: #c0c4cc; cursor: not-allowed; padding: 5px 12px; font-size: 11px; }
+
+/* -------- 客服中心全屏页 -------- */
+.fullpage { position: absolute; inset: 0; background: #f5f6f8; overflow-y: auto; padding: 0 10px 16px; }
+.fphead { display: flex; align-items: center; gap: 10px; background: #ffc300; margin: 0 -10px; padding: 14px; }
+.fphead .back { font-size: 13px; color: #303133; cursor: pointer; padding: 2px 6px; }
+.fpheadtxt b { font-size: 15px; display: block; }
+.fpheadtxt small { font-size: 10px; color: #6b5900; }
+.faqrow { border-top: 1px solid #f0f1f4; padding: 9px 2px; cursor: pointer; }
+.faqrow:first-of-type { border-top: none; }
+.faqrow .q { font-size: 12px; color: #303133; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.faqrow .q em { font-style: normal; color: #b88200; font-size: 11px; flex: none; }
+.faqrow .q .arrow { margin-left: auto; color: #c0c4cc; font-weight: 400; }
+.faqrow .a { font-size: 11px; color: #909399; line-height: 1.7; margin-top: 6px; padding-left: 21px; }
+
+.callbar { margin: 10px; }
+.callbar button { width: 100%; padding: 13px; font-size: 15px; font-weight: 700; background: #303133; color: #ffc300; border-radius: 10px; }
+.callbar button:disabled { background: #c0c4cc; color: #fff; cursor: not-allowed; }
+.note { font-size: 10px; color: #909399; margin-top: 6px; line-height: 1.5; }
+
+.statbig { text-align: center; padding: 18px 0 8px; }
+.statbig .t1 { font-size: 15px; font-weight: 700; }
+.statbig .t2 { color: #909399; font-size: 11px; margin-top: 4px; }
+.cd { font-family: Consolas, monospace; font-size: 24px; font-weight: 700; color: #2f6fed; }
+
+.drvcard { display: flex; gap: 10px; align-items: center; }
+.drvcard .avatar { width: 44px; height: 44px; border-radius: 50%; background: #e8f1ff; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+
+.chip { display: inline-block; border-radius: 4px; padding: 1px 7px; font-size: 10px; }
+.chip.st-WAITING { background: #fdf6ec; color: #e6a23c; }
+.chip.st-PENDING { background: #fdf6ec; color: #e6a23c; }
+.chip.st-IN_SERVICE { background: #2f6fed; color: #fff; }
+.chip.st-COMPLETED { background: #f0f9eb; color: #67c23a; }
+.chip.st-COMPLETED_UNPAID { background: #f0f9eb; color: #67c23a; }
+.chip.st-ACCEPTED { background: #ecf5ff; color: #409eff; }
+.chip.st-ARRIVED { background: #f0f9eb; color: #67c23a; }
+.chip.st-IN_TRIP { background: #2f6fed; color: #fff; }
+.chip.st-ENDED { background: #f4f4f5; color: #909399; }
+.chip.st-CANCELLED { background: #fef0f0; color: #f56c6c; }
+
+.btnrow { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.btn { padding: 9px 0; flex: 1; font-size: 13px; border-radius: 8px; }
+.btn.dark { background: #303133; color: #ffc300; }
+.btn.blue { background: #2f6fed; color: #fff; }
+.btn.green { background: #67c23a; color: #fff; }
+.btn.red { background: #f56c6c; color: #fff; }
+.btn.ghost { background: #fff; color: #606266; border: 1px solid #dcdfe6; }
+.btn.yellow { background: #ffc300; color: #303133; }
+.btn:disabled { background: #c0c4cc !important; color: #fff !important; cursor: not-allowed; }
+
+.feelist div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; color: #606266; }
+.feelist div.total { border-top: 1px dashed #e4e7ed; margin-top: 4px; padding-top: 8px; color: #303133; font-weight: 700; font-size: 14px; }
+
+.tl { border-left: 2px solid #ebeef5; margin: 8px 0 4px 6px; padding-left: 12px; }
+.tl .ev { margin-bottom: 8px; }
+.tl .ev b { font-size: 12px; display: block; }
+.tl .ev span { font-size: 10px; color: #909399; }
+
+/* -------- 地图（城市底图 + 定位脉冲） -------- */
+.hubmap { height: 170px; background: #f1f2f4; overflow: hidden; }
+.hubmap svg { width: 100%; height: 100%; display: block; }
+.hubmap .pulse { animation: mappulse 2.4s ease-out infinite; }
+@keyframes mappulse {
+  0% { r: 5; opacity: .38; }
+  70% { r: 15; opacity: 0; }
+  100% { r: 15; opacity: 0; }
+}
+
+/* -------- 客服中心（热线卡） -------- */
+.hotline { background: linear-gradient(180deg, #2f6fed, #2f7cf6); color: #fff; border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+.hotline span { font-size: 11px; opacity: .85; }
+.hotline b { display: block; font-size: 22px; letter-spacing: 1px; margin: 2px 0; }
+.hotline small { font-size: 10px; opacity: .85; }
+
+/* ============ 司机端组件 ============ */
+.drvtop { background: linear-gradient(135deg, #2f6fed, #1e4fc4); color: #fff; padding: 14px 12px 12px; }
+.drvtop .row1 { display: flex; justify-content: space-between; align-items: center; }
+.modebox { display: flex; gap: 6px; }
+.modebox button { padding: 5px 12px; border-radius: 14px; font-size: 11px; background: rgba(255,255,255,.2); color: #fff; }
+.modebox button.on { background: #fff; color: #2f6fed; font-weight: 700; }
+.dutybtn { padding: 6px 14px; border-radius: 16px; font-size: 12px; }
+
+.poolcard { background: #fff; border-radius: 10px; padding: 11px; margin: 9px 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.poolcard .route { display: flex; gap: 7px; align-items: center; font-size: 12px; margin-bottom: 6px; }
+.poolcard .route .dots { display: flex; flex-direction: column; gap: 3px; }
+.poolcard .meta { display: flex; gap: 10px; font-size: 11px; color: #606266; margin-bottom: 8px; flex-wrap: wrap; }
+
+.invitebar { background: #fff7e6; border: 1px solid #ffd591; border-radius: 10px; margin: 10px; padding: 11px; }
+.suborder { border: 1px solid #ebeef5; border-radius: 9px; padding: 9px; margin-bottom: 8px; background: #fff; }
+
+.bucket { display: flex; gap: 8px; margin-top: 6px; }
+.bucket > div { flex: 1; text-align: center; background: #f7f8fa; border-radius: 8px; padding: 8px 0; }
+.bucket b { display: block; font-size: 14px; }
+.bucket span { font-size: 10px; color: #909399; }
+
+.incgrid { display: flex; gap: 8px; margin-bottom: 10px; }
+.incgrid .cell { flex: 1; text-align: center; background: #f7f8fa; border-radius: 8px; padding: 10px 0; }
+.incgrid .cell b { display: block; font-size: 17px; }
+.incgrid .cell span { font-size: 10px; color: #909399; }
+
+/* ============ Toast ============ */
+#toast {
+  position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%);
+  background: rgba(0,0,0,.78); color: #fff; padding: 9px 18px; border-radius: 8px;
+  font-size: 12px; display: none; z-index: 99; max-width: 80%;
+}
