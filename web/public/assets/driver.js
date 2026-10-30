@@ -637,6 +637,14 @@ async function loadWithdrawals() {
     S.withdrawals = [];
     q.total = 0;
   }
+  // 提现状态变化（驳回退款 / 打款出账）会同时改变余额与流水，
+  // 检测到变化就联动刷新，避免余额卡片停留在申请提现时的快照。
+  const sig = (S.withdrawals || []).map((w) => w.status).join(',');
+  if (S.wdStatusSig !== undefined && sig !== S.wdStatusSig) {
+    loadProfile();
+    loadFlows();
+  }
+  S.wdStatusSig = sig;
   // 累计提现独立于筛选条件：始终统计该司机全部已到账单据。
   loadWithdrawTotal();
   renderAll();
