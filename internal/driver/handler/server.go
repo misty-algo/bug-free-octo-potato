@@ -245,6 +245,7 @@ func (s *Server) GetIncomeCompare(ctx context.Context, req *driverv1.GetIncomeCo
 func (s *Server) ListIncomeFlows(ctx context.Context, req *driverv1.ListIncomeFlowsRequest) (*driverv1.ListIncomeFlowsResponse, error) {
 	items, total, err := s.svc.ListIncomeFlows(ctx, dto.ListFlowsCommand{
 		DriverID: req.GetDriverId(), Page: int(req.GetPage()), PageSize: int(req.GetPageSize()),
+		From: req.GetFrom(), To: req.GetTo(),
 	})
 	if err != nil {
 		return nil, mapDriverError(err)
@@ -288,6 +289,7 @@ func (s *Server) RequestWithdraw(ctx context.Context, req *driverv1.RequestWithd
 func (s *Server) ListWithdrawals(ctx context.Context, req *driverv1.ListWithdrawalsRequest) (*driverv1.ListWithdrawalsResponse, error) {
 	items, total, err := s.svc.ListWithdrawals(ctx, dto.ListWithdrawalsCommand{
 		DriverID: req.GetDriverId(), Page: int(req.GetPage()), PageSize: int(req.GetPageSize()),
+		From: req.GetFrom(), To: req.GetTo(), Status: req.GetStatus(),
 	})
 	if err != nil {
 		return nil, mapDriverError(err)

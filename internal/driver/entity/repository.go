@@ -103,7 +103,8 @@ type IncomeRepository interface {
 	GetFlowByEventID(ctx context.Context, eventID string) (*IncomeFlow, error)
 	GetFlowByID(ctx context.Context, id string) (*IncomeFlow, error)
 	GetFlowByKey(ctx context.Context, driverID, idempotencyKey string) (*IncomeFlow, error)
-	ListFlows(ctx context.Context, driverID string, offset, limit int) ([]*IncomeFlow, int64, error)
+	// ListFlows 收入流水分页；from/to 为记账日 yyyy-mm-dd（含，空表示不限）。
+	ListFlows(ctx context.Context, driverID, from, to string, offset, limit int) ([]*IncomeFlow, int64, error)
 	// SumByAccountingDate 按记账日汇总收入与退款（退款为负值）。
 	SumByAccountingDate(ctx context.Context, driverID, dateKey string) (incomeFen, refundFen int64, err error)
 	// ListPendingSettlement 待结算（U 桶）流水，供财务域确认结算。
@@ -119,7 +120,9 @@ type IncomeRepository interface {
 	GetWithdrawByKey(ctx context.Context, driverID, idempotencyKey string) (*Withdrawal, error)
 	// UpdateWithdraw 原子更新提现单（乐观锁由 version 校验）。
 	UpdateWithdraw(ctx context.Context, w *Withdrawal) error
-	ListWithdraws(ctx context.Context, driverID string, offset, limit int) ([]*Withdrawal, int64, error)
+	// ListWithdraws 提现记录分页；from/to 为申请日 yyyy-mm-dd（含，空表示不限），
+	// status 为空表示全部状态。
+	ListWithdraws(ctx context.Context, driverID, from, to, status string, offset, limit int) ([]*Withdrawal, int64, error)
 	// WithdrawTodayStats 当日已受理金额与次数（不含驳回）。
 	WithdrawTodayStats(ctx context.Context, driverID string, dayStart time.Time) (amountFen int64, count int64, err error)
 }

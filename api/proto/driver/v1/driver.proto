@@ -325,6 +325,8 @@ message ListIncomeFlowsRequest {
   string driver_id = 1;
   int32 page = 2;
   int32 page_size = 3;
+  string from = 4; // 记账日起（YYYY-MM-DD，含），为空表示不限
+  string to = 5;   // 记账日止（YYYY-MM-DD，含），为空表示不限
 }
 
 message ListIncomeFlowsResponse {
@@ -383,6 +385,9 @@ message ListWithdrawalsRequest {
   string driver_id = 1;
   int32 page = 2;
   int32 page_size = 3;
+  string from = 4;    // 申请时间起（YYYY-MM-DD，含），为空表示不限
+  string to = 5;      // 申请时间止（YYYY-MM-DD，含），为空表示不限
+  string status = 6;  // reviewing/approved/paying/success/rejected，为空表示全部
 }
 
 message ListWithdrawalsResponse {

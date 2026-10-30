@@ -248,6 +248,7 @@ func (h *DriverHandler) GetFlows(c *gin.Context) {
 	}
 	resp, err := h.client.ListIncomeFlows(outgoingContext(c), &driverv1.ListIncomeFlowsRequest{
 		DriverId: req.DriverID, Page: req.Page, PageSize: req.PageSize,
+		From: req.From, To: req.To,
 	})
 	handleDriverResponse(c, resp, err)
 }
@@ -284,6 +285,7 @@ func (h *DriverHandler) ListWithdrawals(c *gin.Context) {
 	}
 	resp, err := h.client.ListWithdrawals(outgoingContext(c), &driverv1.ListWithdrawalsRequest{
 		DriverId: req.DriverID, Page: req.Page, PageSize: req.PageSize,
+		From: req.From, To: req.To, Status: req.Status,
 	})
 	handleDriverResponse(c, resp, err)
 }

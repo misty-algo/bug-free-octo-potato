@@ -182,6 +182,9 @@ type ListFlowsCommand struct {
 	DriverID string
 	Page     int
 	PageSize int
+	// From/To 记账日 yyyy-mm-dd，闭区间；留空表示不限。
+	From string
+	To   string
 }
 
 // ListWithdrawalsCommand 提现记录分页查询。
@@ -189,4 +192,9 @@ type ListWithdrawalsCommand struct {
 	DriverID string
 	Page     int
 	PageSize int
+	// From/To 申请日 yyyy-mm-dd，闭区间；留空表示不限。
+	From string
+	To   string
+	// Status 提现状态；留空表示全部。
+	Status string
 }

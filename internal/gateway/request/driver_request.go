@@ -112,6 +112,11 @@ type IncomeQueryRequest struct {
 	DriverID string `form:"driver_id" binding:"required"`
 	Page     int32  `form:"page"`
 	PageSize int32  `form:"page_size"`
+	// From/To 日期区间（yyyy-mm-dd，闭区间，含两端）；留空表示不限。
+	From string `form:"from"`
+	To   string `form:"to"`
+	// Status 仅提现记录使用：reviewing/approved/paying/success/rejected；留空表示全部。
+	Status string `form:"status"`
 }
 
 // RequestWithdrawRequest 提现申请请求体（金额单位：分）。

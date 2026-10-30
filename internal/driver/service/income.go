@@ -259,7 +259,7 @@ func (s *Service) ListIncomeFlows(ctx context.Context, cmd dto.ListFlowsCommand)
 	if size > 100 {
 		size = 100
 	}
-	flows, total, err := s.incomes.ListFlows(ctx, cmd.DriverID, (page-1)*size, size)
+	flows, total, err := s.incomes.ListFlows(ctx, cmd.DriverID, cmd.From, cmd.To, (page-1)*size, size)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -348,7 +348,7 @@ func (s *Service) ListWithdrawals(ctx context.Context, cmd dto.ListWithdrawalsCo
 	if size > 100 {
 		size = 100
 	}
-	list, total, err := s.incomes.ListWithdraws(ctx, cmd.DriverID, (page-1)*size, size)
+	list, total, err := s.incomes.ListWithdraws(ctx, cmd.DriverID, cmd.From, cmd.To, cmd.Status, (page-1)*size, size)
 	if err != nil {
 		return nil, 0, err
 	}

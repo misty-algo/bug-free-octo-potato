@@ -16,6 +16,10 @@ const S = {
   todayIncome: 0,
   flows: null,
   withdrawals: null,
+  // 两个长列表各自独立的查询条件与分页状态（每页 10 条，total 来自接口）。
+  flowQuery: { from: '', to: '', page: 1, pageSize: 10, total: 0 },
+  wdQuery: { from: '', to: '', status: '', page: 1, pageSize: 10, total: 0 },
+  withdrawTotalFen: 0,
   sheet: null,       // { type: 'create' } 首次建档弹层
 };
 
@@ -177,9 +181,56 @@ function drvIncomeView() {
     '<button class="btn blue" style="flex:none;padding:8px 16px;" onclick="drvWithdraw()">申请提现</button></div>' +
     `<div class="note">提现规则：单笔 ¥${fy(S.rule.min_withdraw_fen)} ~ ¥${fy(S.rule.max_withdraw_fen)}，单日 ${S.rule.daily_max_count} 笔 / ¥${fy(S.rule.daily_limit_fen)}；单笔 ≥ ¥${fy(S.rule.dual_approval_fen)} 需双人审批。</div></div>`;
 
-  h += '<div class="card"><h4>收入流水</h4>';
-  if (!S.flows || !S.flows.length) h += '<div class="note">暂无流水，完单后自动记账</div>';
-  for (const f of (S.flows || []).slice(0, 12)) {
+  h += '<div class="card"><h4>收入流水</h4>' +
+    drvRangeFilter('fl', S.flowQuery, 'drvFlowSearch()') +
+    (S.flows && S.flows.length ? renderFlowRows() : '<div class="note">该条件下暂无流水</div>') +
+    drvPager('fl', S.flowQuery, 'drvFlowPage');
+  h += '</div>';
+
+  h += '<div class="card"><h4>提现记录' + (S.withdrawTotalFen ? `（累计已到账 <b style="color:#16a34a;">¥${fy(S.withdrawTotalFen)}</b>）` : '') + '</h4>' +
+    drvRangeFilter('wd', S.wdQuery, 'drvWdSearch()') +
+    '<div style="display:flex;gap:6px;margin-top:6px;"><select id="wdStatus" onchange="drvWdSearch()" style="flex:1;font-size:12px;">' +
+    WD_STATUS_OPTIONS.map((o) => `<option value="${o.value}"${S.wdQuery.status === o.value ? ' selected' : ''}>${o.label}</option>`).join('') +
+    '</select></div>' +
+    (S.withdrawals && S.withdrawals.length ? renderWithdrawRows() : '<div class="note">该条件下暂无提现记录</div>') +
+    drvPager('wd', S.wdQuery, 'drvWdPage');
+  h += '</div>';
+  return h;
+}
+
+// ── 列表筛选与分页（收入流水 / 提现记录共用）──
+
+const WD_STATUS_OPTIONS = [
+  { value: '', label: '全部状态' },
+  { value: 'reviewing', label: '审核中' },
+  { value: 'approved', label: '待打款' },
+  { value: 'paying', label: '打款中' },
+  { value: 'success', label: '已到账' },
+  { value: 'rejected', label: '已驳回' },
+];
+
+// drvRangeFilter 起止日期 + 查询：按记账日/申请日过滤，避免列表无限变长。
+function drvRangeFilter(prefix, query, searchFn) {
+  return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">' +
+    `<input id="${prefix}From" type="date" value="${esc(query.from || '')}" onchange="${searchFn}" style="flex:1;font-size:12px;">` +
+    `<span style="color:#909399;">~</span>` +
+    `<input id="${prefix}To" type="date" value="${esc(query.to || '')}" onchange="${searchFn}" style="flex:1;font-size:12px;">` +
+    `<button class="btn blue" style="flex:none;padding:6px 12px;font-size:12px;" onclick="${searchFn}">查询</button></div>`;
+}
+
+// drvPager 上一页/下一页：页码与总数由接口 total 换算。
+function drvPager(prefix, query, pageFn) {
+  const size = query.pageSize || 10;
+  const pages = Math.max(1, Math.ceil((query.total || 0) / size));
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:#606266;">` +
+    `<button class="btn" style="padding:4px 10px;font-size:12px;" ${query.page <= 1 ? 'disabled' : ''} onclick="${pageFn}(-1)">上一页</button>` +
+    `<span>第 ${query.page}/${pages} 页 · 共 ${query.total || 0} 条</span>` +
+    `<button class="btn" style="padding:4px 10px;font-size:12px;" ${query.page >= pages ? 'disabled' : ''} onclick="${pageFn}(1)">下一页</button></div>`;
+}
+
+function renderFlowRows() {
+  let h = '';
+  for (const f of S.flows || []) {
     // 流水金额嵌在 amount 对象里（driver_income_fen），旧字段做兜底。
     const raw = f.amount && typeof f.amount === 'object'
       ? f.amount.driver_income_fen
@@ -189,15 +240,21 @@ function drvIncomeView() {
       `<br><small style="color:#909399;">${esc(f.accounting_date || f.created_at || '')}</small></span>` +
       `<b style="color:#67c23a;">+¥${fy(raw)}</b></div>`;
   }
-  h += '</div>';
+  return h;
+}
 
-  if (S.withdrawals && S.withdrawals.length) {
-    h += '<div class="card"><h4>提现记录</h4>';
-    for (const w of S.withdrawals.slice(0, 8)) {
-      // 提现状态中文化：司机看得懂单子卡在哪一步。
-      const wStatus = { reviewing: '审核中', approved: '待打款', paying: '打款中', success: '已到账', rejected: '已驳回' }[w.status || ''] || (w.status || '-');
-      h += `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #f0f0f0;font-size:12px;">` +
-        `<span>${esc(w.created_at || '')}</span><b>¥${fy(w.amount_fen)} · ${esc(wStatus)}</b></div>`;
+function renderWithdrawRows() {
+  let h = '';
+  for (const w of S.withdrawals || []) {
+    // 提现状态中文化 + 着色：审核中橙、已到账绿、驳回灰，管理端审核结果一目了然。
+    const wStatus = { reviewing: '审核中', approved: '待打款', paying: '打款中', success: '已到账', rejected: '已驳回' }[w.status || ''] || (w.status || '-');
+    const wColor = { reviewing: '#d97706', approved: '#2563eb', paying: '#2563eb', success: '#16a34a', rejected: '#9ca3af' }[w.status || ''] || '#374151';
+    h += `<div style="padding:5px 0;border-bottom:1px dashed #f0f0f0;font-size:12px;">` +
+      `<div style="display:flex;justify-content:space-between;">` +
+      `<span>${esc(w.created_at || '')}</span><b style="color:${wColor};">¥${fy(w.amount_fen)} · ${esc(wStatus)}</b></div>`;
+    // 驳回理由必须让司机看到：管理端驳回时必填，这里原样展示。
+    if (w.status === 'rejected' && w.reason) {
+      h += `<div style="color:#9ca3af;margin-top:2px;">驳回理由：${esc(w.reason)}</div>`;
     }
     h += '</div>';
   }
@@ -429,15 +486,14 @@ async function loadIncome() {
     // 今日/昨日收益对比（完单量按结束日、收入按记账日，D11 口径）。
     try { S.compare = await api(`/driver/income/compare?driver_id=${encodeURIComponent(S.driverId)}`); }
     catch { S.compare = null; }
-    const flows = await api(`/driver/income/flows?driver_id=${encodeURIComponent(S.driverId)}&page=1&page_size=100`);
-    S.flows = flows.items || flows.list || [];
-    // 今日统计从收入流水聚合：刷新或换设备后仍以账本为准，不再依赖会话内存。
-    const today = new Date().toISOString().slice(0, 10);
+    // 今日统计单独按记账日查：与流水列表的筛选/分页互不影响。
+    const todayKey = bizDateKey(new Date());
+    const todayFlows = await api(`/driver/income/flows?driver_id=${encodeURIComponent(S.driverId)}` +
+      `&from=${todayKey}&to=${todayKey}&page=1&page_size=100`);
     let done = 0;
     let income = 0;
-    for (const f of S.flows) {
-      const day = String(f.accounting_date || f.created_at || '').slice(0, 10);
-      if (day !== today || (f.flow_type || f.type) !== 'income') continue;
+    for (const f of todayFlows.items || todayFlows.list || []) {
+      if ((f.flow_type || f.type) !== 'income') continue;
       done += 1;
       income += (f.amount && typeof f.amount === 'object' ? f.amount.driver_income_fen : f.driver_income_fen) || 0;
     }
@@ -449,16 +505,103 @@ async function loadIncome() {
   renderAll();
 }
 
-async function loadWithdrawals() {
+// bizDateKey 取业务时区（Asia/Shanghai）的 yyyy-mm-dd，与后端记账日口径一致。
+function bizDateKey(date) {
+  const shifted = new Date(date.getTime() + 8 * 3600 * 1000);
+  return shifted.toISOString().slice(0, 10);
+}
+
+// ── 收入流水：日期筛选 + 分页 ──
+
+async function loadFlows() {
   if (!S.driverId) return;
+  const q = S.flowQuery;
   try {
-    const data = await api(`/driver/income/withdrawals?driver_id=${encodeURIComponent(S.driverId)}`);
-    S.withdrawals = data.items || data.list || [];
+    const url = `/driver/income/flows?driver_id=${encodeURIComponent(S.driverId)}` +
+      `&page=${q.page}&page_size=${q.pageSize}` +
+      (q.from ? `&from=${encodeURIComponent(q.from)}` : '') +
+      (q.to ? `&to=${encodeURIComponent(q.to)}` : '');
+    const data = await api(url);
+    S.flows = data.items || data.list || [];
+    q.total = data.total || 0;
   } catch (error) {
-    S.withdrawals = [];
+    S.flows = [];
+    q.total = 0;
   }
   renderAll();
 }
+
+function drvFlowSearch() {
+  S.flowQuery.from = (document.getElementById('flFrom') || {}).value || '';
+  S.flowQuery.to = (document.getElementById('flTo') || {}).value || '';
+  S.flowQuery.page = 1;
+  loadFlows();
+}
+
+function drvFlowPage(delta) {
+  const next = S.flowQuery.page + delta;
+  if (next < 1) return;
+  S.flowQuery.page = next;
+  loadFlows();
+}
+
+// ── 提现记录：日期 + 状态筛选 + 分页 ──
+
+async function loadWithdrawals() {
+  if (!S.driverId) return;
+  const q = S.wdQuery;
+  try {
+    const url = `/driver/income/withdrawals?driver_id=${encodeURIComponent(S.driverId)}` +
+      `&page=${q.page}&page_size=${q.pageSize}` +
+      (q.from ? `&from=${encodeURIComponent(q.from)}` : '') +
+      (q.to ? `&to=${encodeURIComponent(q.to)}` : '') +
+      (q.status ? `&status=${encodeURIComponent(q.status)}` : '');
+    const data = await api(url);
+    S.withdrawals = data.items || data.list || [];
+    q.total = data.total || 0;
+  } catch (error) {
+    S.withdrawals = [];
+    q.total = 0;
+  }
+  // 累计提现独立于筛选条件：始终统计该司机全部已到账单据。
+  loadWithdrawTotal();
+  renderAll();
+}
+
+// loadWithdrawTotal 累计已到账金额单独取数，避免被列表筛选切走。
+async function loadWithdrawTotal() {
+  if (!S.driverId) return;
+  try {
+    const data = await api(`/driver/income/withdrawals?driver_id=${encodeURIComponent(S.driverId)}` +
+      `&status=success&page=1&page_size=100`);
+    S.withdrawTotalFen = (data.items || data.list || []).reduce((sum, w) => sum + (w.amount_fen || 0), 0);
+  } catch (error) {
+    // 累计值取不到时保留上一次结果，不影响列表。
+  }
+}
+
+function drvWdSearch() {
+  S.wdQuery.from = (document.getElementById('wdFrom') || {}).value || '';
+  S.wdQuery.to = (document.getElementById('wdTo') || {}).value || '';
+  S.wdQuery.status = (document.getElementById('wdStatus') || {}).value || '';
+  S.wdQuery.page = 1;
+  loadWithdrawals();
+}
+
+function drvWdPage(delta) {
+  const next = S.wdQuery.page + delta;
+  if (next < 1) return;
+  S.wdQuery.page = next;
+  loadWithdrawals();
+}
+
+// 提现审核结果轮询：存在"审核中/待打款/打款中"单据时每 8 秒拉一次，
+// 管理端通过/驳回/打款后司机端无需手动刷新即可看到状态变化；全部到终态则自动停止。
+setInterval(() => {
+  if (S.tab !== 'income' || !S.driverId) return;
+  const pending = (S.withdrawals || []).some((w) => ['reviewing', 'approved', 'paying'].includes(w.status));
+  if (pending) loadWithdrawals();
+}, 8000);
 
 function withdraw() {
   const input = document.getElementById('wdAmount');
@@ -475,6 +618,9 @@ async function submitWithdraw(amountFen) {
     });
     // 申请只是预占（可用A→提现中W）：出账必须等管理端审核通过，不能"一点就到账"。
     toast(`提现申请已提交，等待平台审核${data.dual_approval ? '（大额单需双人审批）' : ''}`);
+    // 回到第 1 页并清掉状态筛选，保证新提交的申请一定看得见。
+    S.wdQuery.page = 1;
+    S.wdQuery.status = '';
     await loadProfile();
     await loadIncome();
     loadWithdrawals();
@@ -516,12 +662,17 @@ window.drvComplete = completeTrip;
 window.drvRelease = releaseOrder;
 window.drvWithdraw = withdraw;
 window.drvSos = sos;
+window.drvFlowSearch = drvFlowSearch;
+window.drvFlowPage = drvFlowPage;
+window.drvWdSearch = drvWdSearch;
+window.drvWdPage = drvWdPage;
 
 $nav.addEventListener('click', (event) => {
   const tab = event.target.dataset && event.target.dataset.tab;
   if (!tab) return;
   S.tab = tab;
-  if (tab === 'income') { loadIncome(); loadWithdrawals(); }
+  // 收入页三个数据源：概览/对比、流水列表、提现列表，各自分页互不干扰。
+  if (tab === 'income') { loadIncome(); loadFlows(); loadWithdrawals(); }
   renderAll();
 });
 

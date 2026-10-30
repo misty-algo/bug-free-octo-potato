@@ -11,6 +11,7 @@ import (
 
 	"github.com/BwCloudWeGo/bw-cli/internal/driver/entity"
 	dbmodel "github.com/BwCloudWeGo/bw-cli/internal/driver/model"
+	"github.com/BwCloudWeGo/bw-cli/pkg/biztime"
 )
 
 // ─────────────────────────── 流水 / 提现 ───────────────────────────
@@ -78,7 +79,7 @@ func (r *incomeRepo) GetFlowByKey(ctx context.Context, driverID, idempotencyKey 
 	return flowFromDocument(&doc), nil
 }
 
-func (r *incomeRepo) ListFlows(ctx context.Context, driverID string, offset, limit int) ([]*entity.IncomeFlow, int64, error) {
+func (r *incomeRepo) ListFlows(ctx context.Context, driverID, from, to string, offset, limit int) ([]*entity.IncomeFlow, int64, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -88,7 +89,18 @@ func (r *incomeRepo) ListFlows(ctx context.Context, driverID string, offset, lim
 	if offset < 0 {
 		offset = 0
 	}
+	// 记账日是定长 yyyy-mm-dd 字符串，可直接按字典序做闭区间比较。
 	filter := bson.M{"driver_id": driverID}
+	if from != "" || to != "" {
+		dayRange := bson.M{}
+		if from != "" {
+			dayRange["$gte"] = from
+		}
+		if to != "" {
+			dayRange["$lte"] = to
+		}
+		filter["accounting_date"] = dayRange
+	}
 	total, err := r.flows().CountDocuments(ctx, filter)
 	if err != nil {
 		logRepoOp(r.log, "income.ListFlows.count", driverID, err)
@@ -246,7 +258,7 @@ func (r *incomeRepo) UpdateWithdraw(ctx context.Context, w *entity.Withdrawal) e
 	return err
 }
 
-func (r *incomeRepo) ListWithdraws(ctx context.Context, driverID string, offset, limit int) ([]*entity.Withdrawal, int64, error) {
+func (r *incomeRepo) ListWithdraws(ctx context.Context, driverID, from, to, status string, offset, limit int) ([]*entity.Withdrawal, int64, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -254,6 +266,26 @@ func (r *incomeRepo) ListWithdraws(ctx context.Context, driverID string, offset,
 		limit = 100
 	}
 	filter := bson.M{"driver_id": driverID}
+	if status != "" {
+		filter["status"] = status
+	}
+	// 申请日按业务时区换算成 UTC 区间：created_at 入库是 UTC 时刻。
+	if from != "" || to != "" {
+		createdRange := bson.M{}
+		if from != "" {
+			if start, err := biztime.ParseDateKey(from); err == nil {
+				createdRange["$gte"] = start
+			}
+		}
+		if to != "" {
+			if end, err := biztime.ParseDateKey(to); err == nil {
+				createdRange["$lt"] = biztime.DayEnd(end)
+			}
+		}
+		if len(createdRange) > 0 {
+			filter["created_at"] = createdRange
+		}
+	}
 	total, err := r.withdrawals().CountDocuments(ctx, filter)
 	if err != nil {
 		logRepoOp(r.log, "income.ListWithdraws.count", driverID, err)

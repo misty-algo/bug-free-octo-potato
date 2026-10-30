@@ -2415,6 +2415,8 @@ type ListIncomeFlowsRequest struct {
 	DriverId      string                 `protobuf:"bytes,1,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
 	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	From          string                 `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"` // 记账日起（YYYY-MM-DD，含），为空表示不限
+	To            string                 `protobuf:"bytes,5,opt,name=to,proto3" json:"to,omitempty"`     // 记账日止（YYYY-MM-DD，含），为空表示不限
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2468,6 +2470,20 @@ func (x *ListIncomeFlowsRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *ListIncomeFlowsRequest) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *ListIncomeFlowsRequest) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
 }
 
 type ListIncomeFlowsResponse struct {
@@ -2956,6 +2972,9 @@ type ListWithdrawalsRequest struct {
 	DriverId      string                 `protobuf:"bytes,1,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
 	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	From          string                 `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"`     // 申请时间起（YYYY-MM-DD，含），为空表示不限
+	To            string                 `protobuf:"bytes,5,opt,name=to,proto3" json:"to,omitempty"`         // 申请时间止（YYYY-MM-DD，含），为空表示不限
+	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"` // reviewing/approved/paying/success/rejected，为空表示全部
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3009,6 +3028,27 @@ func (x *ListWithdrawalsRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *ListWithdrawalsRequest) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *ListWithdrawalsRequest) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
+func (x *ListWithdrawalsRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
 }
 
 type ListWithdrawalsResponse struct {
@@ -3754,11 +3794,13 @@ const file_driver_v1_driver_proto_rawDesc = "" +
 	"\fpercent_text\x18\x05 \x01(\tR\vpercentText\x12\x18\n" +
 	"\asummary\x18\x06 \x01(\tR\asummary\x12,\n" +
 	"\x12pending_income_fen\x18\a \x01(\x03R\x10pendingIncomeFen\x12&\n" +
-	"\x0flast_updated_at\x18\b \x01(\tR\rlastUpdatedAt\"f\n" +
+	"\x0flast_updated_at\x18\b \x01(\tR\rlastUpdatedAt\"\x8a\x01\n" +
 	"\x16ListIncomeFlowsRequest\x12\x1b\n" +
 	"\tdriver_id\x18\x01 \x01(\tR\bdriverId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"c\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x12\n" +
+	"\x04from\x18\x04 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x05 \x01(\tR\x02to\"c\n" +
 	"\x17ListIncomeFlowsResponse\x122\n" +
 	"\x05items\x18\x01 \x03(\v2\x1c.driver.v1.IncomeFlowMessageR\x05items\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x03R\x05total\"6\n" +
@@ -3808,11 +3850,14 @@ const file_driver_v1_driver_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\tR\tupdatedAt\"f\n" +
+	" \x01(\tR\tupdatedAt\"\xa2\x01\n" +
 	"\x16ListWithdrawalsRequest\x12\x1b\n" +
 	"\tdriver_id\x18\x01 \x01(\tR\bdriverId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x12\n" +
+	"\x04from\x18\x04 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x05 \x01(\tR\x02to\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\"b\n" +
 	"\x17ListWithdrawalsResponse\x121\n" +
 	"\x05items\x18\x01 \x03(\v2\x1b.driver.v1.WithdrawResponseR\x05items\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x03R\x05total\"\xed\x01\n" +
