@@ -23,3 +23,6 @@ docs/superpowers/
 # 否则规则库无法随仓库分发，换机/换人即丢失。上面的 *.md 会把它整目录挡掉。
 !.agent/**/*.md
 !.agent/**
+
+.build/
+
