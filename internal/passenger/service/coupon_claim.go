@@ -50,10 +50,9 @@ func (s *Service) ListClaimableCoupons(ctx context.Context, accountID string, li
 // ClaimCoupon 领取一张平台券到本人名下。
 //
 // 幂等：同券码重复领取返回已领取的券，不重复入账；
-// 平台侧 state 必须仍为 AVAILABLE 且未过期。领取在本域生成一张
+// 平台侧通过条件更新原子抢占（AVAILABLE→CLAIMED）实现先到先得，
+// 抢不到说明券已被他人领走或已过期。领取在本域生成一张
 // available 状态的券，之后的估价匹配、下单锁定复用既有链路。
-// 并发边界：平台侧的领减由营销中心管理；本域以固定券 ID 的唯一记录
-// 保证同一乘客对同一券码只入账一次，跨乘客互不冲突。
 func (s *Service) ClaimCoupon(ctx context.Context, cmd dto.ClaimCouponCommand) (*dto.CouponDTO, error) {
 	if cmd.AccountID == "" {
 		return nil, entity.ErrUnauthorized
@@ -74,17 +73,27 @@ func (s *Service) ClaimCoupon(ctx context.Context, cmd dto.ClaimCouponCommand) (
 		return nil, err
 	}
 	now := s.now().UTC()
-	if platform.State != entity.PlatformCouponStateAvailable {
-		return nil, entity.ErrPlatformCouponUnavailable
-	}
 	if !now.Before(platform.ExpireAt) {
 		return nil, entity.ErrCouponUnavailable
+	}
+	// 先原子抢占平台券：只有抢到（state AVAILABLE→CLAIMED）才入账本域，
+	// 防止并发下同一张券被多个乘客重复领走（先到先得）。
+	claimed, err := s.platform.ClaimOne(ctx, couponNo, cmd.AccountID, now)
+	if err != nil {
+		return nil, err
+	}
+	if !claimed {
+		return nil, entity.ErrPlatformCouponUnavailable
+	}
+	name := strings.TrimSpace(platform.Name)
+	if name == "" {
+		name = "打车券"
 	}
 	coupon := &entity.Coupon{
 		ID:         id,
 		AccountID:  cmd.AccountID,
 		TemplateID: platform.CouponNo,
-		Name:       "打车券",
+		Name:       name,
 		FaceValue:  platform.FaceValueFen,
 		Threshold:  platform.ThresholdFen,
 		State:      entity.CouponStateAvailable,
@@ -100,9 +109,13 @@ func (s *Service) ClaimCoupon(ctx context.Context, cmd dto.ClaimCouponCommand) (
 
 // platformCouponToDTO 把平台券映射为领券中心的展示条目。
 func platformCouponToDTO(item *entity.PlatformCoupon) *dto.CouponDTO {
+	name := strings.TrimSpace(item.Name)
+	if name == "" {
+		name = "打车券"
+	}
 	return &dto.CouponDTO{
 		CouponID:  item.CouponNo,
-		Name:      "打车券",
+		Name:      name,
 		FaceValue: item.FaceValueFen,
 		Threshold: item.ThresholdFen,
 		ExpiresAt: item.ExpireAt,

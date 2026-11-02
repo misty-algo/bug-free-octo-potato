@@ -22,6 +22,7 @@ import (
 type platformCouponDocument struct {
 	CouponNo     string    `bson:"couponNo"`
 	TemplateNo   string    `bson:"templateNo,omitempty"`
+	Name         string    `bson:"name,omitempty"`
 	State        string    `bson:"state"`
 	FaceValueFen int64     `bson:"faceValueFen"`
 	ThresholdFen int64     `bson:"thresholdFen"`
@@ -43,10 +44,13 @@ func NewPlatformCouponRepository(db *mongo.Database) *PlatformCouponRepository {
 	}
 }
 
-// ListAvailable 列出当前可领取的平台券（AVAILABLE 且未过期），按发放时间倒序。
+// ListAvailable 列出当前可领取的平台券（AVAILABLE、券码非空且未过期），
+// 按发放时间倒序。券码为空的历史券无法被领取（领取请求按券码定位），
+// 不进领券中心，避免出现点了就报参数校验错误的死条目。
 func (r *PlatformCouponRepository) ListAvailable(ctx context.Context, limit int, now time.Time) ([]*entity.PlatformCoupon, error) {
 	documents, err := r.collection.FindMany(ctx, bson.M{
 		"state":    entity.PlatformCouponStateAvailable,
+		"couponNo": bson.M{"$exists": true, "$nin": bson.A{nil, ""}},
 		"expireAt": bson.M{"$gt": now},
 	}, options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(int64(limit)))
 	if err != nil {
@@ -71,11 +75,36 @@ func (r *PlatformCouponRepository) FindByCouponNo(ctx context.Context, couponNo 
 	return toPlatformCoupon(document), nil
 }
 
+// ClaimOne 原子抢占一张券：state=AVAILABLE 且未过期才会被置为 CLAIMED。
+// 条件更新由 Mongo 保证并发下只有一个人能领到（MatchedCount=1），
+// 没抢到（已被他人领走/已过期）返回 false，由 service 转成业务错误。
+func (r *PlatformCouponRepository) ClaimOne(ctx context.Context, couponNo, holderAccountID string, now time.Time) (bool, error) {
+	res, err := r.collection.UpdateOne(ctx,
+		bson.M{
+			"couponNo": couponNo,
+			"state":    entity.PlatformCouponStateAvailable,
+			"expireAt": bson.M{"$gt": now},
+		},
+		bson.M{"$set": bson.M{
+			"state":         entity.PlatformCouponStateClaimed,
+			"claimedAt":     now,
+			"claimedBy":     holderAccountID,
+			"claimedDomain": "passenger",
+			"updatedAt":     now,
+		}},
+	)
+	if err != nil {
+		return false, err
+	}
+	return res.MatchedCount > 0, nil
+}
+
 // toPlatformCoupon 把平台券文档转成领域对象。
 func toPlatformCoupon(document *platformCouponDocument) *entity.PlatformCoupon {
 	return &entity.PlatformCoupon{
 		CouponNo:     document.CouponNo,
 		TemplateNo:   document.TemplateNo,
+		Name:         document.Name,
 		State:        document.State,
 		FaceValueFen: document.FaceValueFen,
 		ThresholdFen: document.ThresholdFen,
