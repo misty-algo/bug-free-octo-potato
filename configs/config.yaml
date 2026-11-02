@@ -52,12 +52,12 @@ services:
 
 database:
   driver: mysql
-  # 本地联调临时值：本机 phpStudy MySQL 8.0.12。3306 被 Docker 桌面端端口代理
-  # 长期占用，故 mysqld 以 --port=3307 启动。
-  dsn: "root:root@tcp(127.0.0.1:3307)/xiaolanshu?charset=utf8mb4&parseTime=True&loc=Local"
+  # 线上 MySQL（1Panel 部署的 MySQL 8.4.13）。凭据仅用于本地联调与演示，
+  # 上线前请改为环境变量注入，勿随代码提交。
+  dsn: "root:mysql_EJiKtD@tcp(115.190.238.75:3306)/xiaolanshu?charset=utf8mb4&parseTime=True&loc=Local"
 
 mysql:
-  dsn: "root:root@tcp(127.0.0.1:3307)/xiaolanshu?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "root:mysql_EJiKtD@tcp(115.190.238.75:3306)/xiaolanshu?charset=utf8mb4&parseTime=True&loc=Local"
   max_idle_conns: 10
   max_open_conns: 100
   conn_max_lifetime_seconds: 3600
@@ -76,9 +76,9 @@ mongodb:
   # 也无 viper AutomaticEnv/BindEnv，因此 docker-compose 里声明的
   # MONGODB_URI / MONGODB_USERNAME / MONGODB_PASSWORD / MONGODB_DATABASE
   # 实际不会生效，只能落在本文件。后续应补齐该能力再把真值移回环境变量。
-  uri: mongodb://127.0.0.1:27018/?authSource=admin
-  username: "bw"
-  password: "bw-secret"
+  uri: mongodb://101.96.204.17:27017/?authSource=admin
+  username: "root"
+  password: "root"
   database: huazhu
   app_name: bw-cli
   min_pool_size: 0
@@ -94,7 +94,7 @@ security:
 rabbitmq:
   # 本地 Docker 容器 rabbitmq（rabbitmq:3-management）。
   # 注意：以下为本地容器默认账号，各人环境不同请自行修改，MUST NOT 提交真实凭据。
-  url: amqp://bw:bw123456@127.0.0.1:5672/
+  url: amqp://rabbitmq:rabbitmq@115.190.238.75:5672/
   exchange: xiaolanshu.events
   exchange_type: topic
   queue: xiaolanshu.order.created
@@ -209,9 +209,9 @@ file_storage:
 redis:
   # 6379 被本机另一个带密码的 redis-server 占用（127.0.0.1 特定绑定优先于
   # docker 0.0.0.0 绑定），本项目统一走专用无密码实例 huazhu-shared-redis:6380。
-  addr: 127.0.0.1:6380
+  addr: 115.190.238.75:6379
   username: ""
-  password: ""
+  password: "redis_6HhTa4"
   db: 0
   pool_size: 10
   dial_timeout: 5s
