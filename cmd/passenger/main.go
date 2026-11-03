@@ -106,7 +106,7 @@ func main() {
 		store.Codes(),
 		store.Estimates(),
 		store.Addresses(),
-		passengerrepo.NewLocalPOIRepository(),
+		passengerrepo.NewNominatimPOIRepository(),
 		store.Orders(),
 		store.QuickEntries(),
 		passengertoken.NewIssuer(passengerConfig().TokenSecret),
@@ -116,6 +116,8 @@ func main() {
 		passengerrepo.NewIDGenerator(),
 	)
 	svc.WithCouponRepository(passengerrepo.NewCouponRepository(db))
+	// 评价/投诉仓储：订单完成并支付后可对司机评价或投诉。
+	svc.WithReviewRepository(store.Reviews())
 	// 平台券只读桥：管理端营销中心发到共享库 coupons 集合的券，供乘客端领取。
 	svc.WithPlatformCouponRepository(passengerrepo.NewPlatformCouponRepository(db))
 	// 派单池桥：乘客下单直写司机域 hall_orders，司机端听单/抢单即可见。

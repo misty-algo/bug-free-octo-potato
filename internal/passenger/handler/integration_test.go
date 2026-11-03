@@ -635,6 +635,11 @@ func (m *memOrders) CountByAccount(ctx context.Context, accountID string, state 
 func (m *memOrders) UpdateState(ctx context.Context, order *entity.Order) error {
 	return m.store.UpdateOrderState(ctx, order)
 }
+
+// ApplyDestChange 在内存实现里复用状态更新：目的地变更随订单整体覆盖保存。
+func (m *memOrders) ApplyDestChange(ctx context.Context, order *entity.Order) error {
+	return m.store.UpdateOrderState(ctx, order)
+}
 func (m *memOrders) AppendStatusLog(ctx context.Context, log *entity.OrderStatusLog) error {
 	return m.store.AppendLog(ctx, log)
 }

@@ -91,6 +91,8 @@ type HallOrderDTO struct {
 	DispatchChannel string
 	VisibleInPool   bool
 	PickupDistanceMeters int64
+	// DestChange 乘客发起的更改下车点请求（nil 表示无请求）。
+	DestChange *DestinationChangeDTO
 	InviteRound      int64
 	AcceptDeadline   time.Time
 	ListenDeadline   time.Time
@@ -131,6 +133,19 @@ func FromHallOrder(o *entity.HallOrder) *HallOrderDTO {
 		DurationSec: o.DurationSec, DistanceMeters: o.DistanceMeters,
 		CancelReason: o.CancelReason, ResponsibleParty: o.ResponsibleParty,
 		Version: o.Version, CreatedAt: o.CreatedAt, UpdatedAt: o.UpdatedAt,
+		DestChange: toDestChangeDTO(o.DestChange),
+	}
+}
+
+// toDestChangeDTO 目的地变更实体 → DTO。
+func toDestChangeDTO(change *entity.DestinationChange) *DestinationChangeDTO {
+	if change == nil {
+		return nil
+	}
+	return &DestinationChangeDTO{
+		NewName: change.NewName, NewAddr: change.NewAddr,
+		NewLat: change.NewLat, NewLng: change.NewLng,
+		State: change.State,
 	}
 }
 
@@ -268,4 +283,21 @@ func FromIncomeCompare(c *entity.IncomeCompare) *IncomeCompareDTO {
 		PercentText: c.PercentText, Summary: c.Summary,
 		PendingIncomeFen: c.PendingIncomeFen, LastUpdatedAt: c.LastUpdatedAt,
 	}
+}
+
+// DestinationChangeDTO 乘客更改下车点请求的对外形态。
+type DestinationChangeDTO struct {
+	NewName string  `json:"newName"`
+	NewAddr string  `json:"newAddr"`
+	NewLat  float64 `json:"newLat"`
+	NewLng  float64 `json:"newLng"`
+	// pending 等待司机裁决 / approved 司机已同意 / rejected 司机已拒绝。
+	State string `json:"state"`
+}
+
+// DecideDestinationChangeCommand 司机裁决下车点变更的入参。
+type DecideDestinationChangeCommand struct {
+	DriverID string
+	OrderID  string
+	Approve  bool
 }

@@ -197,3 +197,16 @@ type CompleteWithdrawRequest struct {
 	Success      bool   `json:"success"`
 	Reason       string `json:"reason"`
 }
+
+// DriverDecideDestinationChangeRequest 司机裁决下车点变更。
+type DriverDecideDestinationChangeRequest struct {
+	DriverID string `json:"driverId" binding:"required"`
+	OrderID  string `json:"orderId" binding:"required"`
+	Approve  bool   `json:"approve"`
+}
+
+// DriverHistoryQuery 接单记录 / 反馈通知查询参数。
+type DriverHistoryQuery struct {
+	DriverID string `form:"driver_id" binding:"required"`
+	Limit    int32  `form:"limit"`
+}

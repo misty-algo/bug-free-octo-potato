@@ -433,6 +433,11 @@ func (r *fakeOrderRepository) UpdateState(ctx context.Context, order *entity.Ord
 	return nil
 }
 
+// ApplyDestChange 在内存实现里与 UpdateState 同义：目的地变更随订单一起整体覆盖保存。
+func (r *fakeOrderRepository) ApplyDestChange(ctx context.Context, order *entity.Order) error {
+	return r.UpdateState(ctx, order)
+}
+
 func (r *fakeOrderRepository) AppendStatusLog(ctx context.Context, log *entity.OrderStatusLog) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()

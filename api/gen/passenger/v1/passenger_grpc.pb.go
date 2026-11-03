@@ -19,41 +19,44 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PassengerService_SendCode_FullMethodName              = "/passenger.v1.PassengerService/SendCode"
-	PassengerService_Login_FullMethodName                 = "/passenger.v1.PassengerService/Login"
-	PassengerService_SetPassword_FullMethodName           = "/passenger.v1.PassengerService/SetPassword"
-	PassengerService_BindPhone_FullMethodName             = "/passenger.v1.PassengerService/BindPhone"
-	PassengerService_Refresh_FullMethodName               = "/passenger.v1.PassengerService/Refresh"
-	PassengerService_Logout_FullMethodName                = "/passenger.v1.PassengerService/Logout"
-	PassengerService_UnbindChannel_FullMethodName         = "/passenger.v1.PassengerService/UnbindChannel"
-	PassengerService_CancelAccount_FullMethodName         = "/passenger.v1.PassengerService/CancelAccount"
-	PassengerService_WithdrawCancelAccount_FullMethodName = "/passenger.v1.PassengerService/WithdrawCancelAccount"
-	PassengerService_UpdateProfile_FullMethodName         = "/passenger.v1.PassengerService/UpdateProfile"
-	PassengerService_GetProfile_FullMethodName            = "/passenger.v1.PassengerService/GetProfile"
-	PassengerService_Home_FullMethodName                  = "/passenger.v1.PassengerService/Home"
-	PassengerService_SearchPOI_FullMethodName             = "/passenger.v1.PassengerService/SearchPOI"
-	PassengerService_RecommendPickup_FullMethodName       = "/passenger.v1.PassengerService/RecommendPickup"
-	PassengerService_ListAddresses_FullMethodName         = "/passenger.v1.PassengerService/ListAddresses"
-	PassengerService_SaveAddress_FullMethodName           = "/passenger.v1.PassengerService/SaveAddress"
-	PassengerService_DeleteAddress_FullMethodName         = "/passenger.v1.PassengerService/DeleteAddress"
-	PassengerService_RecordHistory_FullMethodName         = "/passenger.v1.PassengerService/RecordHistory"
-	PassengerService_ClearHistory_FullMethodName          = "/passenger.v1.PassengerService/ClearHistory"
-	PassengerService_UseQuickEntry_FullMethodName         = "/passenger.v1.PassengerService/UseQuickEntry"
-	PassengerService_ListCoupons_FullMethodName           = "/passenger.v1.PassengerService/ListCoupons"
-	PassengerService_SubmitRealName_FullMethodName        = "/passenger.v1.PassengerService/SubmitRealName"
-	PassengerService_GetRealNameStatus_FullMethodName     = "/passenger.v1.PassengerService/GetRealNameStatus"
-	PassengerService_ListClaimableCoupons_FullMethodName  = "/passenger.v1.PassengerService/ListClaimableCoupons"
-	PassengerService_ClaimCoupon_FullMethodName           = "/passenger.v1.PassengerService/ClaimCoupon"
-	PassengerService_Estimate_FullMethodName              = "/passenger.v1.PassengerService/Estimate"
-	PassengerService_QuotePrice_FullMethodName            = "/passenger.v1.PassengerService/QuotePrice"
-	PassengerService_CreateOrder_FullMethodName           = "/passenger.v1.PassengerService/CreateOrder"
-	PassengerService_GetOrder_FullMethodName              = "/passenger.v1.PassengerService/GetOrder"
-	PassengerService_CurrentOrder_FullMethodName          = "/passenger.v1.PassengerService/CurrentOrder"
-	PassengerService_ListOrders_FullMethodName            = "/passenger.v1.PassengerService/ListOrders"
-	PassengerService_CancelQuote_FullMethodName           = "/passenger.v1.PassengerService/CancelQuote"
-	PassengerService_CancelOrder_FullMethodName           = "/passenger.v1.PassengerService/CancelOrder"
-	PassengerService_DriverLocation_FullMethodName        = "/passenger.v1.PassengerService/DriverLocation"
-	PassengerService_MarkOrderPaid_FullMethodName         = "/passenger.v1.PassengerService/MarkOrderPaid"
+	PassengerService_SendCode_FullMethodName                 = "/passenger.v1.PassengerService/SendCode"
+	PassengerService_Login_FullMethodName                    = "/passenger.v1.PassengerService/Login"
+	PassengerService_SetPassword_FullMethodName              = "/passenger.v1.PassengerService/SetPassword"
+	PassengerService_BindPhone_FullMethodName                = "/passenger.v1.PassengerService/BindPhone"
+	PassengerService_Refresh_FullMethodName                  = "/passenger.v1.PassengerService/Refresh"
+	PassengerService_Logout_FullMethodName                   = "/passenger.v1.PassengerService/Logout"
+	PassengerService_UnbindChannel_FullMethodName            = "/passenger.v1.PassengerService/UnbindChannel"
+	PassengerService_CancelAccount_FullMethodName            = "/passenger.v1.PassengerService/CancelAccount"
+	PassengerService_WithdrawCancelAccount_FullMethodName    = "/passenger.v1.PassengerService/WithdrawCancelAccount"
+	PassengerService_UpdateProfile_FullMethodName            = "/passenger.v1.PassengerService/UpdateProfile"
+	PassengerService_GetProfile_FullMethodName               = "/passenger.v1.PassengerService/GetProfile"
+	PassengerService_Home_FullMethodName                     = "/passenger.v1.PassengerService/Home"
+	PassengerService_SearchPOI_FullMethodName                = "/passenger.v1.PassengerService/SearchPOI"
+	PassengerService_RecommendPickup_FullMethodName          = "/passenger.v1.PassengerService/RecommendPickup"
+	PassengerService_ListAddresses_FullMethodName            = "/passenger.v1.PassengerService/ListAddresses"
+	PassengerService_SaveAddress_FullMethodName              = "/passenger.v1.PassengerService/SaveAddress"
+	PassengerService_DeleteAddress_FullMethodName            = "/passenger.v1.PassengerService/DeleteAddress"
+	PassengerService_RecordHistory_FullMethodName            = "/passenger.v1.PassengerService/RecordHistory"
+	PassengerService_ClearHistory_FullMethodName             = "/passenger.v1.PassengerService/ClearHistory"
+	PassengerService_UseQuickEntry_FullMethodName            = "/passenger.v1.PassengerService/UseQuickEntry"
+	PassengerService_ListCoupons_FullMethodName              = "/passenger.v1.PassengerService/ListCoupons"
+	PassengerService_SubmitRealName_FullMethodName           = "/passenger.v1.PassengerService/SubmitRealName"
+	PassengerService_GetRealNameStatus_FullMethodName        = "/passenger.v1.PassengerService/GetRealNameStatus"
+	PassengerService_ListClaimableCoupons_FullMethodName     = "/passenger.v1.PassengerService/ListClaimableCoupons"
+	PassengerService_ClaimCoupon_FullMethodName              = "/passenger.v1.PassengerService/ClaimCoupon"
+	PassengerService_PublishPlatformCoupons_FullMethodName   = "/passenger.v1.PassengerService/PublishPlatformCoupons"
+	PassengerService_Estimate_FullMethodName                 = "/passenger.v1.PassengerService/Estimate"
+	PassengerService_QuotePrice_FullMethodName               = "/passenger.v1.PassengerService/QuotePrice"
+	PassengerService_CreateOrder_FullMethodName              = "/passenger.v1.PassengerService/CreateOrder"
+	PassengerService_GetOrder_FullMethodName                 = "/passenger.v1.PassengerService/GetOrder"
+	PassengerService_CurrentOrder_FullMethodName             = "/passenger.v1.PassengerService/CurrentOrder"
+	PassengerService_ListOrders_FullMethodName               = "/passenger.v1.PassengerService/ListOrders"
+	PassengerService_CancelQuote_FullMethodName              = "/passenger.v1.PassengerService/CancelQuote"
+	PassengerService_CancelOrder_FullMethodName              = "/passenger.v1.PassengerService/CancelOrder"
+	PassengerService_DriverLocation_FullMethodName           = "/passenger.v1.PassengerService/DriverLocation"
+	PassengerService_MarkOrderPaid_FullMethodName            = "/passenger.v1.PassengerService/MarkOrderPaid"
+	PassengerService_RequestDestinationChange_FullMethodName = "/passenger.v1.PassengerService/RequestDestinationChange"
+	PassengerService_SubmitReview_FullMethodName             = "/passenger.v1.PassengerService/SubmitReview"
 )
 
 // PassengerServiceClient is the client API for PassengerService service.
@@ -96,6 +99,9 @@ type PassengerServiceClient interface {
 	// 乘客领取后落入本域 passenger_coupons，后续估价锁券复用既有链路。
 	ListClaimableCoupons(ctx context.Context, in *ListClaimableCouponsRequest, opts ...grpc.CallOption) (*CouponListResponse, error)
 	ClaimCoupon(ctx context.Context, in *ClaimCouponRequest, opts ...grpc.CallOption) (*Coupon, error)
+	// 管理端营销中心发布平台券：向共享库 coupons 批量写入 AVAILABLE 券，
+	// 乘客领券中心即可看到并领取（修复管理端发布后乘客端看不到新券的问题）。
+	PublishPlatformCoupons(ctx context.Context, in *PublishPlatformCouponsRequest, opts ...grpc.CallOption) (*PublishPlatformCouponsResponse, error)
 	// 下单相关
 	Estimate(ctx context.Context, in *EstimateRequest, opts ...grpc.CallOption) (*EstimateResponse, error)
 	QuotePrice(ctx context.Context, in *EstimateRequest, opts ...grpc.CallOption) (*EstimateResponse, error)
@@ -108,6 +114,10 @@ type PassengerServiceClient interface {
 	DriverLocation(ctx context.Context, in *DriverLocationRequest, opts ...grpc.CallOption) (*DriverLocationResponse, error)
 	// 支付成功回调：订单 待支付 → 已完成，并返回司机域结算要素。
 	MarkOrderPaid(ctx context.Context, in *MarkOrderPaidRequest, opts ...grpc.CallOption) (*MarkOrderPaidResponse, error)
+	// 目的地变更：行程中乘客发起新下车点，写入派单任务待司机裁决。
+	RequestDestinationChange(ctx context.Context, in *RequestDestinationChangeRequest, opts ...grpc.CallOption) (*RequestDestinationChangeResponse, error)
+	// 评价与投诉：订单完成并支付后对司机打分（1-5 星）或提交投诉。
+	SubmitReview(ctx context.Context, in *SubmitReviewRequest, opts ...grpc.CallOption) (*SubmitReviewResponse, error)
 }
 
 type passengerServiceClient struct {
@@ -368,6 +378,16 @@ func (c *passengerServiceClient) ClaimCoupon(ctx context.Context, in *ClaimCoupo
 	return out, nil
 }
 
+func (c *passengerServiceClient) PublishPlatformCoupons(ctx context.Context, in *PublishPlatformCouponsRequest, opts ...grpc.CallOption) (*PublishPlatformCouponsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PublishPlatformCouponsResponse)
+	err := c.cc.Invoke(ctx, PassengerService_PublishPlatformCoupons_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *passengerServiceClient) Estimate(ctx context.Context, in *EstimateRequest, opts ...grpc.CallOption) (*EstimateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EstimateResponse)
@@ -468,6 +488,26 @@ func (c *passengerServiceClient) MarkOrderPaid(ctx context.Context, in *MarkOrde
 	return out, nil
 }
 
+func (c *passengerServiceClient) RequestDestinationChange(ctx context.Context, in *RequestDestinationChangeRequest, opts ...grpc.CallOption) (*RequestDestinationChangeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestDestinationChangeResponse)
+	err := c.cc.Invoke(ctx, PassengerService_RequestDestinationChange_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *passengerServiceClient) SubmitReview(ctx context.Context, in *SubmitReviewRequest, opts ...grpc.CallOption) (*SubmitReviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitReviewResponse)
+	err := c.cc.Invoke(ctx, PassengerService_SubmitReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PassengerServiceServer is the server API for PassengerService service.
 // All implementations must embed UnimplementedPassengerServiceServer
 // for forward compatibility.
@@ -508,6 +548,9 @@ type PassengerServiceServer interface {
 	// 乘客领取后落入本域 passenger_coupons，后续估价锁券复用既有链路。
 	ListClaimableCoupons(context.Context, *ListClaimableCouponsRequest) (*CouponListResponse, error)
 	ClaimCoupon(context.Context, *ClaimCouponRequest) (*Coupon, error)
+	// 管理端营销中心发布平台券：向共享库 coupons 批量写入 AVAILABLE 券，
+	// 乘客领券中心即可看到并领取（修复管理端发布后乘客端看不到新券的问题）。
+	PublishPlatformCoupons(context.Context, *PublishPlatformCouponsRequest) (*PublishPlatformCouponsResponse, error)
 	// 下单相关
 	Estimate(context.Context, *EstimateRequest) (*EstimateResponse, error)
 	QuotePrice(context.Context, *EstimateRequest) (*EstimateResponse, error)
@@ -520,6 +563,10 @@ type PassengerServiceServer interface {
 	DriverLocation(context.Context, *DriverLocationRequest) (*DriverLocationResponse, error)
 	// 支付成功回调：订单 待支付 → 已完成，并返回司机域结算要素。
 	MarkOrderPaid(context.Context, *MarkOrderPaidRequest) (*MarkOrderPaidResponse, error)
+	// 目的地变更：行程中乘客发起新下车点，写入派单任务待司机裁决。
+	RequestDestinationChange(context.Context, *RequestDestinationChangeRequest) (*RequestDestinationChangeResponse, error)
+	// 评价与投诉：订单完成并支付后对司机打分（1-5 星）或提交投诉。
+	SubmitReview(context.Context, *SubmitReviewRequest) (*SubmitReviewResponse, error)
 	mustEmbedUnimplementedPassengerServiceServer()
 }
 
@@ -605,6 +652,9 @@ func (UnimplementedPassengerServiceServer) ListClaimableCoupons(context.Context,
 func (UnimplementedPassengerServiceServer) ClaimCoupon(context.Context, *ClaimCouponRequest) (*Coupon, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClaimCoupon not implemented")
 }
+func (UnimplementedPassengerServiceServer) PublishPlatformCoupons(context.Context, *PublishPlatformCouponsRequest) (*PublishPlatformCouponsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PublishPlatformCoupons not implemented")
+}
 func (UnimplementedPassengerServiceServer) Estimate(context.Context, *EstimateRequest) (*EstimateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Estimate not implemented")
 }
@@ -634,6 +684,12 @@ func (UnimplementedPassengerServiceServer) DriverLocation(context.Context, *Driv
 }
 func (UnimplementedPassengerServiceServer) MarkOrderPaid(context.Context, *MarkOrderPaidRequest) (*MarkOrderPaidResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MarkOrderPaid not implemented")
+}
+func (UnimplementedPassengerServiceServer) RequestDestinationChange(context.Context, *RequestDestinationChangeRequest) (*RequestDestinationChangeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestDestinationChange not implemented")
+}
+func (UnimplementedPassengerServiceServer) SubmitReview(context.Context, *SubmitReviewRequest) (*SubmitReviewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitReview not implemented")
 }
 func (UnimplementedPassengerServiceServer) mustEmbedUnimplementedPassengerServiceServer() {}
 func (UnimplementedPassengerServiceServer) testEmbeddedByValue()                          {}
@@ -1106,6 +1162,24 @@ func _PassengerService_ClaimCoupon_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PassengerService_PublishPlatformCoupons_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishPlatformCouponsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).PublishPlatformCoupons(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_PublishPlatformCoupons_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).PublishPlatformCoupons(ctx, req.(*PublishPlatformCouponsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PassengerService_Estimate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(EstimateRequest)
 	if err := dec(in); err != nil {
@@ -1286,6 +1360,42 @@ func _PassengerService_MarkOrderPaid_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PassengerService_RequestDestinationChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestDestinationChangeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).RequestDestinationChange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_RequestDestinationChange_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).RequestDestinationChange(ctx, req.(*RequestDestinationChangeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PassengerService_SubmitReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PassengerServiceServer).SubmitReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PassengerService_SubmitReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PassengerServiceServer).SubmitReview(ctx, req.(*SubmitReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PassengerService_ServiceDesc is the grpc.ServiceDesc for PassengerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1394,6 +1504,10 @@ var PassengerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PassengerService_ClaimCoupon_Handler,
 		},
 		{
+			MethodName: "PublishPlatformCoupons",
+			Handler:    _PassengerService_PublishPlatformCoupons_Handler,
+		},
+		{
 			MethodName: "Estimate",
 			Handler:    _PassengerService_Estimate_Handler,
 		},
@@ -1432,6 +1546,14 @@ var PassengerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MarkOrderPaid",
 			Handler:    _PassengerService_MarkOrderPaid_Handler,
+		},
+		{
+			MethodName: "RequestDestinationChange",
+			Handler:    _PassengerService_RequestDestinationChange_Handler,
+		},
+		{
+			MethodName: "SubmitReview",
+			Handler:    _PassengerService_SubmitReview_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

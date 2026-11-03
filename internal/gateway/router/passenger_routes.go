@@ -60,5 +60,8 @@ func registerPassengerRoutes(v1 *gin.RouterGroup, passengerHandler *handler.Pass
 	passenger.GET("/orders/detail", passengerHandler.GetOrder)
 	passenger.GET("/orders/cancel-quote", passengerHandler.CancelQuote)
 	passenger.POST("/orders/cancel", passengerHandler.CancelOrder)
+	passenger.POST("/orders/destination-change", passengerHandler.RequestDestinationChange)
+	passenger.POST("/orders/review", passengerHandler.SubmitReview)
+	passenger.GET("/orders/driver-position", passengerHandler.TripDriverLocation)
 	passenger.GET("/orders/driver-location", passengerHandler.DriverLocation)
 }

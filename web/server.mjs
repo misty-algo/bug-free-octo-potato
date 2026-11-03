@@ -70,10 +70,13 @@ function sendFile(response, filePath) {
       response.end('not found');
       return;
     }
-    // no-cache：静态资源每次做协商校验，避免改版后浏览器仍跑旧脚本（演示环境资源很小）。
+    // no-store：彻底禁止浏览器缓存（no-cache 在无校验器时仍可能被部分浏览器
+    // 用磁盘缓存顶回来，导致改版后页面跑旧脚本——演示环境资源很小，直接不存）。
     response.writeHead(200, {
       'Content-Type': mimeTypes[path.extname(filePath)] || 'application/octet-stream',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-store, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
     });
     response.end(content);
   });

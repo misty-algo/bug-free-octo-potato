@@ -25,6 +25,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	passengerv1 "github.com/BwCloudWeGo/bw-cli/api/gen/passenger/v1"
 	"github.com/BwCloudWeGo/bw-cli/pkg/clock"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 	"github.com/BwCloudWeGo/bw-cli/pkg/httpx"
@@ -950,18 +951,19 @@ func computeFare(cfg specPricingConfig, distM, durS, cpFen, cdFen int64, carpool
 
 // SpecContractHandler 提供接口文档契约路径的编排实现。
 type SpecContractHandler struct {
-	log   *zap.Logger
-	jwt   middleware.JWTConfig
-	store *specStore
-	clock clock.Clock
+	log       *zap.Logger
+	jwt       middleware.JWTConfig
+	store     *specStore
+	clock     clock.Clock
+	passenger passengerv1.PassengerServiceClient
 }
 
 // NewSpecContractHandler 创建契约编排 handler。
-func NewSpecContractHandler(jwtCfg middleware.JWTConfig, log *zap.Logger) *SpecContractHandler {
+func NewSpecContractHandler(jwtCfg middleware.JWTConfig, log *zap.Logger, passenger passengerv1.PassengerServiceClient) *SpecContractHandler {
 	if log == nil {
 		log = zap.NewNop()
 	}
-	return &SpecContractHandler{log: log, jwt: jwtCfg, store: specGlobalStore, clock: clock.Real{}}
+	return &SpecContractHandler{log: log, jwt: jwtCfg, store: specGlobalStore, clock: clock.Real{}, passenger: passenger}
 }
 
 // WithClock 注入模拟时钟，支持跨日/过期测试（文档 1.1）。

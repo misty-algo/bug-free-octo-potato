@@ -93,6 +93,8 @@ type HallOrderRepository interface {
 	ReleasePendingForDriver(ctx context.Context, driverID string) (int64, error)
 	// SumEndedByDay 按行程结束日统计：完单量与乘客数（拼车两乘客算 2 单）。
 	SumEndedByDay(ctx context.Context, driverID string, dayStart, dayEnd time.Time) (orders int64, passengers int64, err error)
+	// DecideDestinationChange 司机裁决乘客的更改下车点请求。
+	DecideDestinationChange(ctx context.Context, orderID, driverID string, approve bool) (*HallOrder, error)
 }
 
 // WithdrawCreateResult 幂等创建提现的结果。

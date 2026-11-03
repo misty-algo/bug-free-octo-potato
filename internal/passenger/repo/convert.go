@@ -238,9 +238,40 @@ func toOrderDocument(order *entity.Order) *model.OrderDocument {
 		IdempotencyKey:  order.IdempotencyKey,
 		DriverName:      order.DriverName,
 		DriverPlate:     order.DriverPlate,
+		DestChange:      toDestChangeDocument(order.DestChange),
 		Version:         order.Version,
 		CreatedAt:       order.CreatedAt,
 		UpdatedAt:       order.UpdatedAt,
+	}
+}
+
+// toDestChangeDocument 实体 → 文档。
+func toDestChangeDocument(change *entity.DestinationChange) *model.DestinationChangeDocument {
+	if change == nil {
+		return nil
+	}
+	return &model.DestinationChangeDocument{
+		NewEndName:  change.NewEndName,
+		NewEndAddr:  change.NewEndAddr,
+		NewEndLng:   change.NewEndLng,
+		NewEndLat:   change.NewEndLat,
+		State:       change.State,
+		RequestedAt: change.RequestedAt,
+	}
+}
+
+// toDestChangeEntity 文档 → 实体。
+func toDestChangeEntity(document *model.DestinationChangeDocument) *entity.DestinationChange {
+	if document == nil {
+		return nil
+	}
+	return &entity.DestinationChange{
+		NewEndName:  document.NewEndName,
+		NewEndAddr:  document.NewEndAddr,
+		NewEndLng:   document.NewEndLng,
+		NewEndLat:   document.NewEndLat,
+		State:       document.State,
+		RequestedAt: document.RequestedAt,
 	}
 }
 
@@ -269,6 +300,7 @@ func toOrderEntity(document *model.OrderDocument) *entity.Order {
 		IdempotencyKey:  document.IdempotencyKey,
 		DriverName:      document.DriverName,
 		DriverPlate:     document.DriverPlate,
+		DestChange:      toDestChangeEntity(document.DestChange),
 		Version:         document.Version,
 		CreatedAt:       document.CreatedAt,
 		UpdatedAt:       document.UpdatedAt,

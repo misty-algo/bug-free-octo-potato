@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -121,8 +122,10 @@ func newFakePlatformCouponRepository() *fakePlatformCouponRepository {
 	return &fakePlatformCouponRepository{items: map[string]*entity.PlatformCoupon{}}
 }
 
+// seed 存入副本：领取会把状态改成 CLAIMED，不能让用例共享的样本券被上一轮改脏。
 func (r *fakePlatformCouponRepository) seed(coupon *entity.PlatformCoupon) {
-	r.items[coupon.CouponNo] = coupon
+	copied := *coupon
+	r.items[coupon.CouponNo] = &copied
 }
 
 func (r *fakePlatformCouponRepository) ListAvailable(ctx context.Context, limit int, now time.Time) ([]*entity.PlatformCoupon, error) {
@@ -148,6 +151,48 @@ func (r *fakePlatformCouponRepository) FindByCouponNo(ctx context.Context, coupo
 		return nil, entity.ErrPlatformCouponNotFound
 	}
 	return item, nil
+}
+
+func (r *fakePlatformCouponRepository) ClaimOne(ctx context.Context, couponNo, holderAccountID string, now time.Time) (bool, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.errNow {
+		return false, errors.New("mongo down")
+	}
+	item, ok := r.items[couponNo]
+	if !ok || item.State != entity.PlatformCouponStateAvailable || !now.Before(item.ExpireAt) {
+		return false, nil
+	}
+	item.State = entity.PlatformCouponStateClaimed
+	return true, nil
+}
+
+// Publish 写入 stock 张 AVAILABLE 券，语义与 Mongo 实现保持一致：
+// 数量越界直接拒绝而不是截断。
+func (r *fakePlatformCouponRepository) Publish(
+	ctx context.Context, templateNo, name string, faceValueFen, thresholdFen int64, expireAt, now time.Time, stock int,
+) (int, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.errNow {
+		return 0, errors.New("mongo down")
+	}
+	if stock <= 0 || stock > entity.MaxPublishCouponStock {
+		return 0, entity.ErrInvalidCouponStock
+	}
+	for i := 0; i < stock; i++ {
+		couponNo := templateNo + "-" + strconv.Itoa(i)
+		r.items[couponNo] = &entity.PlatformCoupon{
+			CouponNo:     couponNo,
+			TemplateNo:   templateNo,
+			Name:         name,
+			State:        entity.PlatformCouponStateAvailable,
+			FaceValueFen: faceValueFen,
+			ThresholdFen: thresholdFen,
+			ExpireAt:     expireAt,
+		}
+	}
+	return stock, nil
 }
 
 func newClaimTestService(t *testing.T, now time.Time) (*Service, *fakePlatformCouponRepository, *fakeCouponRepository) {
@@ -186,13 +231,10 @@ func TestClaimCoupon(t *testing.T) {
 		if saved.AccountID != "account-1" || saved.FaceValue != 500 {
 			t.Fatalf("saved coupon = %+v, want account-1 with face value 500", saved)
 		}
-		// 另一个乘客领同一券码应各得一张，互不影响。
-		other, err := svc.ClaimCoupon(ctx, dto.ClaimCouponCommand{AccountID: "account-2", CouponNo: "HZ-C-001"})
-		if err != nil {
-			t.Fatalf("ClaimCoupon() by another account error = %v", err)
-		}
-		if other.CouponID == out.CouponID {
-			t.Fatalf("got same coupon id %q for two accounts, want distinct records", other.CouponID)
+		// 先到先得：该券已被 account-1 抢走，另一个乘客再领同样报券不可用。
+		_, err = svc.ClaimCoupon(ctx, dto.ClaimCouponCommand{AccountID: "account-2", CouponNo: "HZ-C-001"})
+		if !errors.Is(err, entity.ErrPlatformCouponUnavailable) {
+			t.Fatalf("ClaimCoupon() by another account error = %v, want %v", err, entity.ErrPlatformCouponUnavailable)
 		}
 	})
 

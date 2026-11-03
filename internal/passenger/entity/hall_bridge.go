@@ -1,6 +1,9 @@
 package entity
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // HallTaskView 是司机域派单任务中乘客域关心的视图。
 type HallTaskView struct {
@@ -9,6 +12,13 @@ type HallTaskView struct {
 	DriverID    string
 	DriverName  string
 	DriverPlate string
+	// DriverLat / DriverLng / DriverLocatedAt 是接单司机最近一次心跳位置（WGS84），
+	// 乘客端行程地图据此画司机实时位置；未接单或没有心跳时为零值。
+	DriverLat       float64
+	DriverLng       float64
+	DriverLocatedAt time.Time
+	// DestChange 司机侧任务上记录的目的地变更裁决状态（nil 表示无请求）。
+	DestChange *DestinationChange
 }
 
 // HallSettlementView 是行程结束后的结算视图：支付成功回调据此通知司机域入账。
@@ -52,4 +62,7 @@ type HallOrderBridge interface {
 	// CancelWaitingTask 取消尚未被司机接单的任务，返回是否取消成功；
 	// 任务已被接单时返回 false，由双方线下协商或走客服流程。
 	CancelWaitingTask(ctx context.Context, orderNo string, reason string) (bool, error)
+	// RequestDestinationChange 把乘客的更改下车点请求写到派单任务上，
+	// 由司机端裁决；仅行程中（已接单未送达）的任务接受请求。
+	RequestDestinationChange(ctx context.Context, orderNo string, change DestinationChange) error
 }

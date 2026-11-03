@@ -27,6 +27,7 @@ type Store struct {
 	orderLogs   *mongox.Collection[model.OrderStatusLogDocument]
 	quick       *mongox.Collection[model.QuickEntryDocument]
 	usedQuick   *mongox.Collection[model.UsedQuickEntryDocument]
+	reviews     *mongox.Collection[model.ReviewDocument]
 }
 
 // NewStore 基于数据库创建乘客端仓储。
@@ -42,6 +43,7 @@ func NewStore(db *mongo.Database) *Store {
 		orderLogs: mongox.NewCollection[model.OrderStatusLogDocument](db, model.CollectionOrderStatusLogs),
 		quick:     mongox.NewCollection[model.QuickEntryDocument](db, model.CollectionQuickEntries),
 		usedQuick: mongox.NewCollection[model.UsedQuickEntryDocument](db, model.CollectionUsedQuickEntries),
+		reviews:   mongox.NewCollection[model.ReviewDocument](db, model.CollectionReviews),
 	}
 }
 
@@ -68,6 +70,9 @@ func (s *Store) Orders() *OrderRepository { return &OrderRepository{store: s} }
 
 // QuickEntries 返回快速入口仓储。
 func (s *Store) QuickEntries() *QuickEntryRepository { return &QuickEntryRepository{store: s} }
+
+// Reviews 返回评价/投诉仓储。
+func (s *Store) Reviews() *ReviewRepository { return &ReviewRepository{store: s} }
 
 // AccountRepository 是账号的 MongoDB 仓储实现。
 type AccountRepository struct {
@@ -583,6 +588,87 @@ func (r *OrderRepository) AppendStatusLog(ctx context.Context, log *entity.Order
 		return err
 	}
 	return nil
+}
+
+// ApplyDestChange 落库司机裁决后的目的地变更：
+// approved 时写入新终点并镜像请求状态；rejected 时只镜像状态。
+func (r *OrderRepository) ApplyDestChange(ctx context.Context, order *entity.Order) error {
+	if order.DestChange == nil {
+		return nil
+	}
+	sets := bson.M{
+		"destination_change": toDestChangeDocument(order.DestChange),
+		"updated_at":         time.Now().UTC(),
+	}
+	if order.DestChange.State == entity.DestChangeApproved {
+		sets["end_name"] = order.DestChange.NewEndName
+		sets["end_addr"] = order.DestChange.NewEndAddr
+		sets["end_lng"] = order.DestChange.NewEndLng
+		sets["end_lat"] = order.DestChange.NewEndLat
+	}
+	result, err := r.store.orders.UpdateOne(ctx, bson.M{
+		"_id":        order.ID,
+		"version":    order.Version,
+		"is_deleted": false,
+	}, bson.M{
+		"$set": sets,
+		"$inc": bson.M{"version": 1},
+	})
+	if err != nil {
+		return err
+	}
+	if result == nil || result.MatchedCount == 0 {
+		return entity.ErrOrderStateConflict
+	}
+	order.Version++
+	if order.DestChange.State == entity.DestChangeApproved {
+		order.EndName = order.DestChange.NewEndName
+		order.EndAddr = order.DestChange.NewEndAddr
+		order.EndLng = order.DestChange.NewEndLng
+		order.EndLat = order.DestChange.NewEndLat
+	}
+	order.UpdatedAt = time.Now().UTC()
+	return nil
+}
+
+// ReviewRepository 是乘客评价/投诉的 MongoDB 仓储实现。
+type ReviewRepository struct {
+	store *Store
+}
+
+// Save 追加一条评价/投诉记录。
+func (r *ReviewRepository) Save(ctx context.Context, review *entity.Review) error {
+	document := &model.ReviewDocument{
+		ID:            review.ID,
+		OrderNo:       review.OrderNo,
+		OrderID:       review.OrderID,
+		AccountID:     review.AccountID,
+		DriverName:    review.DriverName,
+		Rating:        review.Rating,
+		Tags:          review.Tags,
+		Comment:       review.Comment,
+		IsComplaint:   review.IsComplaint,
+		ComplaintType: review.ComplaintType,
+		ComplaintDesc: review.ComplaintDesc,
+		CreatedAt:     review.CreatedAt,
+	}
+	if document.Tags == nil {
+		document.Tags = []string{}
+	}
+	_, err := r.store.reviews.Insert(ctx, document)
+	return err
+}
+
+// ExistsByOrderNo 报告该订单是否已有评价。
+func (r *ReviewRepository) ExistsByOrderNo(ctx context.Context, orderNo string) (bool, error) {
+	_, err := r.store.reviews.FindOne(ctx, bson.M{"order_no": orderNo})
+	if err != nil {
+		if errors.Is(err, mongox.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // QuickEntryRepository 是快速入口的 MongoDB 仓储实现。

@@ -130,11 +130,35 @@ type Order struct {
 	// DriverName / DriverPlate 司机接单后由派单任务回传，仅用于乘客端展示。
 	DriverName  string
 	DriverPlate string
+	// DestChange 乘客发起的更改下车点请求（nil 表示无请求）。
+	DestChange *DestinationChange
 	// Version 为乐观锁版本号，并发写集合必带。
 	Version int64
 	// CreatedAt / UpdatedAt 统一 UTC 存储。
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+// 目的地变更请求状态。
+const (
+	DestChangePending  = "pending"  // 已提交，等待司机裁决
+	DestChangeApproved = "approved" // 司机同意，新终点已生效
+	DestChangeRejected = "rejected" // 司机拒绝，维持原终点
+)
+
+// DestinationChange 乘客行程中发起的更改下车点请求。
+type DestinationChange struct {
+	NewEndName  string
+	NewEndAddr  string
+	NewEndLng   float64
+	NewEndLat   float64
+	State       string // pending / approved / rejected
+	RequestedAt time.Time
+}
+
+// CanRequestDestChange 报告行程中状态：只有进行中的订单能改下车点。
+func (s OrderState) CanRequestDestChange() bool {
+	return s == OrderStateAccepted || s == OrderStateArrived || s == OrderStateInService
 }
 
 // NewOrder 校验并创建订单。

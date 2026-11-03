@@ -19,34 +19,37 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DriverService_SendDriverCode_FullMethodName         = "/driver.v1.DriverService/SendDriverCode"
-	DriverService_DriverLogin_FullMethodName            = "/driver.v1.DriverService/DriverLogin"
-	DriverService_RegisterDriver_FullMethodName         = "/driver.v1.DriverService/RegisterDriver"
-	DriverService_GetDriverProfile_FullMethodName       = "/driver.v1.DriverService/GetDriverProfile"
-	DriverService_UpdateDriverStatus_FullMethodName     = "/driver.v1.DriverService/UpdateDriverStatus"
-	DriverService_UpdateDriverMode_FullMethodName       = "/driver.v1.DriverService/UpdateDriverMode"
-	DriverService_UpdateAreaConfig_FullMethodName       = "/driver.v1.DriverService/UpdateAreaConfig"
-	DriverService_DriverHeartbeat_FullMethodName        = "/driver.v1.DriverService/DriverHeartbeat"
-	DriverService_UpdateOfflineAfterTrip_FullMethodName = "/driver.v1.DriverService/UpdateOfflineAfterTrip"
-	DriverService_CreateHallOrder_FullMethodName        = "/driver.v1.DriverService/CreateHallOrder"
-	DriverService_ListHallOrders_FullMethodName         = "/driver.v1.DriverService/ListHallOrders"
-	DriverService_GrabOrder_FullMethodName              = "/driver.v1.DriverService/GrabOrder"
-	DriverService_AcceptOrder_FullMethodName            = "/driver.v1.DriverService/AcceptOrder"
-	DriverService_ReleaseOrder_FullMethodName           = "/driver.v1.DriverService/ReleaseOrder"
-	DriverService_StartTrip_FullMethodName              = "/driver.v1.DriverService/StartTrip"
-	DriverService_CompleteOrder_FullMethodName          = "/driver.v1.DriverService/CompleteOrder"
-	DriverService_CancelOrder_FullMethodName            = "/driver.v1.DriverService/CancelOrder"
-	DriverService_GetIncomeCompare_FullMethodName       = "/driver.v1.DriverService/GetIncomeCompare"
-	DriverService_ListIncomeFlows_FullMethodName        = "/driver.v1.DriverService/ListIncomeFlows"
-	DriverService_GetIncomeSummary_FullMethodName       = "/driver.v1.DriverService/GetIncomeSummary"
-	DriverService_RequestWithdraw_FullMethodName        = "/driver.v1.DriverService/RequestWithdraw"
-	DriverService_ListWithdrawals_FullMethodName        = "/driver.v1.DriverService/ListWithdrawals"
-	DriverService_ReportPaymentSucceeded_FullMethodName = "/driver.v1.DriverService/ReportPaymentSucceeded"
-	DriverService_ReportRefundSucceeded_FullMethodName  = "/driver.v1.DriverService/ReportRefundSucceeded"
-	DriverService_SettleIncome_FullMethodName           = "/driver.v1.DriverService/SettleIncome"
-	DriverService_ApproveWithdraw_FullMethodName        = "/driver.v1.DriverService/ApproveWithdraw"
-	DriverService_RejectWithdraw_FullMethodName         = "/driver.v1.DriverService/RejectWithdraw"
-	DriverService_CompleteWithdraw_FullMethodName       = "/driver.v1.DriverService/CompleteWithdraw"
+	DriverService_SendDriverCode_FullMethodName          = "/driver.v1.DriverService/SendDriverCode"
+	DriverService_DriverLogin_FullMethodName             = "/driver.v1.DriverService/DriverLogin"
+	DriverService_RegisterDriver_FullMethodName          = "/driver.v1.DriverService/RegisterDriver"
+	DriverService_GetDriverProfile_FullMethodName        = "/driver.v1.DriverService/GetDriverProfile"
+	DriverService_UpdateDriverStatus_FullMethodName      = "/driver.v1.DriverService/UpdateDriverStatus"
+	DriverService_UpdateDriverMode_FullMethodName        = "/driver.v1.DriverService/UpdateDriverMode"
+	DriverService_UpdateAreaConfig_FullMethodName        = "/driver.v1.DriverService/UpdateAreaConfig"
+	DriverService_DriverHeartbeat_FullMethodName         = "/driver.v1.DriverService/DriverHeartbeat"
+	DriverService_UpdateOfflineAfterTrip_FullMethodName  = "/driver.v1.DriverService/UpdateOfflineAfterTrip"
+	DriverService_CreateHallOrder_FullMethodName         = "/driver.v1.DriverService/CreateHallOrder"
+	DriverService_ListHallOrders_FullMethodName          = "/driver.v1.DriverService/ListHallOrders"
+	DriverService_GrabOrder_FullMethodName               = "/driver.v1.DriverService/GrabOrder"
+	DriverService_AcceptOrder_FullMethodName             = "/driver.v1.DriverService/AcceptOrder"
+	DriverService_ReleaseOrder_FullMethodName            = "/driver.v1.DriverService/ReleaseOrder"
+	DriverService_StartTrip_FullMethodName               = "/driver.v1.DriverService/StartTrip"
+	DriverService_CompleteOrder_FullMethodName           = "/driver.v1.DriverService/CompleteOrder"
+	DriverService_CancelOrder_FullMethodName             = "/driver.v1.DriverService/CancelOrder"
+	DriverService_DecideDestinationChange_FullMethodName = "/driver.v1.DriverService/DecideDestinationChange"
+	DriverService_GetIncomeCompare_FullMethodName        = "/driver.v1.DriverService/GetIncomeCompare"
+	DriverService_ListIncomeFlows_FullMethodName         = "/driver.v1.DriverService/ListIncomeFlows"
+	DriverService_GetIncomeSummary_FullMethodName        = "/driver.v1.DriverService/GetIncomeSummary"
+	DriverService_RequestWithdraw_FullMethodName         = "/driver.v1.DriverService/RequestWithdraw"
+	DriverService_ListWithdrawals_FullMethodName         = "/driver.v1.DriverService/ListWithdrawals"
+	DriverService_ReportPaymentSucceeded_FullMethodName  = "/driver.v1.DriverService/ReportPaymentSucceeded"
+	DriverService_ReportRefundSucceeded_FullMethodName   = "/driver.v1.DriverService/ReportRefundSucceeded"
+	DriverService_SettleIncome_FullMethodName            = "/driver.v1.DriverService/SettleIncome"
+	DriverService_ApproveWithdraw_FullMethodName         = "/driver.v1.DriverService/ApproveWithdraw"
+	DriverService_RejectWithdraw_FullMethodName          = "/driver.v1.DriverService/RejectWithdraw"
+	DriverService_CompleteWithdraw_FullMethodName        = "/driver.v1.DriverService/CompleteWithdraw"
+	DriverService_ListDriverHistory_FullMethodName       = "/driver.v1.DriverService/ListDriverHistory"
+	DriverService_ListDriverNotices_FullMethodName       = "/driver.v1.DriverService/ListDriverNotices"
 )
 
 // DriverServiceClient is the client API for DriverService service.
@@ -82,6 +85,8 @@ type DriverServiceClient interface {
 	StartTrip(ctx context.Context, in *StartTripRequest, opts ...grpc.CallOption) (*HallOrderResponse, error)
 	CompleteOrder(ctx context.Context, in *CompleteOrderRequest, opts ...grpc.CallOption) (*CompleteOrderResponse, error)
 	CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*HallOrderResponse, error)
+	// 目的地变更裁决：乘客行程中请求改下车点，司机同意即生效。
+	DecideDestinationChange(ctx context.Context, in *DecideDestinationChangeRequest, opts ...grpc.CallOption) (*HallOrderResponse, error)
 	// ── 首页收益对比 ──
 	GetIncomeCompare(ctx context.Context, in *GetIncomeCompareRequest, opts ...grpc.CallOption) (*IncomeCompareResponse, error)
 	// ── 收入结算 ──
@@ -96,6 +101,11 @@ type DriverServiceClient interface {
 	ApproveWithdraw(ctx context.Context, in *ApproveWithdrawRequest, opts ...grpc.CallOption) (*WithdrawResponse, error)
 	RejectWithdraw(ctx context.Context, in *RejectWithdrawRequest, opts ...grpc.CallOption) (*WithdrawResponse, error)
 	CompleteWithdraw(ctx context.Context, in *CompleteWithdrawRequest, opts ...grpc.CallOption) (*WithdrawResponse, error)
+	// ── 接单记录与反馈通知 ──
+	// 司机端"我的"页新增接单记录：查询该司机接过的订单，并附带乘客评价/投诉。
+	ListDriverHistory(ctx context.Context, in *ListDriverHistoryRequest, opts ...grpc.CallOption) (*ListDriverHistoryResponse, error)
+	// 乘客评价/投诉后，司机在"我的"页收到的通知。
+	ListDriverNotices(ctx context.Context, in *ListDriverNoticesRequest, opts ...grpc.CallOption) (*ListDriverNoticesResponse, error)
 }
 
 type driverServiceClient struct {
@@ -276,6 +286,16 @@ func (c *driverServiceClient) CancelOrder(ctx context.Context, in *CancelOrderRe
 	return out, nil
 }
 
+func (c *driverServiceClient) DecideDestinationChange(ctx context.Context, in *DecideDestinationChangeRequest, opts ...grpc.CallOption) (*HallOrderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HallOrderResponse)
+	err := c.cc.Invoke(ctx, DriverService_DecideDestinationChange_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *driverServiceClient) GetIncomeCompare(ctx context.Context, in *GetIncomeCompareRequest, opts ...grpc.CallOption) (*IncomeCompareResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IncomeCompareResponse)
@@ -386,6 +406,26 @@ func (c *driverServiceClient) CompleteWithdraw(ctx context.Context, in *Complete
 	return out, nil
 }
 
+func (c *driverServiceClient) ListDriverHistory(ctx context.Context, in *ListDriverHistoryRequest, opts ...grpc.CallOption) (*ListDriverHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDriverHistoryResponse)
+	err := c.cc.Invoke(ctx, DriverService_ListDriverHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *driverServiceClient) ListDriverNotices(ctx context.Context, in *ListDriverNoticesRequest, opts ...grpc.CallOption) (*ListDriverNoticesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDriverNoticesResponse)
+	err := c.cc.Invoke(ctx, DriverService_ListDriverNotices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DriverServiceServer is the server API for DriverService service.
 // All implementations must embed UnimplementedDriverServiceServer
 // for forward compatibility.
@@ -419,6 +459,8 @@ type DriverServiceServer interface {
 	StartTrip(context.Context, *StartTripRequest) (*HallOrderResponse, error)
 	CompleteOrder(context.Context, *CompleteOrderRequest) (*CompleteOrderResponse, error)
 	CancelOrder(context.Context, *CancelOrderRequest) (*HallOrderResponse, error)
+	// 目的地变更裁决：乘客行程中请求改下车点，司机同意即生效。
+	DecideDestinationChange(context.Context, *DecideDestinationChangeRequest) (*HallOrderResponse, error)
 	// ── 首页收益对比 ──
 	GetIncomeCompare(context.Context, *GetIncomeCompareRequest) (*IncomeCompareResponse, error)
 	// ── 收入结算 ──
@@ -433,6 +475,11 @@ type DriverServiceServer interface {
 	ApproveWithdraw(context.Context, *ApproveWithdrawRequest) (*WithdrawResponse, error)
 	RejectWithdraw(context.Context, *RejectWithdrawRequest) (*WithdrawResponse, error)
 	CompleteWithdraw(context.Context, *CompleteWithdrawRequest) (*WithdrawResponse, error)
+	// ── 接单记录与反馈通知 ──
+	// 司机端"我的"页新增接单记录：查询该司机接过的订单，并附带乘客评价/投诉。
+	ListDriverHistory(context.Context, *ListDriverHistoryRequest) (*ListDriverHistoryResponse, error)
+	// 乘客评价/投诉后，司机在"我的"页收到的通知。
+	ListDriverNotices(context.Context, *ListDriverNoticesRequest) (*ListDriverNoticesResponse, error)
 	mustEmbedUnimplementedDriverServiceServer()
 }
 
@@ -494,6 +541,9 @@ func (UnimplementedDriverServiceServer) CompleteOrder(context.Context, *Complete
 func (UnimplementedDriverServiceServer) CancelOrder(context.Context, *CancelOrderRequest) (*HallOrderResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelOrder not implemented")
 }
+func (UnimplementedDriverServiceServer) DecideDestinationChange(context.Context, *DecideDestinationChangeRequest) (*HallOrderResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DecideDestinationChange not implemented")
+}
 func (UnimplementedDriverServiceServer) GetIncomeCompare(context.Context, *GetIncomeCompareRequest) (*IncomeCompareResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetIncomeCompare not implemented")
 }
@@ -526,6 +576,12 @@ func (UnimplementedDriverServiceServer) RejectWithdraw(context.Context, *RejectW
 }
 func (UnimplementedDriverServiceServer) CompleteWithdraw(context.Context, *CompleteWithdrawRequest) (*WithdrawResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CompleteWithdraw not implemented")
+}
+func (UnimplementedDriverServiceServer) ListDriverHistory(context.Context, *ListDriverHistoryRequest) (*ListDriverHistoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDriverHistory not implemented")
+}
+func (UnimplementedDriverServiceServer) ListDriverNotices(context.Context, *ListDriverNoticesRequest) (*ListDriverNoticesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDriverNotices not implemented")
 }
 func (UnimplementedDriverServiceServer) mustEmbedUnimplementedDriverServiceServer() {}
 func (UnimplementedDriverServiceServer) testEmbeddedByValue()                       {}
@@ -854,6 +910,24 @@ func _DriverService_CancelOrder_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DriverService_DecideDestinationChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DecideDestinationChangeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DriverServiceServer).DecideDestinationChange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DriverService_DecideDestinationChange_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DriverServiceServer).DecideDestinationChange(ctx, req.(*DecideDestinationChangeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DriverService_GetIncomeCompare_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetIncomeCompareRequest)
 	if err := dec(in); err != nil {
@@ -1052,6 +1126,42 @@ func _DriverService_CompleteWithdraw_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DriverService_ListDriverHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDriverHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DriverServiceServer).ListDriverHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DriverService_ListDriverHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DriverServiceServer).ListDriverHistory(ctx, req.(*ListDriverHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DriverService_ListDriverNotices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDriverNoticesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DriverServiceServer).ListDriverNotices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DriverService_ListDriverNotices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DriverServiceServer).ListDriverNotices(ctx, req.(*ListDriverNoticesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DriverService_ServiceDesc is the grpc.ServiceDesc for DriverService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1128,6 +1238,10 @@ var DriverService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DriverService_CancelOrder_Handler,
 		},
 		{
+			MethodName: "DecideDestinationChange",
+			Handler:    _DriverService_DecideDestinationChange_Handler,
+		},
+		{
 			MethodName: "GetIncomeCompare",
 			Handler:    _DriverService_GetIncomeCompare_Handler,
 		},
@@ -1170,6 +1284,14 @@ var DriverService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CompleteWithdraw",
 			Handler:    _DriverService_CompleteWithdraw_Handler,
+		},
+		{
+			MethodName: "ListDriverHistory",
+			Handler:    _DriverService_ListDriverHistory_Handler,
+		},
+		{
+			MethodName: "ListDriverNotices",
+			Handler:    _DriverService_ListDriverNotices_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

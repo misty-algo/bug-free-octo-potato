@@ -341,9 +341,10 @@ func (s *Service) CancelOrder(ctx context.Context, cmd dto.CancelOrderCommand) (
 
 // DriverLocation 返回订单当前司机的实时位置。
 //
+// orderRef 可以是订单主键或订单号：页面地图手上只有订单号，后端两种都接受。
 // 超过三十秒没有新位置就标记延迟，乘客端据此提示而不是盯着不动的点。
-func (s *Service) DriverLocation(ctx context.Context, accountID, orderID string) (*dto.DriverLocationDTO, error) {
-	order, err := s.ownedOrder(ctx, accountID, orderID)
+func (s *Service) DriverLocation(ctx context.Context, accountID, orderRef string) (*dto.DriverLocationDTO, error) {
+	order, err := s.ownedOrderByRef(ctx, accountID, orderRef)
 	if err != nil {
 		return nil, err
 	}
@@ -352,7 +353,31 @@ func (s *Service) DriverLocation(ctx context.Context, accountID, orderID string)
 	default:
 		return nil, entity.ErrDriverNotAssigned
 	}
-	driver, err := s.drivers.FindByOrderID(ctx, orderID)
+	// 司机实时位置以司机域心跳为准，经派单桥读取；桥不可用或没有心跳时，
+	// 再回退到乘客域只读的司机档案。
+	if s.hall != nil {
+		if task, err := s.hall.FindTaskByOrderNo(ctx, order.OrderNo); err == nil &&
+			task.DriverID != "" && task.DriverLat != 0 && task.DriverLng != 0 {
+			now := s.now().UTC()
+			delayed := now.Sub(task.DriverLocatedAt) > entity.PositionStaleThreshold
+			etaMin := 0
+			if !delayed {
+				etaMin = estimateETAMin(task.DriverLng, task.DriverLat, order.EndLng, order.EndLat)
+			}
+			return &dto.DriverLocationDTO{
+				DriverID:   task.DriverID,
+				DriverName: task.DriverName,
+				PlateNo:    task.DriverPlate,
+				Lng:        task.DriverLng,
+				Lat:        task.DriverLat,
+				ETAMin:     etaMin,
+				Delayed:    delayed,
+				ReportedAt: task.DriverLocatedAt,
+			}, nil
+		}
+	}
+	// 派单关系以订单主键为准，不能用订单号。
+	driver, err := s.drivers.FindByOrderID(ctx, order.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -490,6 +515,25 @@ func (s *Service) ownedOrder(ctx context.Context, accountID, orderID string) (*e
 	order, err := s.orders.FindByID(ctx, orderID)
 	if err != nil {
 		return nil, err
+	}
+	if order.AccountID != accountID {
+		return nil, entity.ErrForbidden
+	}
+	return order, nil
+}
+
+// ownedOrderByRef 按订单主键或订单号解析归属当前账号的订单。
+// 页面侧拿到的往往只有展示用订单号，因此这里两种标识都接受。
+func (s *Service) ownedOrderByRef(ctx context.Context, accountID, orderRef string) (*entity.Order, error) {
+	if accountID == "" {
+		return nil, entity.ErrUnauthorized
+	}
+	order, err := s.orders.FindByID(ctx, orderRef)
+	if err != nil {
+		order, err = s.orders.FindByOrderNo(ctx, orderRef)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if order.AccountID != accountID {
 		return nil, entity.ErrForbidden

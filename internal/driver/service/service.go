@@ -46,13 +46,14 @@ type BusinessConfig struct {
 	Weights               DispatchWeights
 }
 
-// Service 编排司机端用例：接单大厅（D01–D04）、首页收益对比（D09–D11）、收入结算（D12–D13）。
+// Service 编排司机端用例：接单大厅（D01–D04）、首页收益对比（D09–D11）、收入结算（D12–D13）、接单记录（反馈通知）。
 type Service struct {
 	drivers   entity.DriverRepository
 	orders    entity.HallOrderRepository
 	incomes   entity.IncomeRepository
 	support   entity.SupportRepository
 	codes     entity.DriverCodeRepository
+	history   entity.HistoryRepository
 	cfg       BusinessConfig
 	auth      AuthConfig
 	log       *zap.Logger
@@ -63,6 +64,12 @@ type Service struct {
 func NewService(drivers entity.DriverRepository, orders entity.HallOrderRepository,
 	incomes entity.IncomeRepository, support entity.SupportRepository, cfg BusinessConfig, log *zap.Logger) *Service {
 	return &Service{drivers: drivers, orders: orders, incomes: incomes, support: support, cfg: cfg, log: log}
+}
+
+// WithHistory 注入接单记录仓储（跨域只读）。
+func (s *Service) WithHistory(history entity.HistoryRepository) *Service {
+	s.history = history
+	return s
 }
 
 // WithAuth 注入司机登录所需的验证码仓储与令牌密钥，返回同一实例便于链式配置。
@@ -578,4 +585,75 @@ func (s *Service) filterCandidate(d *entity.Driver, order *entity.HallOrder) boo
 		return false
 	}
 	return true
+}
+
+// DecideDestinationChange 司机裁决乘客的更改下车点请求。
+func (s *Service) DecideDestinationChange(ctx context.Context, cmd dto.DecideDestinationChangeCommand) (*dto.HallOrderDTO, error) {
+	order, err := s.orders.DecideDestinationChange(ctx, cmd.OrderID, cmd.DriverID, cmd.Approve)
+	if err != nil {
+		return nil, err
+	}
+	return dto.FromHallOrder(order), nil
+}
+
+// ───────────────────────── 接单记录与反馈通知 ─────────────────────────
+
+// ListDriverHistory 查询该司机接过的订单，并附带乘客评价/投诉内容。
+func (s *Service) ListDriverHistory(ctx context.Context, driverID string, limit int) ([]*entity.HistoryOrder, error) {
+	if driverID == "" {
+		return nil, fmt.Errorf("driver_id is required")
+	}
+	if s.history == nil {
+		return nil, fmt.Errorf("history repository not configured")
+	}
+	return s.history.ListTakenOrders(ctx, driverID, limit)
+}
+
+// ListDriverNotices 把有评价/投诉的订单派生为司机通知（按时间倒序）。
+// 乘客评价/投诉司机后，司机在"我的"页即可看到对应通知。
+func (s *Service) ListDriverNotices(ctx context.Context, driverID string, limit int) ([]*entity.DriverNotice, error) {
+	if driverID == "" {
+		return nil, fmt.Errorf("driver_id is required")
+	}
+	if s.history == nil {
+		return nil, fmt.Errorf("history repository not configured")
+	}
+	orders, err := s.history.ListTakenOrders(ctx, driverID, 60)
+	if err != nil {
+		return nil, err
+	}
+	notices := make([]*entity.DriverNotice, 0, len(orders))
+	for _, o := range orders {
+		if o.Rating != nil {
+			title := fmt.Sprintf("乘客给了你 %d 星好评", o.Rating.Score)
+			if o.Rating.Score <= 2 {
+				title = fmt.Sprintf("乘客给了你 %d 星差评", o.Rating.Score)
+			}
+			notices = append(notices, &entity.DriverNotice{
+				ID:      "rating-" + o.OrderID,
+				Type:    "rating",
+				OrderID: o.OrderID,
+				Title:   title,
+				Content: o.Rating.Content,
+				At:      o.Rating.RatedAt,
+			})
+		}
+		if o.Complaint != nil {
+			notices = append(notices, &entity.DriverNotice{
+				ID:      "complaint-" + o.OrderID,
+				Type:    "complaint",
+				OrderID: o.OrderID,
+				Title:   "乘客投诉了你",
+				Content: o.Complaint.Content,
+				At:      o.Complaint.At,
+			})
+		}
+	}
+	sort.SliceStable(notices, func(i, j int) bool {
+		return notices[i].At.After(notices[j].At)
+	})
+	if limit > 0 && len(notices) > limit {
+		notices = notices[:limit]
+	}
+	return notices, nil
 }

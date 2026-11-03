@@ -190,3 +190,25 @@ type PassengerClaimCouponRequest struct {
 	// CouponNo 为管理端营销中心发放的平台券码。
 	CouponNo string `json:"couponNo" binding:"required"`
 }
+
+// PassengerDestinationChangeRequest 乘客发起更改下车点。
+type PassengerDestinationChangeRequest struct {
+	AccountID  string  `json:"accountId" binding:"required"`
+	OrderNo    string  `json:"orderNo" binding:"required"`
+	NewEndName string  `json:"newEndName" binding:"required"`
+	NewEndAddr string  `json:"newEndAddr"`
+	NewEndLng  float64 `json:"newEndLng"`
+	NewEndLat  float64 `json:"newEndLat"`
+}
+
+// PassengerSubmitReviewRequest 乘客提交评价/投诉。
+type PassengerSubmitReviewRequest struct {
+	AccountID     string   `json:"accountId" binding:"required"`
+	OrderNo       string   `json:"orderNo" binding:"required"`
+	Rating        int32    `json:"rating"`
+	Tags          []string `json:"tags"`
+	Comment       string   `json:"comment"`
+	IsComplaint   bool     `json:"isComplaint"`
+	ComplaintType string   `json:"complaintType"`
+	ComplaintDesc string   `json:"complaintDesc"`
+}

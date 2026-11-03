@@ -19,6 +19,7 @@ const (
 	CollectionOrderStatusLogs  = "passenger_order_status_logs"
 	CollectionQuickEntries     = "passenger_quick_entries"
 	CollectionUsedQuickEntries = "passenger_used_quick_entries"
+	CollectionReviews          = "passenger_reviews"
 )
 
 // AccountDocument 是乘客端主账号的 MongoDB 文档模型。
@@ -172,11 +173,41 @@ type OrderDocument struct {
 	// 司机接单后由派单任务回传，仅用于乘客端展示。
 	DriverName  string `bson:"driver_name,omitempty"`
 	DriverPlate string `bson:"driver_plate,omitempty"`
+	// 乘客发起的更改下车点请求（nil 表示无请求）。
+	DestChange *DestinationChangeDocument `bson:"destination_change,omitempty"`
 	Version         int64     `bson:"version"`
 	CreatedAt       time.Time `bson:"created_at"`
 	UpdatedAt       time.Time `bson:"updated_at"`
 	IsDeleted       bool      `bson:"is_deleted"`
 }
+
+// DestinationChangeDocument 乘客更改下车点请求的落库形态。
+type DestinationChangeDocument struct {
+	NewEndName  string    `bson:"new_end_name"`
+	NewEndAddr  string    `bson:"new_end_addr"`
+	NewEndLng   float64   `bson:"new_end_lng"`
+	NewEndLat   float64   `bson:"new_end_lat"`
+	State       string    `bson:"state"` // pending / approved / rejected
+	RequestedAt time.Time `bson:"requested_at"`
+}
+
+// ReviewDocument 是乘客对司机的评价/投诉记录。每单一条，只追加。
+type ReviewDocument struct {
+	ID          string    `bson:"_id"`
+	OrderNo     string    `bson:"order_no"`
+	OrderID     string    `bson:"order_id"`
+	AccountID   string    `bson:"account_id"`
+	DriverName  string    `bson:"driver_name"`
+	Rating      int32     `bson:"rating"`
+	Tags        []string  `bson:"tags"`
+	Comment     string    `bson:"comment"`
+	IsComplaint bool      `bson:"is_complaint"`
+	ComplaintType  string `bson:"complaint_type,omitempty"`
+	ComplaintDesc  string `bson:"complaint_desc,omitempty"`
+	CreatedAt   time.Time `bson:"created_at"`
+}
+
+func (ReviewDocument) MongoCollectionName() string { return CollectionReviews }
 
 func (OrderDocument) MongoCollectionName() string { return CollectionOrders }
 

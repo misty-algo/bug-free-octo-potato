@@ -77,6 +77,9 @@ type Service struct {
 	// hall 把乘客订单投进司机域派单池并回查派单状态。
 	hall entity.HallOrderBridge
 
+	// reviews 乘客评价/投诉仓储；nil 时评价功能不可用。
+	reviews entity.ReviewRepository
+
 	issuer   TokenIssuer
 	hasher   PasswordHasher
 	sender   CodeSender
@@ -139,6 +142,14 @@ func (s *Service) WithPlatformCouponRepository(repo entity.PlatformCouponReposit
 func (s *Service) WithHallOrderBridge(bridge entity.HallOrderBridge) *Service {
 	if bridge != nil {
 		s.hall = bridge
+	}
+	return s
+}
+
+// WithReviewRepository 注入评价/投诉仓储；未注入时评价功能不可用。
+func (s *Service) WithReviewRepository(repo entity.ReviewRepository) *Service {
+	if repo != nil {
+		s.reviews = repo
 	}
 	return s
 }

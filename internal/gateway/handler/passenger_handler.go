@@ -650,3 +650,68 @@ func passengerAccountID(c *gin.Context) string {
 	}
 	return c.Query("accountId")
 }
+
+// TripDriverLocation 查询行程中司机的实时位置（供乘客端地图打点）。
+// GET /api/v1/passenger/orders/driver-position?orderId=xxx
+func (h *PassengerHandler) TripDriverLocation(c *gin.Context) {
+	orderID := c.Query("orderId")
+	if orderID == "" {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", "缺少参数 orderId"))
+		return
+	}
+	resp, err := h.client.DriverLocation(outgoingContext(c), &passengerv1.DriverLocationRequest{
+		AccountId: passengerAccountID(c),
+		OrderId:   orderID,
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
+// RequestDestinationChange 乘客行程中请求更改下车点，待司机裁决。
+func (h *PassengerHandler) RequestDestinationChange(c *gin.Context) {
+	var req request.PassengerDestinationChangeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
+		return
+	}
+	resp, err := h.client.RequestDestinationChange(outgoingContext(c), &passengerv1.RequestDestinationChangeRequest{
+		AccountId:  req.AccountID,
+		OrderNo:    req.OrderNo,
+		NewEndName: req.NewEndName,
+		NewEndAddr: req.NewEndAddr,
+		NewEndLng:  req.NewEndLng,
+		NewEndLat:  req.NewEndLat,
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
+// SubmitReview 乘客对司机评价或投诉。
+func (h *PassengerHandler) SubmitReview(c *gin.Context) {
+	var req request.PassengerSubmitReviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
+		return
+	}
+	resp, err := h.client.SubmitReview(outgoingContext(c), &passengerv1.SubmitReviewRequest{
+		AccountId:     req.AccountID,
+		OrderNo:       req.OrderNo,
+		Rating:        req.Rating,
+		Tags:          req.Tags,
+		Comment:       req.Comment,
+		IsComplaint:   req.IsComplaint,
+		ComplaintType: req.ComplaintType,
+		ComplaintDesc: req.ComplaintDesc,
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}

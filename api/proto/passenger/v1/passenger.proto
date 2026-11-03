@@ -43,6 +43,9 @@ service PassengerService {
   // 乘客领取后落入本域 passenger_coupons，后续估价锁券复用既有链路。
   rpc ListClaimableCoupons(ListClaimableCouponsRequest) returns (CouponListResponse);
   rpc ClaimCoupon(ClaimCouponRequest) returns (Coupon);
+  // 管理端营销中心发布平台券：向共享库 coupons 批量写入 AVAILABLE 券，
+  // 乘客领券中心即可看到并领取（修复管理端发布后乘客端看不到新券的问题）。
+  rpc PublishPlatformCoupons(PublishPlatformCouponsRequest) returns (PublishPlatformCouponsResponse);
 
   // 下单相关
   rpc Estimate(EstimateRequest) returns (EstimateResponse);
@@ -56,6 +59,10 @@ service PassengerService {
   rpc DriverLocation(DriverLocationRequest) returns (DriverLocationResponse);
   // 支付成功回调：订单 待支付 → 已完成，并返回司机域结算要素。
   rpc MarkOrderPaid(MarkOrderPaidRequest) returns (MarkOrderPaidResponse);
+  // 目的地变更：行程中乘客发起新下车点，写入派单任务待司机裁决。
+  rpc RequestDestinationChange(RequestDestinationChangeRequest) returns (RequestDestinationChangeResponse);
+  // 评价与投诉：订单完成并支付后对司机打分（1-5 星）或提交投诉。
+  rpc SubmitReview(SubmitReviewRequest) returns (SubmitReviewResponse);
 }
 
 message MarkOrderPaidRequest {
@@ -417,6 +424,20 @@ message Order {
   string driver_name = 12;
   string driver_plate = 13;
   int64 created_at = 14;
+  // 乘客发起的更改下车点请求（无请求时为空）。
+  DestinationChangeMessage dest_change = 15;
+  // 起终点坐标（WGS84）：行程地图据此画上车点/目的地标记，避免刷新后丢失。
+  double start_lat = 16;
+  double start_lng = 17;
+  double end_lat = 18;
+  double end_lng = 19;
+}
+
+message DestinationChangeMessage {
+  string new_end_name = 1;
+  string new_end_addr = 2;
+  // pending 等待司机裁决 / approved 司机已同意 / rejected 司机已拒绝。
+  string state = 3;
 }
 
 message OrderResponse {
@@ -479,4 +500,57 @@ message DriverLocationResponse {
   int32 eta_min = 8;
   bool delayed = 9;
   int64 reported_at = 10;
+}
+
+message RequestDestinationChangeRequest {
+  string account_id = 1;
+  string order_no = 2;
+  string new_end_name = 3;
+  string new_end_addr = 4;
+  double new_end_lng = 5;
+  double new_end_lat = 6;
+}
+
+message RequestDestinationChangeResponse {
+  // pending：已提交等待司机裁决；approved：司机已同意（即时生效）；
+  // rejected：司机已拒绝；replaced：新请求覆盖了旧的待裁决请求。
+  string state = 1;
+  string message = 2;
+}
+
+message SubmitReviewRequest {
+  string account_id = 1;
+  string order_no = 2;
+  // 1-5 星；仅评价时可只打分，投诉可不打分。
+  int32 rating = 3;
+  repeated string tags = 4;
+  string comment = 5;
+  bool is_complaint = 6;
+  string complaint_type = 7;
+  string complaint_desc = 8;
+}
+
+message SubmitReviewResponse {
+  string message = 1;
+}
+
+// ── 管理端发布平台券 ──
+
+message PublishPlatformCouponsRequest {
+  // template_no 为券模板号（可选，为空则服务端生成）。
+  string template_no = 1;
+  // name 为券名称，展示在领券中心。
+  string name = 2;
+  // 金额单位均为分。
+  int64 face_value_fen = 3;
+  int64 threshold_fen = 4;
+  // expire_at_unix 为券过期时间（Unix 秒）。
+  int64 expire_at_unix = 5;
+  // stock 为本次发放的可领取券数量。
+  int32 stock = 6;
+}
+
+message PublishPlatformCouponsResponse {
+  string template_no = 1;
+  int32 issued = 2;
 }

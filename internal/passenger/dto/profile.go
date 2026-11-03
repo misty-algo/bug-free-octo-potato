@@ -52,3 +52,14 @@ type ClaimCouponCommand struct {
 	// CouponNo 为平台侧券码，同券码重复领取返回已有券（幂等）。
 	CouponNo string
 }
+
+// PublishPlatformCouponsCommand 是管理端发布平台券的入参。
+type PublishPlatformCouponsCommand struct {
+	TemplateNo   string
+	Name         string
+	FaceValueFen int64
+	ThresholdFen int64
+	// ExpireAtUnix 为券过期时间（Unix 秒）。
+	ExpireAtUnix int64
+	Stock        int32
+}

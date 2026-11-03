@@ -35,7 +35,18 @@ func registerContractRoutes(
 	registerAuthContractRoutes(api, paxH, contractH, jwtCfg)
 	registerPaxContractRoutes(api, paxH, contractH, jwtCfg)
 	registerDriverContractRoutes(api, drvH, contractH, jwtCfg)
+	registerAdminContractRoutes(api, contractH)
 	registerSystemContractRoutes(api, contractH)
+}
+
+// registerAdminContractRoutes 注册管理端中已具备真实实现的能力。
+//
+// 管理端 A01–A18 大多仍是进程内模拟实现，暂不对外挂载；券模板发布 A07 例外：
+// 它必须真正写入共享 coupons 集合，乘客领券中心才能看到并领取，
+// 因此单独挂载并强制走后台角色鉴权。
+func registerAdminContractRoutes(api *gin.RouterGroup, contractH *handler.SpecContractHandler) {
+	admin := api.Group("/admin", contractH.AdminGuard())
+	admin.POST("/coupon/template", contractH.AdminCouponTemplate)
 }
 
 // registerAuthContractRoutes 注册公共登录 L01-L07。

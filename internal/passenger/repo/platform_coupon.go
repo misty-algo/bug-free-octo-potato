@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -97,6 +98,36 @@ func (r *PlatformCouponRepository) ClaimOne(ctx context.Context, couponNo, holde
 		return false, err
 	}
 	return res.MatchedCount > 0, nil
+}
+
+// Publish 管理端营销中心发布平台券：向 coupons 集合写入 stock 张 AVAILABLE 券，
+// 领券中心即可看到并按先到先得领取。券码带模板号与纳秒时间戳保证唯一。
+func (r *PlatformCouponRepository) Publish(ctx context.Context, templateNo, name string, faceValueFen, thresholdFen int64, expireAt, now time.Time, stock int) (int, error) {
+	// 超限直接拒绝而不是截断：静默少发会让运营误判券量，进而影响活动投放。
+	if stock <= 0 || stock > entity.MaxPublishCouponStock {
+		return 0, entity.ErrInvalidCouponStock
+	}
+	if templateNo == "" {
+		templateNo = fmt.Sprintf("TPL%s", now.Format("20060102150405"))
+	}
+	issued := 0
+	for i := 0; i < stock; i++ {
+		doc := platformCouponDocument{
+			CouponNo:     fmt.Sprintf("%s-%d-%03d", templateNo, now.UnixNano(), i),
+			TemplateNo:   templateNo,
+			Name:         name,
+			State:        entity.PlatformCouponStateAvailable,
+			FaceValueFen: faceValueFen,
+			ThresholdFen: thresholdFen,
+			ExpireAt:     expireAt,
+			CreatedAt:    now,
+		}
+		if _, err := r.collection.Insert(ctx, &doc); err != nil {
+			return issued, err
+		}
+		issued++
+	}
+	return issued, nil
 }
 
 // toPlatformCoupon 把平台券文档转成领域对象。

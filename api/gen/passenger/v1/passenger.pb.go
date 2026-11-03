@@ -3172,12 +3172,19 @@ type Order struct {
 	EndName   string                 `protobuf:"bytes,7,opt,name=end_name,json=endName,proto3" json:"end_name,omitempty"`
 	EndAddr   string                 `protobuf:"bytes,8,opt,name=end_addr,json=endAddr,proto3" json:"end_addr,omitempty"`
 	// total_fee 与 cancel_fee 单位为分。
-	TotalFee      int64  `protobuf:"varint,9,opt,name=total_fee,json=totalFee,proto3" json:"total_fee,omitempty"`
-	CancelFee     int64  `protobuf:"varint,10,opt,name=cancel_fee,json=cancelFee,proto3" json:"cancel_fee,omitempty"`
-	Remark        string `protobuf:"bytes,11,opt,name=remark,proto3" json:"remark,omitempty"`
-	DriverName    string `protobuf:"bytes,12,opt,name=driver_name,json=driverName,proto3" json:"driver_name,omitempty"`
-	DriverPlate   string `protobuf:"bytes,13,opt,name=driver_plate,json=driverPlate,proto3" json:"driver_plate,omitempty"`
-	CreatedAt     int64  `protobuf:"varint,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	TotalFee    int64  `protobuf:"varint,9,opt,name=total_fee,json=totalFee,proto3" json:"total_fee,omitempty"`
+	CancelFee   int64  `protobuf:"varint,10,opt,name=cancel_fee,json=cancelFee,proto3" json:"cancel_fee,omitempty"`
+	Remark      string `protobuf:"bytes,11,opt,name=remark,proto3" json:"remark,omitempty"`
+	DriverName  string `protobuf:"bytes,12,opt,name=driver_name,json=driverName,proto3" json:"driver_name,omitempty"`
+	DriverPlate string `protobuf:"bytes,13,opt,name=driver_plate,json=driverPlate,proto3" json:"driver_plate,omitempty"`
+	CreatedAt   int64  `protobuf:"varint,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// 乘客发起的更改下车点请求（无请求时为空）。
+	DestChange *DestinationChangeMessage `protobuf:"bytes,15,opt,name=dest_change,json=destChange,proto3" json:"dest_change,omitempty"`
+	// 起终点坐标（WGS84）：行程地图据此画上车点/目的地标记，避免刷新后丢失。
+	StartLat      float64 `protobuf:"fixed64,16,opt,name=start_lat,json=startLat,proto3" json:"start_lat,omitempty"`
+	StartLng      float64 `protobuf:"fixed64,17,opt,name=start_lng,json=startLng,proto3" json:"start_lng,omitempty"`
+	EndLat        float64 `protobuf:"fixed64,18,opt,name=end_lat,json=endLat,proto3" json:"end_lat,omitempty"`
+	EndLng        float64 `protobuf:"fixed64,19,opt,name=end_lng,json=endLng,proto3" json:"end_lng,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3310,6 +3317,102 @@ func (x *Order) GetCreatedAt() int64 {
 	return 0
 }
 
+func (x *Order) GetDestChange() *DestinationChangeMessage {
+	if x != nil {
+		return x.DestChange
+	}
+	return nil
+}
+
+func (x *Order) GetStartLat() float64 {
+	if x != nil {
+		return x.StartLat
+	}
+	return 0
+}
+
+func (x *Order) GetStartLng() float64 {
+	if x != nil {
+		return x.StartLng
+	}
+	return 0
+}
+
+func (x *Order) GetEndLat() float64 {
+	if x != nil {
+		return x.EndLat
+	}
+	return 0
+}
+
+func (x *Order) GetEndLng() float64 {
+	if x != nil {
+		return x.EndLng
+	}
+	return 0
+}
+
+type DestinationChangeMessage struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	NewEndName string                 `protobuf:"bytes,1,opt,name=new_end_name,json=newEndName,proto3" json:"new_end_name,omitempty"`
+	NewEndAddr string                 `protobuf:"bytes,2,opt,name=new_end_addr,json=newEndAddr,proto3" json:"new_end_addr,omitempty"`
+	// pending 等待司机裁决 / approved 司机已同意 / rejected 司机已拒绝。
+	State         string `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DestinationChangeMessage) Reset() {
+	*x = DestinationChangeMessage{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DestinationChangeMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DestinationChangeMessage) ProtoMessage() {}
+
+func (x *DestinationChangeMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DestinationChangeMessage.ProtoReflect.Descriptor instead.
+func (*DestinationChangeMessage) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *DestinationChangeMessage) GetNewEndName() string {
+	if x != nil {
+		return x.NewEndName
+	}
+	return ""
+}
+
+func (x *DestinationChangeMessage) GetNewEndAddr() string {
+	if x != nil {
+		return x.NewEndAddr
+	}
+	return ""
+}
+
+func (x *DestinationChangeMessage) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
 type OrderResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Order         *Order                 `protobuf:"bytes,1,opt,name=order,proto3" json:"order,omitempty"`
@@ -3319,7 +3422,7 @@ type OrderResponse struct {
 
 func (x *OrderResponse) Reset() {
 	*x = OrderResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[47]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3331,7 +3434,7 @@ func (x *OrderResponse) String() string {
 func (*OrderResponse) ProtoMessage() {}
 
 func (x *OrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[47]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3344,7 +3447,7 @@ func (x *OrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderResponse.ProtoReflect.Descriptor instead.
 func (*OrderResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{47}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *OrderResponse) GetOrder() *Order {
@@ -3364,7 +3467,7 @@ type GetOrderRequest struct {
 
 func (x *GetOrderRequest) Reset() {
 	*x = GetOrderRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[48]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3376,7 +3479,7 @@ func (x *GetOrderRequest) String() string {
 func (*GetOrderRequest) ProtoMessage() {}
 
 func (x *GetOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[48]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3389,7 +3492,7 @@ func (x *GetOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrderRequest.ProtoReflect.Descriptor instead.
 func (*GetOrderRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{48}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *GetOrderRequest) GetAccountId() string {
@@ -3415,7 +3518,7 @@ type CurrentOrderRequest struct {
 
 func (x *CurrentOrderRequest) Reset() {
 	*x = CurrentOrderRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[49]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3427,7 +3530,7 @@ func (x *CurrentOrderRequest) String() string {
 func (*CurrentOrderRequest) ProtoMessage() {}
 
 func (x *CurrentOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[49]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3440,7 +3543,7 @@ func (x *CurrentOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentOrderRequest.ProtoReflect.Descriptor instead.
 func (*CurrentOrderRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{49}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *CurrentOrderRequest) GetAccountId() string {
@@ -3462,7 +3565,7 @@ type ListOrdersRequest struct {
 
 func (x *ListOrdersRequest) Reset() {
 	*x = ListOrdersRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[50]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3474,7 +3577,7 @@ func (x *ListOrdersRequest) String() string {
 func (*ListOrdersRequest) ProtoMessage() {}
 
 func (x *ListOrdersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[50]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3487,7 +3590,7 @@ func (x *ListOrdersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOrdersRequest.ProtoReflect.Descriptor instead.
 func (*ListOrdersRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{50}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *ListOrdersRequest) GetAccountId() string {
@@ -3528,7 +3631,7 @@ type OrderListResponse struct {
 
 func (x *OrderListResponse) Reset() {
 	*x = OrderListResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[51]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3540,7 +3643,7 @@ func (x *OrderListResponse) String() string {
 func (*OrderListResponse) ProtoMessage() {}
 
 func (x *OrderListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[51]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3553,7 +3656,7 @@ func (x *OrderListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderListResponse.ProtoReflect.Descriptor instead.
 func (*OrderListResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{51}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *OrderListResponse) GetTotal() int32 {
@@ -3580,7 +3683,7 @@ type CancelQuoteRequest struct {
 
 func (x *CancelQuoteRequest) Reset() {
 	*x = CancelQuoteRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[52]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3592,7 +3695,7 @@ func (x *CancelQuoteRequest) String() string {
 func (*CancelQuoteRequest) ProtoMessage() {}
 
 func (x *CancelQuoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[52]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3605,7 +3708,7 @@ func (x *CancelQuoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelQuoteRequest.ProtoReflect.Descriptor instead.
 func (*CancelQuoteRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{52}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *CancelQuoteRequest) GetAccountId() string {
@@ -3634,7 +3737,7 @@ type CancelOrderRequest struct {
 
 func (x *CancelOrderRequest) Reset() {
 	*x = CancelOrderRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[53]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3646,7 +3749,7 @@ func (x *CancelOrderRequest) String() string {
 func (*CancelOrderRequest) ProtoMessage() {}
 
 func (x *CancelOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[53]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3659,7 +3762,7 @@ func (x *CancelOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelOrderRequest.ProtoReflect.Descriptor instead.
 func (*CancelOrderRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{53}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *CancelOrderRequest) GetAccountId() string {
@@ -3702,7 +3805,7 @@ type CancelQuoteResponse struct {
 
 func (x *CancelQuoteResponse) Reset() {
 	*x = CancelQuoteResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[54]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3714,7 +3817,7 @@ func (x *CancelQuoteResponse) String() string {
 func (*CancelQuoteResponse) ProtoMessage() {}
 
 func (x *CancelQuoteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[54]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3727,7 +3830,7 @@ func (x *CancelQuoteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelQuoteResponse.ProtoReflect.Descriptor instead.
 func (*CancelQuoteResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{54}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *CancelQuoteResponse) GetNeedConfirm() bool {
@@ -3768,7 +3871,7 @@ type DriverLocationRequest struct {
 
 func (x *DriverLocationRequest) Reset() {
 	*x = DriverLocationRequest{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[55]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3780,7 +3883,7 @@ func (x *DriverLocationRequest) String() string {
 func (*DriverLocationRequest) ProtoMessage() {}
 
 func (x *DriverLocationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[55]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3793,7 +3896,7 @@ func (x *DriverLocationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriverLocationRequest.ProtoReflect.Descriptor instead.
 func (*DriverLocationRequest) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{55}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *DriverLocationRequest) GetAccountId() string {
@@ -3828,7 +3931,7 @@ type DriverLocationResponse struct {
 
 func (x *DriverLocationResponse) Reset() {
 	*x = DriverLocationResponse{}
-	mi := &file_passenger_v1_passenger_proto_msgTypes[56]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3840,7 +3943,7 @@ func (x *DriverLocationResponse) String() string {
 func (*DriverLocationResponse) ProtoMessage() {}
 
 func (x *DriverLocationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_passenger_v1_passenger_proto_msgTypes[56]
+	mi := &file_passenger_v1_passenger_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3853,7 +3956,7 @@ func (x *DriverLocationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriverLocationResponse.ProtoReflect.Descriptor instead.
 func (*DriverLocationResponse) Descriptor() ([]byte, []int) {
-	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{56}
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *DriverLocationResponse) GetDriverId() string {
@@ -3922,6 +4025,430 @@ func (x *DriverLocationResponse) GetDelayed() bool {
 func (x *DriverLocationResponse) GetReportedAt() int64 {
 	if x != nil {
 		return x.ReportedAt
+	}
+	return 0
+}
+
+type RequestDestinationChangeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	OrderNo       string                 `protobuf:"bytes,2,opt,name=order_no,json=orderNo,proto3" json:"order_no,omitempty"`
+	NewEndName    string                 `protobuf:"bytes,3,opt,name=new_end_name,json=newEndName,proto3" json:"new_end_name,omitempty"`
+	NewEndAddr    string                 `protobuf:"bytes,4,opt,name=new_end_addr,json=newEndAddr,proto3" json:"new_end_addr,omitempty"`
+	NewEndLng     float64                `protobuf:"fixed64,5,opt,name=new_end_lng,json=newEndLng,proto3" json:"new_end_lng,omitempty"`
+	NewEndLat     float64                `protobuf:"fixed64,6,opt,name=new_end_lat,json=newEndLat,proto3" json:"new_end_lat,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestDestinationChangeRequest) Reset() {
+	*x = RequestDestinationChangeRequest{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestDestinationChangeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestDestinationChangeRequest) ProtoMessage() {}
+
+func (x *RequestDestinationChangeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestDestinationChangeRequest.ProtoReflect.Descriptor instead.
+func (*RequestDestinationChangeRequest) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *RequestDestinationChangeRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *RequestDestinationChangeRequest) GetOrderNo() string {
+	if x != nil {
+		return x.OrderNo
+	}
+	return ""
+}
+
+func (x *RequestDestinationChangeRequest) GetNewEndName() string {
+	if x != nil {
+		return x.NewEndName
+	}
+	return ""
+}
+
+func (x *RequestDestinationChangeRequest) GetNewEndAddr() string {
+	if x != nil {
+		return x.NewEndAddr
+	}
+	return ""
+}
+
+func (x *RequestDestinationChangeRequest) GetNewEndLng() float64 {
+	if x != nil {
+		return x.NewEndLng
+	}
+	return 0
+}
+
+func (x *RequestDestinationChangeRequest) GetNewEndLat() float64 {
+	if x != nil {
+		return x.NewEndLat
+	}
+	return 0
+}
+
+type RequestDestinationChangeResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// pending：已提交等待司机裁决；approved：司机已同意（即时生效）；
+	// rejected：司机已拒绝；replaced：新请求覆盖了旧的待裁决请求。
+	State         string `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestDestinationChangeResponse) Reset() {
+	*x = RequestDestinationChangeResponse{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestDestinationChangeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestDestinationChangeResponse) ProtoMessage() {}
+
+func (x *RequestDestinationChangeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestDestinationChangeResponse.ProtoReflect.Descriptor instead.
+func (*RequestDestinationChangeResponse) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *RequestDestinationChangeResponse) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *RequestDestinationChangeResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type SubmitReviewRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	AccountId string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	OrderNo   string                 `protobuf:"bytes,2,opt,name=order_no,json=orderNo,proto3" json:"order_no,omitempty"`
+	// 1-5 星；仅评价时可只打分，投诉可不打分。
+	Rating        int32    `protobuf:"varint,3,opt,name=rating,proto3" json:"rating,omitempty"`
+	Tags          []string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
+	Comment       string   `protobuf:"bytes,5,opt,name=comment,proto3" json:"comment,omitempty"`
+	IsComplaint   bool     `protobuf:"varint,6,opt,name=is_complaint,json=isComplaint,proto3" json:"is_complaint,omitempty"`
+	ComplaintType string   `protobuf:"bytes,7,opt,name=complaint_type,json=complaintType,proto3" json:"complaint_type,omitempty"`
+	ComplaintDesc string   `protobuf:"bytes,8,opt,name=complaint_desc,json=complaintDesc,proto3" json:"complaint_desc,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitReviewRequest) Reset() {
+	*x = SubmitReviewRequest{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitReviewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitReviewRequest) ProtoMessage() {}
+
+func (x *SubmitReviewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitReviewRequest.ProtoReflect.Descriptor instead.
+func (*SubmitReviewRequest) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *SubmitReviewRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *SubmitReviewRequest) GetOrderNo() string {
+	if x != nil {
+		return x.OrderNo
+	}
+	return ""
+}
+
+func (x *SubmitReviewRequest) GetRating() int32 {
+	if x != nil {
+		return x.Rating
+	}
+	return 0
+}
+
+func (x *SubmitReviewRequest) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *SubmitReviewRequest) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
+}
+
+func (x *SubmitReviewRequest) GetIsComplaint() bool {
+	if x != nil {
+		return x.IsComplaint
+	}
+	return false
+}
+
+func (x *SubmitReviewRequest) GetComplaintType() string {
+	if x != nil {
+		return x.ComplaintType
+	}
+	return ""
+}
+
+func (x *SubmitReviewRequest) GetComplaintDesc() string {
+	if x != nil {
+		return x.ComplaintDesc
+	}
+	return ""
+}
+
+type SubmitReviewResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitReviewResponse) Reset() {
+	*x = SubmitReviewResponse{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitReviewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitReviewResponse) ProtoMessage() {}
+
+func (x *SubmitReviewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitReviewResponse.ProtoReflect.Descriptor instead.
+func (*SubmitReviewResponse) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *SubmitReviewResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type PublishPlatformCouponsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// template_no 为券模板号（可选，为空则服务端生成）。
+	TemplateNo string `protobuf:"bytes,1,opt,name=template_no,json=templateNo,proto3" json:"template_no,omitempty"`
+	// name 为券名称，展示在领券中心。
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// 金额单位均为分。
+	FaceValueFen int64 `protobuf:"varint,3,opt,name=face_value_fen,json=faceValueFen,proto3" json:"face_value_fen,omitempty"`
+	ThresholdFen int64 `protobuf:"varint,4,opt,name=threshold_fen,json=thresholdFen,proto3" json:"threshold_fen,omitempty"`
+	// expire_at_unix 为券过期时间（Unix 秒）。
+	ExpireAtUnix int64 `protobuf:"varint,5,opt,name=expire_at_unix,json=expireAtUnix,proto3" json:"expire_at_unix,omitempty"`
+	// stock 为本次发放的可领取券数量。
+	Stock         int32 `protobuf:"varint,6,opt,name=stock,proto3" json:"stock,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PublishPlatformCouponsRequest) Reset() {
+	*x = PublishPlatformCouponsRequest{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PublishPlatformCouponsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PublishPlatformCouponsRequest) ProtoMessage() {}
+
+func (x *PublishPlatformCouponsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PublishPlatformCouponsRequest.ProtoReflect.Descriptor instead.
+func (*PublishPlatformCouponsRequest) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *PublishPlatformCouponsRequest) GetTemplateNo() string {
+	if x != nil {
+		return x.TemplateNo
+	}
+	return ""
+}
+
+func (x *PublishPlatformCouponsRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PublishPlatformCouponsRequest) GetFaceValueFen() int64 {
+	if x != nil {
+		return x.FaceValueFen
+	}
+	return 0
+}
+
+func (x *PublishPlatformCouponsRequest) GetThresholdFen() int64 {
+	if x != nil {
+		return x.ThresholdFen
+	}
+	return 0
+}
+
+func (x *PublishPlatformCouponsRequest) GetExpireAtUnix() int64 {
+	if x != nil {
+		return x.ExpireAtUnix
+	}
+	return 0
+}
+
+func (x *PublishPlatformCouponsRequest) GetStock() int32 {
+	if x != nil {
+		return x.Stock
+	}
+	return 0
+}
+
+type PublishPlatformCouponsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TemplateNo    string                 `protobuf:"bytes,1,opt,name=template_no,json=templateNo,proto3" json:"template_no,omitempty"`
+	Issued        int32                  `protobuf:"varint,2,opt,name=issued,proto3" json:"issued,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PublishPlatformCouponsResponse) Reset() {
+	*x = PublishPlatformCouponsResponse{}
+	mi := &file_passenger_v1_passenger_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PublishPlatformCouponsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PublishPlatformCouponsResponse) ProtoMessage() {}
+
+func (x *PublishPlatformCouponsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_passenger_v1_passenger_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PublishPlatformCouponsResponse.ProtoReflect.Descriptor instead.
+func (*PublishPlatformCouponsResponse) Descriptor() ([]byte, []int) {
+	return file_passenger_v1_passenger_proto_rawDescGZIP(), []int{63}
+}
+
+func (x *PublishPlatformCouponsResponse) GetTemplateNo() string {
+	if x != nil {
+		return x.TemplateNo
+	}
+	return ""
+}
+
+func (x *PublishPlatformCouponsResponse) GetIssued() int32 {
+	if x != nil {
+		return x.Issued
 	}
 	return 0
 }
@@ -4203,7 +4730,7 @@ const file_passenger_v1_passenger_proto_rawDesc = "" +
 	" \x01(\x01R\x06endLng\x12\x17\n" +
 	"\aend_lat\x18\v \x01(\x01R\x06endLat\x12\x16\n" +
 	"\x06remark\x18\f \x01(\tR\x06remark\x12'\n" +
-	"\x0fidempotency_key\x18\r \x01(\tR\x0eidempotencyKey\"\x99\x03\n" +
+	"\x0fidempotency_key\x18\r \x01(\tR\x0eidempotencyKey\"\xce\x04\n" +
 	"\x05Order\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x19\n" +
 	"\border_no\x18\x02 \x01(\tR\aorderNo\x12\x14\n" +
@@ -4224,7 +4751,19 @@ const file_passenger_v1_passenger_proto_rawDesc = "" +
 	"driverName\x12!\n" +
 	"\fdriver_plate\x18\r \x01(\tR\vdriverPlate\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x0e \x01(\x03R\tcreatedAt\":\n" +
+	"created_at\x18\x0e \x01(\x03R\tcreatedAt\x12G\n" +
+	"\vdest_change\x18\x0f \x01(\v2&.passenger.v1.DestinationChangeMessageR\n" +
+	"destChange\x12\x1b\n" +
+	"\tstart_lat\x18\x10 \x01(\x01R\bstartLat\x12\x1b\n" +
+	"\tstart_lng\x18\x11 \x01(\x01R\bstartLng\x12\x17\n" +
+	"\aend_lat\x18\x12 \x01(\x01R\x06endLat\x12\x17\n" +
+	"\aend_lng\x18\x13 \x01(\x01R\x06endLng\"t\n" +
+	"\x18DestinationChangeMessage\x12 \n" +
+	"\fnew_end_name\x18\x01 \x01(\tR\n" +
+	"newEndName\x12 \n" +
+	"\fnew_end_addr\x18\x02 \x01(\tR\n" +
+	"newEndAddr\x12\x14\n" +
+	"\x05state\x18\x03 \x01(\tR\x05state\":\n" +
 	"\rOrderResponse\x12)\n" +
 	"\x05order\x18\x01 \x01(\v2\x13.passenger.v1.OrderR\x05order\"K\n" +
 	"\x0fGetOrderRequest\x12\x1d\n" +
@@ -4278,7 +4817,44 @@ const file_passenger_v1_passenger_proto_rawDesc = "" +
 	"\adelayed\x18\t \x01(\bR\adelayed\x12\x1f\n" +
 	"\vreported_at\x18\n" +
 	" \x01(\x03R\n" +
-	"reportedAt2\xb4\x16\n" +
+	"reportedAt\"\xdf\x01\n" +
+	"\x1fRequestDestinationChangeRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x19\n" +
+	"\border_no\x18\x02 \x01(\tR\aorderNo\x12 \n" +
+	"\fnew_end_name\x18\x03 \x01(\tR\n" +
+	"newEndName\x12 \n" +
+	"\fnew_end_addr\x18\x04 \x01(\tR\n" +
+	"newEndAddr\x12\x1e\n" +
+	"\vnew_end_lng\x18\x05 \x01(\x01R\tnewEndLng\x12\x1e\n" +
+	"\vnew_end_lat\x18\x06 \x01(\x01R\tnewEndLat\"R\n" +
+	" RequestDestinationChangeResponse\x12\x14\n" +
+	"\x05state\x18\x01 \x01(\tR\x05state\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x86\x02\n" +
+	"\x13SubmitReviewRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x19\n" +
+	"\border_no\x18\x02 \x01(\tR\aorderNo\x12\x16\n" +
+	"\x06rating\x18\x03 \x01(\x05R\x06rating\x12\x12\n" +
+	"\x04tags\x18\x04 \x03(\tR\x04tags\x12\x18\n" +
+	"\acomment\x18\x05 \x01(\tR\acomment\x12!\n" +
+	"\fis_complaint\x18\x06 \x01(\bR\visComplaint\x12%\n" +
+	"\x0ecomplaint_type\x18\a \x01(\tR\rcomplaintType\x12%\n" +
+	"\x0ecomplaint_desc\x18\b \x01(\tR\rcomplaintDesc\"0\n" +
+	"\x14SubmitReviewResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\xdb\x01\n" +
+	"\x1dPublishPlatformCouponsRequest\x12\x1f\n" +
+	"\vtemplate_no\x18\x01 \x01(\tR\n" +
+	"templateNo\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12$\n" +
+	"\x0eface_value_fen\x18\x03 \x01(\x03R\ffaceValueFen\x12#\n" +
+	"\rthreshold_fen\x18\x04 \x01(\x03R\fthresholdFen\x12$\n" +
+	"\x0eexpire_at_unix\x18\x05 \x01(\x03R\fexpireAtUnix\x12\x14\n" +
+	"\x05stock\x18\x06 \x01(\x05R\x05stock\"Y\n" +
+	"\x1ePublishPlatformCouponsResponse\x12\x1f\n" +
+	"\vtemplate_no\x18\x01 \x01(\tR\n" +
+	"templateNo\x12\x16\n" +
+	"\x06issued\x18\x02 \x01(\x05R\x06issued2\xfb\x18\n" +
 	"\x10PassengerService\x12I\n" +
 	"\bSendCode\x12\x1d.passenger.v1.SendCodeRequest\x1a\x1e.passenger.v1.SendCodeResponse\x12@\n" +
 	"\x05Login\x12\x1a.passenger.v1.LoginRequest\x1a\x1b.passenger.v1.LoginResponse\x12R\n" +
@@ -4305,7 +4881,8 @@ const file_passenger_v1_passenger_proto_rawDesc = "" +
 	"\x0eSubmitRealName\x12#.passenger.v1.SubmitRealNameRequest\x1a$.passenger.v1.RealNameStatusResponse\x12a\n" +
 	"\x11GetRealNameStatus\x12&.passenger.v1.GetRealNameStatusRequest\x1a$.passenger.v1.RealNameStatusResponse\x12c\n" +
 	"\x14ListClaimableCoupons\x12).passenger.v1.ListClaimableCouponsRequest\x1a .passenger.v1.CouponListResponse\x12E\n" +
-	"\vClaimCoupon\x12 .passenger.v1.ClaimCouponRequest\x1a\x14.passenger.v1.Coupon\x12I\n" +
+	"\vClaimCoupon\x12 .passenger.v1.ClaimCouponRequest\x1a\x14.passenger.v1.Coupon\x12s\n" +
+	"\x16PublishPlatformCoupons\x12+.passenger.v1.PublishPlatformCouponsRequest\x1a,.passenger.v1.PublishPlatformCouponsResponse\x12I\n" +
 	"\bEstimate\x12\x1d.passenger.v1.EstimateRequest\x1a\x1e.passenger.v1.EstimateResponse\x12K\n" +
 	"\n" +
 	"QuotePrice\x12\x1d.passenger.v1.EstimateRequest\x1a\x1e.passenger.v1.EstimateResponse\x12L\n" +
@@ -4317,7 +4894,9 @@ const file_passenger_v1_passenger_proto_rawDesc = "" +
 	"\vCancelQuote\x12 .passenger.v1.CancelQuoteRequest\x1a!.passenger.v1.CancelQuoteResponse\x12R\n" +
 	"\vCancelOrder\x12 .passenger.v1.CancelOrderRequest\x1a!.passenger.v1.CancelQuoteResponse\x12[\n" +
 	"\x0eDriverLocation\x12#.passenger.v1.DriverLocationRequest\x1a$.passenger.v1.DriverLocationResponse\x12X\n" +
-	"\rMarkOrderPaid\x12\".passenger.v1.MarkOrderPaidRequest\x1a#.passenger.v1.MarkOrderPaidResponseB@Z>github.com/BwCloudWeGo/bw-cli/api/gen/passenger/v1;passengerv1b\x06proto3"
+	"\rMarkOrderPaid\x12\".passenger.v1.MarkOrderPaidRequest\x1a#.passenger.v1.MarkOrderPaidResponse\x12y\n" +
+	"\x18RequestDestinationChange\x12-.passenger.v1.RequestDestinationChangeRequest\x1a..passenger.v1.RequestDestinationChangeResponse\x12U\n" +
+	"\fSubmitReview\x12!.passenger.v1.SubmitReviewRequest\x1a\".passenger.v1.SubmitReviewResponseB@Z>github.com/BwCloudWeGo/bw-cli/api/gen/passenger/v1;passengerv1b\x06proto3"
 
 var (
 	file_passenger_v1_passenger_proto_rawDescOnce sync.Once
@@ -4331,65 +4910,72 @@ func file_passenger_v1_passenger_proto_rawDescGZIP() []byte {
 	return file_passenger_v1_passenger_proto_rawDescData
 }
 
-var file_passenger_v1_passenger_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
+var file_passenger_v1_passenger_proto_msgTypes = make([]protoimpl.MessageInfo, 64)
 var file_passenger_v1_passenger_proto_goTypes = []any{
-	(*MarkOrderPaidRequest)(nil),        // 0: passenger.v1.MarkOrderPaidRequest
-	(*MarkOrderPaidResponse)(nil),       // 1: passenger.v1.MarkOrderPaidResponse
-	(*SendCodeRequest)(nil),             // 2: passenger.v1.SendCodeRequest
-	(*SendCodeResponse)(nil),            // 3: passenger.v1.SendCodeResponse
-	(*LoginRequest)(nil),                // 4: passenger.v1.LoginRequest
-	(*LoginResponse)(nil),               // 5: passenger.v1.LoginResponse
-	(*SetPasswordRequest)(nil),          // 6: passenger.v1.SetPasswordRequest
-	(*SetPasswordResponse)(nil),         // 7: passenger.v1.SetPasswordResponse
-	(*BindPhoneRequest)(nil),            // 8: passenger.v1.BindPhoneRequest
-	(*BindPhoneResponse)(nil),           // 9: passenger.v1.BindPhoneResponse
-	(*RefreshRequest)(nil),              // 10: passenger.v1.RefreshRequest
-	(*LogoutRequest)(nil),               // 11: passenger.v1.LogoutRequest
-	(*LogoutResponse)(nil),              // 12: passenger.v1.LogoutResponse
-	(*UnbindChannelRequest)(nil),        // 13: passenger.v1.UnbindChannelRequest
-	(*CancelAccountRequest)(nil),        // 14: passenger.v1.CancelAccountRequest
-	(*UpdateProfileRequest)(nil),        // 15: passenger.v1.UpdateProfileRequest
-	(*GetProfileRequest)(nil),           // 16: passenger.v1.GetProfileRequest
-	(*ProfileResponse)(nil),             // 17: passenger.v1.ProfileResponse
-	(*HomeRequest)(nil),                 // 18: passenger.v1.HomeRequest
-	(*CarType)(nil),                     // 19: passenger.v1.CarType
-	(*QuickEntry)(nil),                  // 20: passenger.v1.QuickEntry
-	(*Address)(nil),                     // 21: passenger.v1.Address
-	(*HomeResponse)(nil),                // 22: passenger.v1.HomeResponse
-	(*SearchPOIRequest)(nil),            // 23: passenger.v1.SearchPOIRequest
-	(*RecommendPickupRequest)(nil),      // 24: passenger.v1.RecommendPickupRequest
-	(*POI)(nil),                         // 25: passenger.v1.POI
-	(*SearchPOIResponse)(nil),           // 26: passenger.v1.SearchPOIResponse
-	(*ListAddressesRequest)(nil),        // 27: passenger.v1.ListAddressesRequest
-	(*AddressListResponse)(nil),         // 28: passenger.v1.AddressListResponse
-	(*SaveAddressRequest)(nil),          // 29: passenger.v1.SaveAddressRequest
-	(*AddressResponse)(nil),             // 30: passenger.v1.AddressResponse
-	(*DeleteAddressRequest)(nil),        // 31: passenger.v1.DeleteAddressRequest
-	(*RecordHistoryRequest)(nil),        // 32: passenger.v1.RecordHistoryRequest
-	(*ClearHistoryRequest)(nil),         // 33: passenger.v1.ClearHistoryRequest
-	(*UseQuickEntryRequest)(nil),        // 34: passenger.v1.UseQuickEntryRequest
-	(*Coupon)(nil),                      // 35: passenger.v1.Coupon
-	(*ListCouponsRequest)(nil),          // 36: passenger.v1.ListCouponsRequest
-	(*CouponListResponse)(nil),          // 37: passenger.v1.CouponListResponse
-	(*SubmitRealNameRequest)(nil),       // 38: passenger.v1.SubmitRealNameRequest
-	(*GetRealNameStatusRequest)(nil),    // 39: passenger.v1.GetRealNameStatusRequest
-	(*RealNameStatusResponse)(nil),      // 40: passenger.v1.RealNameStatusResponse
-	(*ListClaimableCouponsRequest)(nil), // 41: passenger.v1.ListClaimableCouponsRequest
-	(*ClaimCouponRequest)(nil),          // 42: passenger.v1.ClaimCouponRequest
-	(*EstimateRequest)(nil),             // 43: passenger.v1.EstimateRequest
-	(*EstimateResponse)(nil),            // 44: passenger.v1.EstimateResponse
-	(*CreateOrderRequest)(nil),          // 45: passenger.v1.CreateOrderRequest
-	(*Order)(nil),                       // 46: passenger.v1.Order
-	(*OrderResponse)(nil),               // 47: passenger.v1.OrderResponse
-	(*GetOrderRequest)(nil),             // 48: passenger.v1.GetOrderRequest
-	(*CurrentOrderRequest)(nil),         // 49: passenger.v1.CurrentOrderRequest
-	(*ListOrdersRequest)(nil),           // 50: passenger.v1.ListOrdersRequest
-	(*OrderListResponse)(nil),           // 51: passenger.v1.OrderListResponse
-	(*CancelQuoteRequest)(nil),          // 52: passenger.v1.CancelQuoteRequest
-	(*CancelOrderRequest)(nil),          // 53: passenger.v1.CancelOrderRequest
-	(*CancelQuoteResponse)(nil),         // 54: passenger.v1.CancelQuoteResponse
-	(*DriverLocationRequest)(nil),       // 55: passenger.v1.DriverLocationRequest
-	(*DriverLocationResponse)(nil),      // 56: passenger.v1.DriverLocationResponse
+	(*MarkOrderPaidRequest)(nil),             // 0: passenger.v1.MarkOrderPaidRequest
+	(*MarkOrderPaidResponse)(nil),            // 1: passenger.v1.MarkOrderPaidResponse
+	(*SendCodeRequest)(nil),                  // 2: passenger.v1.SendCodeRequest
+	(*SendCodeResponse)(nil),                 // 3: passenger.v1.SendCodeResponse
+	(*LoginRequest)(nil),                     // 4: passenger.v1.LoginRequest
+	(*LoginResponse)(nil),                    // 5: passenger.v1.LoginResponse
+	(*SetPasswordRequest)(nil),               // 6: passenger.v1.SetPasswordRequest
+	(*SetPasswordResponse)(nil),              // 7: passenger.v1.SetPasswordResponse
+	(*BindPhoneRequest)(nil),                 // 8: passenger.v1.BindPhoneRequest
+	(*BindPhoneResponse)(nil),                // 9: passenger.v1.BindPhoneResponse
+	(*RefreshRequest)(nil),                   // 10: passenger.v1.RefreshRequest
+	(*LogoutRequest)(nil),                    // 11: passenger.v1.LogoutRequest
+	(*LogoutResponse)(nil),                   // 12: passenger.v1.LogoutResponse
+	(*UnbindChannelRequest)(nil),             // 13: passenger.v1.UnbindChannelRequest
+	(*CancelAccountRequest)(nil),             // 14: passenger.v1.CancelAccountRequest
+	(*UpdateProfileRequest)(nil),             // 15: passenger.v1.UpdateProfileRequest
+	(*GetProfileRequest)(nil),                // 16: passenger.v1.GetProfileRequest
+	(*ProfileResponse)(nil),                  // 17: passenger.v1.ProfileResponse
+	(*HomeRequest)(nil),                      // 18: passenger.v1.HomeRequest
+	(*CarType)(nil),                          // 19: passenger.v1.CarType
+	(*QuickEntry)(nil),                       // 20: passenger.v1.QuickEntry
+	(*Address)(nil),                          // 21: passenger.v1.Address
+	(*HomeResponse)(nil),                     // 22: passenger.v1.HomeResponse
+	(*SearchPOIRequest)(nil),                 // 23: passenger.v1.SearchPOIRequest
+	(*RecommendPickupRequest)(nil),           // 24: passenger.v1.RecommendPickupRequest
+	(*POI)(nil),                              // 25: passenger.v1.POI
+	(*SearchPOIResponse)(nil),                // 26: passenger.v1.SearchPOIResponse
+	(*ListAddressesRequest)(nil),             // 27: passenger.v1.ListAddressesRequest
+	(*AddressListResponse)(nil),              // 28: passenger.v1.AddressListResponse
+	(*SaveAddressRequest)(nil),               // 29: passenger.v1.SaveAddressRequest
+	(*AddressResponse)(nil),                  // 30: passenger.v1.AddressResponse
+	(*DeleteAddressRequest)(nil),             // 31: passenger.v1.DeleteAddressRequest
+	(*RecordHistoryRequest)(nil),             // 32: passenger.v1.RecordHistoryRequest
+	(*ClearHistoryRequest)(nil),              // 33: passenger.v1.ClearHistoryRequest
+	(*UseQuickEntryRequest)(nil),             // 34: passenger.v1.UseQuickEntryRequest
+	(*Coupon)(nil),                           // 35: passenger.v1.Coupon
+	(*ListCouponsRequest)(nil),               // 36: passenger.v1.ListCouponsRequest
+	(*CouponListResponse)(nil),               // 37: passenger.v1.CouponListResponse
+	(*SubmitRealNameRequest)(nil),            // 38: passenger.v1.SubmitRealNameRequest
+	(*GetRealNameStatusRequest)(nil),         // 39: passenger.v1.GetRealNameStatusRequest
+	(*RealNameStatusResponse)(nil),           // 40: passenger.v1.RealNameStatusResponse
+	(*ListClaimableCouponsRequest)(nil),      // 41: passenger.v1.ListClaimableCouponsRequest
+	(*ClaimCouponRequest)(nil),               // 42: passenger.v1.ClaimCouponRequest
+	(*EstimateRequest)(nil),                  // 43: passenger.v1.EstimateRequest
+	(*EstimateResponse)(nil),                 // 44: passenger.v1.EstimateResponse
+	(*CreateOrderRequest)(nil),               // 45: passenger.v1.CreateOrderRequest
+	(*Order)(nil),                            // 46: passenger.v1.Order
+	(*DestinationChangeMessage)(nil),         // 47: passenger.v1.DestinationChangeMessage
+	(*OrderResponse)(nil),                    // 48: passenger.v1.OrderResponse
+	(*GetOrderRequest)(nil),                  // 49: passenger.v1.GetOrderRequest
+	(*CurrentOrderRequest)(nil),              // 50: passenger.v1.CurrentOrderRequest
+	(*ListOrdersRequest)(nil),                // 51: passenger.v1.ListOrdersRequest
+	(*OrderListResponse)(nil),                // 52: passenger.v1.OrderListResponse
+	(*CancelQuoteRequest)(nil),               // 53: passenger.v1.CancelQuoteRequest
+	(*CancelOrderRequest)(nil),               // 54: passenger.v1.CancelOrderRequest
+	(*CancelQuoteResponse)(nil),              // 55: passenger.v1.CancelQuoteResponse
+	(*DriverLocationRequest)(nil),            // 56: passenger.v1.DriverLocationRequest
+	(*DriverLocationResponse)(nil),           // 57: passenger.v1.DriverLocationResponse
+	(*RequestDestinationChangeRequest)(nil),  // 58: passenger.v1.RequestDestinationChangeRequest
+	(*RequestDestinationChangeResponse)(nil), // 59: passenger.v1.RequestDestinationChangeResponse
+	(*SubmitReviewRequest)(nil),              // 60: passenger.v1.SubmitReviewRequest
+	(*SubmitReviewResponse)(nil),             // 61: passenger.v1.SubmitReviewResponse
+	(*PublishPlatformCouponsRequest)(nil),    // 62: passenger.v1.PublishPlatformCouponsRequest
+	(*PublishPlatformCouponsResponse)(nil),   // 63: passenger.v1.PublishPlatformCouponsResponse
 }
 var file_passenger_v1_passenger_proto_depIdxs = []int32{
 	19, // 0: passenger.v1.HomeResponse.car_types:type_name -> passenger.v1.CarType
@@ -4400,83 +4986,90 @@ var file_passenger_v1_passenger_proto_depIdxs = []int32{
 	21, // 5: passenger.v1.AddressListResponse.list:type_name -> passenger.v1.Address
 	21, // 6: passenger.v1.AddressResponse.address:type_name -> passenger.v1.Address
 	35, // 7: passenger.v1.CouponListResponse.list:type_name -> passenger.v1.Coupon
-	46, // 8: passenger.v1.OrderResponse.order:type_name -> passenger.v1.Order
-	46, // 9: passenger.v1.OrderListResponse.list:type_name -> passenger.v1.Order
-	2,  // 10: passenger.v1.PassengerService.SendCode:input_type -> passenger.v1.SendCodeRequest
-	4,  // 11: passenger.v1.PassengerService.Login:input_type -> passenger.v1.LoginRequest
-	6,  // 12: passenger.v1.PassengerService.SetPassword:input_type -> passenger.v1.SetPasswordRequest
-	8,  // 13: passenger.v1.PassengerService.BindPhone:input_type -> passenger.v1.BindPhoneRequest
-	10, // 14: passenger.v1.PassengerService.Refresh:input_type -> passenger.v1.RefreshRequest
-	11, // 15: passenger.v1.PassengerService.Logout:input_type -> passenger.v1.LogoutRequest
-	13, // 16: passenger.v1.PassengerService.UnbindChannel:input_type -> passenger.v1.UnbindChannelRequest
-	14, // 17: passenger.v1.PassengerService.CancelAccount:input_type -> passenger.v1.CancelAccountRequest
-	14, // 18: passenger.v1.PassengerService.WithdrawCancelAccount:input_type -> passenger.v1.CancelAccountRequest
-	15, // 19: passenger.v1.PassengerService.UpdateProfile:input_type -> passenger.v1.UpdateProfileRequest
-	16, // 20: passenger.v1.PassengerService.GetProfile:input_type -> passenger.v1.GetProfileRequest
-	18, // 21: passenger.v1.PassengerService.Home:input_type -> passenger.v1.HomeRequest
-	23, // 22: passenger.v1.PassengerService.SearchPOI:input_type -> passenger.v1.SearchPOIRequest
-	24, // 23: passenger.v1.PassengerService.RecommendPickup:input_type -> passenger.v1.RecommendPickupRequest
-	27, // 24: passenger.v1.PassengerService.ListAddresses:input_type -> passenger.v1.ListAddressesRequest
-	29, // 25: passenger.v1.PassengerService.SaveAddress:input_type -> passenger.v1.SaveAddressRequest
-	31, // 26: passenger.v1.PassengerService.DeleteAddress:input_type -> passenger.v1.DeleteAddressRequest
-	32, // 27: passenger.v1.PassengerService.RecordHistory:input_type -> passenger.v1.RecordHistoryRequest
-	33, // 28: passenger.v1.PassengerService.ClearHistory:input_type -> passenger.v1.ClearHistoryRequest
-	34, // 29: passenger.v1.PassengerService.UseQuickEntry:input_type -> passenger.v1.UseQuickEntryRequest
-	36, // 30: passenger.v1.PassengerService.ListCoupons:input_type -> passenger.v1.ListCouponsRequest
-	38, // 31: passenger.v1.PassengerService.SubmitRealName:input_type -> passenger.v1.SubmitRealNameRequest
-	39, // 32: passenger.v1.PassengerService.GetRealNameStatus:input_type -> passenger.v1.GetRealNameStatusRequest
-	41, // 33: passenger.v1.PassengerService.ListClaimableCoupons:input_type -> passenger.v1.ListClaimableCouponsRequest
-	42, // 34: passenger.v1.PassengerService.ClaimCoupon:input_type -> passenger.v1.ClaimCouponRequest
-	43, // 35: passenger.v1.PassengerService.Estimate:input_type -> passenger.v1.EstimateRequest
-	43, // 36: passenger.v1.PassengerService.QuotePrice:input_type -> passenger.v1.EstimateRequest
-	45, // 37: passenger.v1.PassengerService.CreateOrder:input_type -> passenger.v1.CreateOrderRequest
-	48, // 38: passenger.v1.PassengerService.GetOrder:input_type -> passenger.v1.GetOrderRequest
-	49, // 39: passenger.v1.PassengerService.CurrentOrder:input_type -> passenger.v1.CurrentOrderRequest
-	50, // 40: passenger.v1.PassengerService.ListOrders:input_type -> passenger.v1.ListOrdersRequest
-	52, // 41: passenger.v1.PassengerService.CancelQuote:input_type -> passenger.v1.CancelQuoteRequest
-	53, // 42: passenger.v1.PassengerService.CancelOrder:input_type -> passenger.v1.CancelOrderRequest
-	55, // 43: passenger.v1.PassengerService.DriverLocation:input_type -> passenger.v1.DriverLocationRequest
-	0,  // 44: passenger.v1.PassengerService.MarkOrderPaid:input_type -> passenger.v1.MarkOrderPaidRequest
-	3,  // 45: passenger.v1.PassengerService.SendCode:output_type -> passenger.v1.SendCodeResponse
-	5,  // 46: passenger.v1.PassengerService.Login:output_type -> passenger.v1.LoginResponse
-	7,  // 47: passenger.v1.PassengerService.SetPassword:output_type -> passenger.v1.SetPasswordResponse
-	9,  // 48: passenger.v1.PassengerService.BindPhone:output_type -> passenger.v1.BindPhoneResponse
-	5,  // 49: passenger.v1.PassengerService.Refresh:output_type -> passenger.v1.LoginResponse
-	12, // 50: passenger.v1.PassengerService.Logout:output_type -> passenger.v1.LogoutResponse
-	12, // 51: passenger.v1.PassengerService.UnbindChannel:output_type -> passenger.v1.LogoutResponse
-	12, // 52: passenger.v1.PassengerService.CancelAccount:output_type -> passenger.v1.LogoutResponse
-	12, // 53: passenger.v1.PassengerService.WithdrawCancelAccount:output_type -> passenger.v1.LogoutResponse
-	17, // 54: passenger.v1.PassengerService.UpdateProfile:output_type -> passenger.v1.ProfileResponse
-	17, // 55: passenger.v1.PassengerService.GetProfile:output_type -> passenger.v1.ProfileResponse
-	22, // 56: passenger.v1.PassengerService.Home:output_type -> passenger.v1.HomeResponse
-	26, // 57: passenger.v1.PassengerService.SearchPOI:output_type -> passenger.v1.SearchPOIResponse
-	26, // 58: passenger.v1.PassengerService.RecommendPickup:output_type -> passenger.v1.SearchPOIResponse
-	28, // 59: passenger.v1.PassengerService.ListAddresses:output_type -> passenger.v1.AddressListResponse
-	30, // 60: passenger.v1.PassengerService.SaveAddress:output_type -> passenger.v1.AddressResponse
-	12, // 61: passenger.v1.PassengerService.DeleteAddress:output_type -> passenger.v1.LogoutResponse
-	12, // 62: passenger.v1.PassengerService.RecordHistory:output_type -> passenger.v1.LogoutResponse
-	12, // 63: passenger.v1.PassengerService.ClearHistory:output_type -> passenger.v1.LogoutResponse
-	12, // 64: passenger.v1.PassengerService.UseQuickEntry:output_type -> passenger.v1.LogoutResponse
-	37, // 65: passenger.v1.PassengerService.ListCoupons:output_type -> passenger.v1.CouponListResponse
-	40, // 66: passenger.v1.PassengerService.SubmitRealName:output_type -> passenger.v1.RealNameStatusResponse
-	40, // 67: passenger.v1.PassengerService.GetRealNameStatus:output_type -> passenger.v1.RealNameStatusResponse
-	37, // 68: passenger.v1.PassengerService.ListClaimableCoupons:output_type -> passenger.v1.CouponListResponse
-	35, // 69: passenger.v1.PassengerService.ClaimCoupon:output_type -> passenger.v1.Coupon
-	44, // 70: passenger.v1.PassengerService.Estimate:output_type -> passenger.v1.EstimateResponse
-	44, // 71: passenger.v1.PassengerService.QuotePrice:output_type -> passenger.v1.EstimateResponse
-	47, // 72: passenger.v1.PassengerService.CreateOrder:output_type -> passenger.v1.OrderResponse
-	47, // 73: passenger.v1.PassengerService.GetOrder:output_type -> passenger.v1.OrderResponse
-	47, // 74: passenger.v1.PassengerService.CurrentOrder:output_type -> passenger.v1.OrderResponse
-	51, // 75: passenger.v1.PassengerService.ListOrders:output_type -> passenger.v1.OrderListResponse
-	54, // 76: passenger.v1.PassengerService.CancelQuote:output_type -> passenger.v1.CancelQuoteResponse
-	54, // 77: passenger.v1.PassengerService.CancelOrder:output_type -> passenger.v1.CancelQuoteResponse
-	56, // 78: passenger.v1.PassengerService.DriverLocation:output_type -> passenger.v1.DriverLocationResponse
-	1,  // 79: passenger.v1.PassengerService.MarkOrderPaid:output_type -> passenger.v1.MarkOrderPaidResponse
-	45, // [45:80] is the sub-list for method output_type
-	10, // [10:45] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	47, // 8: passenger.v1.Order.dest_change:type_name -> passenger.v1.DestinationChangeMessage
+	46, // 9: passenger.v1.OrderResponse.order:type_name -> passenger.v1.Order
+	46, // 10: passenger.v1.OrderListResponse.list:type_name -> passenger.v1.Order
+	2,  // 11: passenger.v1.PassengerService.SendCode:input_type -> passenger.v1.SendCodeRequest
+	4,  // 12: passenger.v1.PassengerService.Login:input_type -> passenger.v1.LoginRequest
+	6,  // 13: passenger.v1.PassengerService.SetPassword:input_type -> passenger.v1.SetPasswordRequest
+	8,  // 14: passenger.v1.PassengerService.BindPhone:input_type -> passenger.v1.BindPhoneRequest
+	10, // 15: passenger.v1.PassengerService.Refresh:input_type -> passenger.v1.RefreshRequest
+	11, // 16: passenger.v1.PassengerService.Logout:input_type -> passenger.v1.LogoutRequest
+	13, // 17: passenger.v1.PassengerService.UnbindChannel:input_type -> passenger.v1.UnbindChannelRequest
+	14, // 18: passenger.v1.PassengerService.CancelAccount:input_type -> passenger.v1.CancelAccountRequest
+	14, // 19: passenger.v1.PassengerService.WithdrawCancelAccount:input_type -> passenger.v1.CancelAccountRequest
+	15, // 20: passenger.v1.PassengerService.UpdateProfile:input_type -> passenger.v1.UpdateProfileRequest
+	16, // 21: passenger.v1.PassengerService.GetProfile:input_type -> passenger.v1.GetProfileRequest
+	18, // 22: passenger.v1.PassengerService.Home:input_type -> passenger.v1.HomeRequest
+	23, // 23: passenger.v1.PassengerService.SearchPOI:input_type -> passenger.v1.SearchPOIRequest
+	24, // 24: passenger.v1.PassengerService.RecommendPickup:input_type -> passenger.v1.RecommendPickupRequest
+	27, // 25: passenger.v1.PassengerService.ListAddresses:input_type -> passenger.v1.ListAddressesRequest
+	29, // 26: passenger.v1.PassengerService.SaveAddress:input_type -> passenger.v1.SaveAddressRequest
+	31, // 27: passenger.v1.PassengerService.DeleteAddress:input_type -> passenger.v1.DeleteAddressRequest
+	32, // 28: passenger.v1.PassengerService.RecordHistory:input_type -> passenger.v1.RecordHistoryRequest
+	33, // 29: passenger.v1.PassengerService.ClearHistory:input_type -> passenger.v1.ClearHistoryRequest
+	34, // 30: passenger.v1.PassengerService.UseQuickEntry:input_type -> passenger.v1.UseQuickEntryRequest
+	36, // 31: passenger.v1.PassengerService.ListCoupons:input_type -> passenger.v1.ListCouponsRequest
+	38, // 32: passenger.v1.PassengerService.SubmitRealName:input_type -> passenger.v1.SubmitRealNameRequest
+	39, // 33: passenger.v1.PassengerService.GetRealNameStatus:input_type -> passenger.v1.GetRealNameStatusRequest
+	41, // 34: passenger.v1.PassengerService.ListClaimableCoupons:input_type -> passenger.v1.ListClaimableCouponsRequest
+	42, // 35: passenger.v1.PassengerService.ClaimCoupon:input_type -> passenger.v1.ClaimCouponRequest
+	62, // 36: passenger.v1.PassengerService.PublishPlatformCoupons:input_type -> passenger.v1.PublishPlatformCouponsRequest
+	43, // 37: passenger.v1.PassengerService.Estimate:input_type -> passenger.v1.EstimateRequest
+	43, // 38: passenger.v1.PassengerService.QuotePrice:input_type -> passenger.v1.EstimateRequest
+	45, // 39: passenger.v1.PassengerService.CreateOrder:input_type -> passenger.v1.CreateOrderRequest
+	49, // 40: passenger.v1.PassengerService.GetOrder:input_type -> passenger.v1.GetOrderRequest
+	50, // 41: passenger.v1.PassengerService.CurrentOrder:input_type -> passenger.v1.CurrentOrderRequest
+	51, // 42: passenger.v1.PassengerService.ListOrders:input_type -> passenger.v1.ListOrdersRequest
+	53, // 43: passenger.v1.PassengerService.CancelQuote:input_type -> passenger.v1.CancelQuoteRequest
+	54, // 44: passenger.v1.PassengerService.CancelOrder:input_type -> passenger.v1.CancelOrderRequest
+	56, // 45: passenger.v1.PassengerService.DriverLocation:input_type -> passenger.v1.DriverLocationRequest
+	0,  // 46: passenger.v1.PassengerService.MarkOrderPaid:input_type -> passenger.v1.MarkOrderPaidRequest
+	58, // 47: passenger.v1.PassengerService.RequestDestinationChange:input_type -> passenger.v1.RequestDestinationChangeRequest
+	60, // 48: passenger.v1.PassengerService.SubmitReview:input_type -> passenger.v1.SubmitReviewRequest
+	3,  // 49: passenger.v1.PassengerService.SendCode:output_type -> passenger.v1.SendCodeResponse
+	5,  // 50: passenger.v1.PassengerService.Login:output_type -> passenger.v1.LoginResponse
+	7,  // 51: passenger.v1.PassengerService.SetPassword:output_type -> passenger.v1.SetPasswordResponse
+	9,  // 52: passenger.v1.PassengerService.BindPhone:output_type -> passenger.v1.BindPhoneResponse
+	5,  // 53: passenger.v1.PassengerService.Refresh:output_type -> passenger.v1.LoginResponse
+	12, // 54: passenger.v1.PassengerService.Logout:output_type -> passenger.v1.LogoutResponse
+	12, // 55: passenger.v1.PassengerService.UnbindChannel:output_type -> passenger.v1.LogoutResponse
+	12, // 56: passenger.v1.PassengerService.CancelAccount:output_type -> passenger.v1.LogoutResponse
+	12, // 57: passenger.v1.PassengerService.WithdrawCancelAccount:output_type -> passenger.v1.LogoutResponse
+	17, // 58: passenger.v1.PassengerService.UpdateProfile:output_type -> passenger.v1.ProfileResponse
+	17, // 59: passenger.v1.PassengerService.GetProfile:output_type -> passenger.v1.ProfileResponse
+	22, // 60: passenger.v1.PassengerService.Home:output_type -> passenger.v1.HomeResponse
+	26, // 61: passenger.v1.PassengerService.SearchPOI:output_type -> passenger.v1.SearchPOIResponse
+	26, // 62: passenger.v1.PassengerService.RecommendPickup:output_type -> passenger.v1.SearchPOIResponse
+	28, // 63: passenger.v1.PassengerService.ListAddresses:output_type -> passenger.v1.AddressListResponse
+	30, // 64: passenger.v1.PassengerService.SaveAddress:output_type -> passenger.v1.AddressResponse
+	12, // 65: passenger.v1.PassengerService.DeleteAddress:output_type -> passenger.v1.LogoutResponse
+	12, // 66: passenger.v1.PassengerService.RecordHistory:output_type -> passenger.v1.LogoutResponse
+	12, // 67: passenger.v1.PassengerService.ClearHistory:output_type -> passenger.v1.LogoutResponse
+	12, // 68: passenger.v1.PassengerService.UseQuickEntry:output_type -> passenger.v1.LogoutResponse
+	37, // 69: passenger.v1.PassengerService.ListCoupons:output_type -> passenger.v1.CouponListResponse
+	40, // 70: passenger.v1.PassengerService.SubmitRealName:output_type -> passenger.v1.RealNameStatusResponse
+	40, // 71: passenger.v1.PassengerService.GetRealNameStatus:output_type -> passenger.v1.RealNameStatusResponse
+	37, // 72: passenger.v1.PassengerService.ListClaimableCoupons:output_type -> passenger.v1.CouponListResponse
+	35, // 73: passenger.v1.PassengerService.ClaimCoupon:output_type -> passenger.v1.Coupon
+	63, // 74: passenger.v1.PassengerService.PublishPlatformCoupons:output_type -> passenger.v1.PublishPlatformCouponsResponse
+	44, // 75: passenger.v1.PassengerService.Estimate:output_type -> passenger.v1.EstimateResponse
+	44, // 76: passenger.v1.PassengerService.QuotePrice:output_type -> passenger.v1.EstimateResponse
+	48, // 77: passenger.v1.PassengerService.CreateOrder:output_type -> passenger.v1.OrderResponse
+	48, // 78: passenger.v1.PassengerService.GetOrder:output_type -> passenger.v1.OrderResponse
+	48, // 79: passenger.v1.PassengerService.CurrentOrder:output_type -> passenger.v1.OrderResponse
+	52, // 80: passenger.v1.PassengerService.ListOrders:output_type -> passenger.v1.OrderListResponse
+	55, // 81: passenger.v1.PassengerService.CancelQuote:output_type -> passenger.v1.CancelQuoteResponse
+	55, // 82: passenger.v1.PassengerService.CancelOrder:output_type -> passenger.v1.CancelQuoteResponse
+	57, // 83: passenger.v1.PassengerService.DriverLocation:output_type -> passenger.v1.DriverLocationResponse
+	1,  // 84: passenger.v1.PassengerService.MarkOrderPaid:output_type -> passenger.v1.MarkOrderPaidResponse
+	59, // 85: passenger.v1.PassengerService.RequestDestinationChange:output_type -> passenger.v1.RequestDestinationChangeResponse
+	61, // 86: passenger.v1.PassengerService.SubmitReview:output_type -> passenger.v1.SubmitReviewResponse
+	49, // [49:87] is the sub-list for method output_type
+	11, // [11:49] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_passenger_v1_passenger_proto_init() }
@@ -4490,7 +5083,7 @@ func file_passenger_v1_passenger_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_passenger_v1_passenger_proto_rawDesc), len(file_passenger_v1_passenger_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   57,
+			NumMessages:   64,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

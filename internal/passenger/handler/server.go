@@ -384,6 +384,22 @@ func (s *Server) ClaimCoupon(ctx context.Context, req *passengerv1.ClaimCouponRe
 	}, nil
 }
 
+// PublishPlatformCoupons 处理管理端发布平台券（发布后乘客领券中心可见）。
+func (s *Server) PublishPlatformCoupons(ctx context.Context, req *passengerv1.PublishPlatformCouponsRequest) (*passengerv1.PublishPlatformCouponsResponse, error) {
+	templateNo, issued, err := s.svc.PublishPlatformCoupons(ctx, dto.PublishPlatformCouponsCommand{
+		TemplateNo:   req.GetTemplateNo(),
+		Name:         req.GetName(),
+		FaceValueFen: req.GetFaceValueFen(),
+		ThresholdFen: req.GetThresholdFen(),
+		ExpireAtUnix: req.GetExpireAtUnix(),
+		Stock:        req.GetStock(),
+	})
+	if err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return &passengerv1.PublishPlatformCouponsResponse{TemplateNo: templateNo, Issued: int32(issued)}, nil
+}
+
 // toCouponListProto 把券列表出参转成 proto 响应。
 func toCouponListProto(items []*dto.CouponDTO) *passengerv1.CouponListResponse {
 	list := make([]*passengerv1.Coupon, 0, len(items))
@@ -567,6 +583,39 @@ func (s *Server) DriverLocation(ctx context.Context, req *passengerv1.DriverLoca
 	}, nil
 }
 
+// RequestDestinationChange 乘客行程中请求更改下车点，待司机裁决。
+func (s *Server) RequestDestinationChange(ctx context.Context, req *passengerv1.RequestDestinationChangeRequest) (*passengerv1.RequestDestinationChangeResponse, error) {
+	state, err := s.svc.RequestDestinationChange(ctx, dto.RequestDestinationChangeCommand{
+		AccountID:  req.GetAccountId(),
+		OrderNo:    req.GetOrderNo(),
+		NewEndName: req.GetNewEndName(),
+		NewEndAddr: req.GetNewEndAddr(),
+		NewEndLng:  req.GetNewEndLng(),
+		NewEndLat:  req.GetNewEndLat(),
+	})
+	if err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return &passengerv1.RequestDestinationChangeResponse{State: state}, nil
+}
+
+// SubmitReview 乘客对司机评价或投诉。
+func (s *Server) SubmitReview(ctx context.Context, req *passengerv1.SubmitReviewRequest) (*passengerv1.SubmitReviewResponse, error) {
+	if err := s.svc.SubmitReview(ctx, dto.SubmitReviewCommand{
+		AccountID:     req.GetAccountId(),
+		OrderNo:       req.GetOrderNo(),
+		Rating:        req.GetRating(),
+		Tags:          req.GetTags(),
+		Comment:       req.GetComment(),
+		IsComplaint:   req.GetIsComplaint(),
+		ComplaintType: req.GetComplaintType(),
+		ComplaintDesc: req.GetComplaintDesc(),
+	}); err != nil {
+		return nil, mapPassengerError(err)
+	}
+	return &passengerv1.SubmitReviewResponse{Message: "ok"}, nil
+}
+
 // toLoginProto 把登录出参转成 proto 结构。
 func toLoginProto(out *dto.LoginDTO) *passengerv1.LoginResponse {
 	return &passengerv1.LoginResponse{
@@ -621,6 +670,24 @@ func toOrderProto(out *dto.OrderDTO) *passengerv1.Order {
 		DriverName:  out.DriverName,
 		DriverPlate: out.DriverPlate,
 		CreatedAt:   out.CreatedAt.Unix(),
+		DestChange: toDestChangeProto(out.DestChange),
+		// 起终点坐标：行程地图据此画上车点/目的地标记（刷新后不依赖前端缓存）。
+		StartLat: out.StartLat,
+		StartLng: out.StartLng,
+		EndLat:   out.EndLat,
+		EndLng:   out.EndLng,
+	}
+}
+
+// toDestChangeProto 目的地变更 DTO → proto。
+func toDestChangeProto(change *dto.DestinationChangeDTO) *passengerv1.DestinationChangeMessage {
+	if change == nil {
+		return nil
+	}
+	return &passengerv1.DestinationChangeMessage{
+		NewEndName: change.NewEndName,
+		NewEndAddr: change.NewEndAddr,
+		State:      change.State,
 	}
 }
 
@@ -673,7 +740,8 @@ func mapPassengerError(err error) error {
 		stderrors.Is(err, entity.ErrCodeUsed),
 		stderrors.Is(err, entity.ErrTooClose),
 		stderrors.Is(err, entity.ErrCodeRateLimited),
-		stderrors.Is(err, entity.ErrPasswordNotSet):
+		stderrors.Is(err, entity.ErrPasswordNotSet),
+		stderrors.Is(err, entity.ErrInvalidCouponStock):
 		return apperrors.InvalidArgument("invalid_passenger_request", err.Error())
 	case stderrors.Is(err, entity.ErrInvalidCredentials):
 		return apperrors.Unauthorized("invalid_credentials", "手机号或密码不正确")
@@ -696,7 +764,8 @@ func mapPassengerError(err error) error {
 		stderrors.Is(err, entity.ErrCouponNotFound),
 		stderrors.Is(err, entity.ErrDriverNotRegistered),
 		stderrors.Is(err, entity.ErrDriverNotAssigned),
-		stderrors.Is(err, entity.ErrChannelNotBound):
+		stderrors.Is(err, entity.ErrChannelNotBound),
+		stderrors.Is(err, entity.ErrPlatformCouponNotFound):
 		return apperrors.NotFound("passenger_resource_not_found", err.Error())
 	case stderrors.Is(err, entity.ErrPhoneAlreadyUsed),
 		stderrors.Is(err, entity.ErrOrderStateConflict),
@@ -704,7 +773,9 @@ func mapPassengerError(err error) error {
 		stderrors.Is(err, entity.ErrEstimateExpired),
 		stderrors.Is(err, entity.ErrCouponLocked),
 		stderrors.Is(err, entity.ErrCouponUnavailable),
-		stderrors.Is(err, entity.ErrCancelNotAllowed):
+		stderrors.Is(err, entity.ErrCancelNotAllowed),
+		stderrors.Is(err, entity.ErrPlatformCouponUnavailable),
+		stderrors.Is(err, entity.ErrInvalidStateTransition):
 		return apperrors.Conflict("passenger_state_conflict", err.Error())
 	default:
 		return apperrors.Wrap(apperrors.KindInternal, "passenger_service_error", "乘客端服务错误", err)

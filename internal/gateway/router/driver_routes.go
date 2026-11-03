@@ -38,6 +38,7 @@ func registerDriverRoutes(v1 *gin.RouterGroup, h *handler.DriverHandler, jwtCfg 
 	drv.POST("/hall/orders/start", h.StartTrip)
 	drv.POST("/hall/orders/complete", h.CompleteOrder)
 	drv.POST("/hall/orders/cancel", h.CancelOrder)
+	drv.POST("/hall/orders/destination-decision", h.DecideDestinationChange)
 
 	// ── 首页收益对比 ──
 	drv.GET("/income/compare", h.GetIncomeCompare)
@@ -47,6 +48,10 @@ func registerDriverRoutes(v1 *gin.RouterGroup, h *handler.DriverHandler, jwtCfg 
 	drv.GET("/income/summary", h.GetSummary)
 	drv.POST("/income/withdraw", h.Withdraw)
 	drv.GET("/income/withdrawals", h.ListWithdrawals)
+
+	// ── 接单记录与反馈通知 ──
+	drv.GET("/history", h.GetHistory)
+	drv.GET("/notices", h.ListNotices)
 
 	// ── 跨模块回调（支付域 / 财务域 / 后台集成使用，服务身份调用不鉴权）──
 	callbacks := v1.Group("/driver")

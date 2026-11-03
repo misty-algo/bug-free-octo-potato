@@ -50,6 +50,28 @@ type Location struct {
 // Point 转 GCJ02 点。
 func (l Location) Point() geo.Point { return geo.Point{Lat: l.Lat, Lng: l.Lng} }
 
+// 目的地变更请求状态。
+const (
+	DestChangePending  = "pending"  // 等待司机裁决
+	DestChangeApproved = "approved" // 司机同意，任务终点已更新
+	DestChangeRejected = "rejected" // 司机拒绝，维持原终点
+)
+
+// DestinationChange 乘客发起的更改下车点请求。
+type DestinationChange struct {
+	NewName     string
+	NewAddr     string
+	NewLat      float64
+	NewLng      float64
+	State       string
+	RequestedAt time.Time
+}
+
+// HasPendingDestChange 报告是否有待裁决的下车点变更。
+func (o *HallOrder) HasPendingDestChange() bool {
+	return o.DestChange != nil && o.DestChange.State == DestChangePending
+}
+
 // HallOrder 是接单大厅的订单聚合（同时也是派单任务实体）。
 type HallOrder struct {
 	ID   string
@@ -63,6 +85,8 @@ type HallOrder struct {
 	RequireCarType string
 	Origin      Location
 	Destination Location
+	// DestChange 乘客发起的更改下车点请求（nil 表示无请求）。
+	DestChange *DestinationChange
 
 	// ── 金额：一律整数分 ──
 	OrigFareFen       int64 // 原车费

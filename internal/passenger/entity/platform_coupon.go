@@ -14,7 +14,15 @@ var (
 	ErrPlatformCouponUnavailable = errors.New("platform coupon unavailable")
 	// ErrInvalidRealName 表示姓名或证件号格式不合法。
 	ErrInvalidRealName = errors.New("invalid real name or id no")
+	// ErrInvalidCouponStock 表示发布数量不在允许区间内。
+	ErrInvalidCouponStock = errors.New("invalid coupon stock")
 )
+
+// MaxPublishCouponStock 是单次发布允许的最大券数量。
+//
+// 管理端按「张」逐条写券，数量过大时一次请求就会写入海量文档，
+// 因此设上限；超限由 usecase 直接拒绝，而不是静默截断，避免运营以为已足额发放。
+const MaxPublishCouponStock = 500
 
 // 平台侧（管理端营销中心）优惠券状态，与 coupons 集合 state 枚举一致。
 const (
@@ -58,4 +66,9 @@ type PlatformCouponRepository interface {
 	// ClaimOne 以原子条件更新抢占一张券：只有 state=AVAILABLE 且未过期
 	// 才允许置为 CLAIMED，返回是否抢占成功（先到先得，防并发超领）。
 	ClaimOne(ctx context.Context, couponNo, holderAccountID string, now time.Time) (bool, error)
+	// Publish 管理端营销中心发布平台券：批量写入 AVAILABLE 券，供领券中心展示与领取。
+	// stock 为发放数量（1..MaxPublishCouponStock），expireAt 为券过期时间，
+	// now 由调用方注入，避免仓储自带时钟导致与 usecase 时间口径不一致。
+	// 返回实际写入的券数量。
+	Publish(ctx context.Context, templateNo, name string, faceValueFen, thresholdFen int64, expireAt, now time.Time, stock int) (int, error)
 }

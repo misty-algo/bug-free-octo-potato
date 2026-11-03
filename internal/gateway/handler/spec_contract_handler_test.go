@@ -32,7 +32,7 @@ func newSpecContractHandlerForTest(t *testing.T) (*SpecContractHandler, *specFak
 	cfg := middleware.JWTConfig{Secret: "spec-contract-secret", Issuer: "spec-contract-issuer", ExpireSeconds: 1800}
 	now := &specFakeClock{at: time.Unix(1700000000, 0).UTC()}
 	resetSpecContractStore()
-	return NewSpecContractHandler(cfg, nil).WithClock(now), now
+	return NewSpecContractHandler(cfg, nil, nil).WithClock(now), now
 }
 
 // resetSpecContractStore 清空全局存储的运行时状态，保证用例之间互不干扰。

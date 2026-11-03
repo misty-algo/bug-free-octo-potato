@@ -120,6 +120,17 @@ type OrderRepository interface {
 	CountByAccount(ctx context.Context, accountID string, state OrderState) (int, error)
 	// UpdateState 在乐观锁校验通过后更新状态。
 	UpdateState(ctx context.Context, order *Order) error
+	// ApplyDestChange 把司机裁决后的目的地变更落库：approved 时写入新终点，
+	// 两种裁决都同步请求状态与版本号。
+	ApplyDestChange(ctx context.Context, order *Order) error
 	// AppendStatusLog 写一条状态留痕。
 	AppendStatusLog(ctx context.Context, log *OrderStatusLog) error
+}
+
+// ReviewRepository 定义乘客评价/投诉的持久化行为。
+type ReviewRepository interface {
+	// Save 追加一条评价/投诉记录。同一订单只允许一条（调用方保证校验）。
+	Save(ctx context.Context, review *Review) error
+	// ExistsByOrderNo 报告该订单是否已有评价。
+	ExistsByOrderNo(ctx context.Context, orderNo string) (bool, error)
 }

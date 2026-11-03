@@ -50,7 +50,7 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, 
 	registerContractRoutes(api,
 		handler.NewPassengerHandler(clients.Passenger, log),
 		handler.NewDriverHandler(clients.Driver, log),
-		handler.NewSpecContractHandler(middlewareCfg.JWT, log),
+		handler.NewSpecContractHandler(middlewareCfg.JWT, log, clients.Passenger),
 		middlewareCfg.JWT,
 	)
 

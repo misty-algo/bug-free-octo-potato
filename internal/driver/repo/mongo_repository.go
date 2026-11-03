@@ -898,7 +898,8 @@ func toHallOrderDocument(o *entity.HallOrder) dbmodel.HallOrderDocument {
 		RequireSeats: o.RequireSeats, RequireCarType: o.RequireCarType,
 		Origin:      dbmodel.LocationDoc{Name: o.Origin.Name, Lat: o.Origin.Lat, Lng: o.Origin.Lng},
 		Destination: dbmodel.LocationDoc{Name: o.Destination.Name, Lat: o.Destination.Lat, Lng: o.Destination.Lng},
-		OrigFareFen: o.OrigFareFen, PassengerPaidFen: o.PassengerPaidFen,
+		DestChange:  toDestChangeDocument(o.DestChange),
+		OrigFareFen: o.OrigFareFen,
 		PlatformCouponFen: o.PlatformCouponFen, DriverCouponFen: o.DriverCouponFen,
 		CommissionFen: o.CommissionFen, SubsidyFen: o.SubsidyFen, DriverIncomeFen: o.DriverIncomeFen,
 		Status: o.Status, DriverID: o.DriverID, DriverName: o.DriverName,
@@ -923,6 +924,7 @@ func hallOrderFromDocument(doc *dbmodel.HallOrderDocument) *entity.HallOrder {
 		RequireSeats: doc.RequireSeats, RequireCarType: doc.RequireCarType,
 		Origin:      entity.Location{Name: doc.Origin.Name, Lat: doc.Origin.Lat, Lng: doc.Origin.Lng},
 		Destination: entity.Location{Name: doc.Destination.Name, Lat: doc.Destination.Lat, Lng: doc.Destination.Lng},
+		DestChange:  destChangeFromDocument(doc.DestChange),
 		OrigFareFen: doc.OrigFareFen, PassengerPaidFen: doc.PassengerPaidFen,
 		PlatformCouponFen: doc.PlatformCouponFen, DriverCouponFen: doc.DriverCouponFen,
 		CommissionFen: doc.CommissionFen, SubsidyFen: doc.SubsidyFen, DriverIncomeFen: doc.DriverIncomeFen,
@@ -938,4 +940,77 @@ func hallOrderFromDocument(doc *dbmodel.HallOrderDocument) *entity.HallOrder {
 		CancelReason: doc.CancelReason, ResponsibleParty: doc.ResponsibleParty,
 		Version: doc.Version, CreatedAt: doc.CreatedAt, UpdatedAt: doc.UpdatedAt,
 	}
+}
+
+
+// toDestChangeDocument 实体 → 文档。
+func toDestChangeDocument(change *entity.DestinationChange) *dbmodel.DestinationChangeDocument {
+	if change == nil {
+		return nil
+	}
+	return &dbmodel.DestinationChangeDocument{
+		NewName: change.NewName, NewAddr: change.NewAddr,
+		NewLat: change.NewLat, NewLng: change.NewLng,
+		State: change.State, RequestedAt: change.RequestedAt,
+	}
+}
+
+// destChangeFromDocument 文档 → 实体。
+func destChangeFromDocument(doc *dbmodel.DestinationChangeDocument) *entity.DestinationChange {
+	if doc == nil {
+		return nil
+	}
+	return &entity.DestinationChange{
+		NewName: doc.NewName, NewAddr: doc.NewAddr,
+		NewLat: doc.NewLat, NewLng: doc.NewLng,
+		State: doc.State, RequestedAt: doc.RequestedAt,
+	}
+}
+
+// DecideDestinationChange 司机裁决乘客的下车点变更请求。
+// approve 时任务终点更新为新地点；乐观锁防并发，任务不归属该司机或
+// 没有待裁决请求时返回错误。
+func (r *orderRepo) DecideDestinationChange(ctx context.Context, orderID, driverID string, approve bool) (*entity.HallOrder, error) {
+	now := biztime.UTC()
+	filter := bson.M{
+		"_id":                        orderID,
+		"driver_id":                  driverID,
+		"destination_change.state":   entity.DestChangePending,
+	}
+	state := entity.DestChangeRejected
+	sets := bson.M{
+		"destination_change.state": state,
+		"updated_at":               now,
+	}
+	if approve {
+		state = entity.DestChangeApproved
+		sets["destination_change.state"] = state
+	}
+	// 同意时同时替换任务终点；坐标取自请求原文，需先查出文档。
+	var doc dbmodel.HallOrderDocument
+	if err := r.coll().FindOne(ctx, bson.M{"_id": orderID}).Decode(&doc); err != nil {
+		if isNoDocuments(err) {
+			return nil, entity.ErrOrderNotFound
+		}
+		logRepoOp(r.log, "order.DecideDestinationChange", orderID, err)
+		return nil, err
+	}
+	if approve {
+		sets["destination"] = dbmodel.LocationDoc{
+			Name: doc.DestChange.NewName, Lat: doc.DestChange.NewLat, Lng: doc.DestChange.NewLng,
+		}
+	}
+	update := bson.M{
+		"$set": sets,
+		"$inc": bson.M{"version": int64(1)},
+	}
+	err2 := r.coll().FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&doc)
+	if isNoDocuments(err2) {
+		return nil, entity.ErrOrderNotAvailable
+	}
+	if err2 != nil {
+		logRepoOp(r.log, "order.DecideDestinationChange", orderID, err2)
+		return nil, err2
+	}
+	return hallOrderFromDocument(&doc), nil
 }

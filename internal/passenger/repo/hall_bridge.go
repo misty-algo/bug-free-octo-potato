@@ -17,6 +17,10 @@ import (
 // 共库部署下乘客域直写 hall_orders 集合完成投单，司机域调度器照常消费。
 const hallOrderCollection = "hall_orders"
 
+// driverProfileCollection 与司机域 internal/driver/model 的集合名保持一致，
+// 用于读取接单司机的心跳位置。
+const driverProfileCollection = "driver_profiles"
+
 // hallOrderDocument 是司机域派单任务文档在乘客域的只写视图。
 // 只填派单必需字段，其余（邀请轮次等）由司机域调度器维护。
 type hallOrderDocument struct {
@@ -48,6 +52,9 @@ type hallOrderDocument struct {
 	DispatchChannel string `bson:"dispatch_channel"`
 	VisibleInPool   bool   `bson:"visible_in_pool"`
 
+	// 乘客发起的更改下车点请求（nil 表示无请求）。
+	DestChange *hallDestChange `bson:"destination_change,omitempty"`
+
 	InviteRound      int64     `bson:"invite_round"`
 	RoundInvited     []string  `bson:"round_invited"`
 	AssignExclude    []string  `bson:"assign_exclude"`
@@ -75,14 +82,37 @@ type hallDocLoc struct {
 	Lng  float64 `bson:"lng"`
 }
 
+// hallDestChange 派单任务上的目的地变更请求（乘客域写入，司机域裁决）。
+type hallDestChange struct {
+	NewName     string    `bson:"new_name"`
+	NewAddr     string    `bson:"new_addr"`
+	NewLat      float64   `bson:"new_lat"`
+	NewLng      float64   `bson:"new_lng"`
+	State       string    `bson:"state"` // pending / approved / rejected
+	RequestedAt time.Time `bson:"requested_at"`
+}
+
+// driverPositionDocument 是司机域 driver_profiles 的只读投影：
+// 只关心接单司机最近一次心跳位置，共库部署下乘客端行程地图直接读这里。
+type driverPositionDocument struct {
+	ID              string    `bson:"_id"`
+	LastLat         float64   `bson:"last_lat"`
+	LastLng         float64   `bson:"last_lng"`
+	LastHeartbeatAt time.Time `bson:"last_heartbeat_at"`
+}
+
 // HallOrderBridge 把派单任务写进司机域 hall_orders 集合并回查状态。
 type HallOrderBridge struct {
-	tasks *mongox.Collection[hallOrderDocument]
+	tasks    *mongox.Collection[hallOrderDocument]
+	profiles *mongox.Collection[driverPositionDocument]
 }
 
 // NewHallOrderBridge 构造派单池桥。
 func NewHallOrderBridge(db *mongo.Database) *HallOrderBridge {
-	return &HallOrderBridge{tasks: mongox.NewCollection[hallOrderDocument](db, hallOrderCollection)}
+	return &HallOrderBridge{
+		tasks:    mongox.NewCollection[hallOrderDocument](db, hallOrderCollection),
+		profiles: mongox.NewCollection[driverPositionDocument](db, driverProfileCollection),
+	}
 }
 
 // CreateDispatchTask 投单。同一 order_id 已存在任务时幂等返回。
@@ -141,13 +171,66 @@ func (b *HallOrderBridge) FindTaskByOrderNo(ctx context.Context, orderNo string)
 		}
 		return nil, err
 	}
-	return &entity.HallTaskView{
+	view := &entity.HallTaskView{
 		TaskID:      document.TaskID,
 		Status:      document.Status,
 		DriverID:    document.DriverID,
 		DriverName:  document.DriverName,
 		DriverPlate: "",
-	}, nil
+		DestChange:  toEntityDestChange(document.DestChange),
+	}
+	// 已接单时顺带带上司机最近心跳位置，乘客端地图据此画车。
+	// 心跳查不到不算错误：地图少一个点比接口整体失败更合理。
+	if document.DriverID != "" {
+		if profile, err := b.profiles.FindOne(ctx, bson.M{"_id": document.DriverID}); err == nil {
+			view.DriverLat = profile.LastLat
+			view.DriverLng = profile.LastLng
+			view.DriverLocatedAt = profile.LastHeartbeatAt
+		}
+	}
+	return view, nil
+}
+
+// toEntityDestChange 桥视图 → 实体。
+func toEntityDestChange(doc *hallDestChange) *entity.DestinationChange {
+	if doc == nil {
+		return nil
+	}
+	return &entity.DestinationChange{
+		NewEndName:  doc.NewName,
+		NewEndAddr:  doc.NewAddr,
+		NewEndLng:   doc.NewLng,
+		NewEndLat:   doc.NewLat,
+		State:       doc.State,
+		RequestedAt: doc.RequestedAt,
+	}
+}
+
+// RequestDestinationChange 把更改下车点请求写到派单任务上。
+// 仅行程中（已接单未送达）的任务接受请求；新请求覆盖旧请求。
+func (b *HallOrderBridge) RequestDestinationChange(ctx context.Context, orderNo string, change entity.DestinationChange) error {
+	now := time.Now().UTC()
+	result, err := b.tasks.UpdateOne(ctx,
+		bson.M{"order_id": orderNo, "status": bson.M{"$in": bson.A{"ACCEPTED", "ARRIVED", "IN_TRIP"}}},
+		bson.M{"$set": bson.M{
+			"destination_change": hallDestChange{
+				NewName:     change.NewEndName,
+				NewAddr:     change.NewEndAddr,
+				NewLat:      change.NewEndLat,
+				NewLng:      change.NewEndLng,
+				State:       change.State,
+				RequestedAt: now,
+			},
+			"updated_at": now,
+		}},
+	)
+	if err != nil {
+		return err
+	}
+	if result == nil || result.MatchedCount == 0 {
+		return entity.ErrOrderNotFound
+	}
+	return nil
 }
 
 // FindSettlementByOrderNo 查订单的结算要素：接单司机与分账金额。

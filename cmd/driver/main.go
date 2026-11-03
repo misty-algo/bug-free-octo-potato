@@ -99,7 +99,8 @@ func main() {
 		WithAuth(repos.Codes(), driverservice.AuthConfig{
 			TokenSecret: cfg.Middleware.JWT.Secret,
 			TokenIssuer: cfg.Middleware.JWT.Issuer,
-		})
+		}).
+		WithHistory(driverrepo.NewHistoryRepository(mongoDB))
 	svc.SetEventPublisher(mqClient.Publish)
 	// 校准司机编号序列，避免重启后从 D000001 重新开始导致编号重复。
 	svc.SyncDriverNoSequence(ctx)

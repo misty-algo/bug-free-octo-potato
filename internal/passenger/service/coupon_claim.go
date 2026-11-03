@@ -4,14 +4,17 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/BwCloudWeGo/bw-cli/internal/passenger/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/passenger/entity"
 )
 
 // platformCouponID 把「券码 + 账号」映射为本域券 ID：
-// 同一乘客对同一券码重复领取命中同一条记录，领取天然幂等；
-// 不同乘客各得一张，互不影响（公开投放券的每人限领一张语义）。
+// 同一乘客对同一券码重复领取命中同一条记录，领取天然幂等。
+//
+// 注意：平台侧一张券只能被抢一次（先到先得），因此不同乘客之间不是各得一张，
+// 后到者会拿到 ErrPlatformCouponUnavailable。
 func platformCouponID(couponNo, accountID string) string {
 	return "plat-" + couponNo + "-" + accountID
 }
@@ -131,4 +134,30 @@ func couponToDTO(coupon *entity.Coupon) *dto.CouponDTO {
 		Threshold: coupon.Threshold,
 		ExpiresAt: coupon.ExpiresAt,
 	}
+}
+
+// PublishPlatformCoupons 管理端发布平台券：批量写入 AVAILABLE 券到共享库 coupons，
+// 乘客领券中心即可看到并领取。返回模板号与实际发放数量。
+//
+// 这里统一校验业务参数：数量必须在 1..MaxPublishCouponStock 内，
+// 过期时间必须晚于当前时间，否则券写进去也永远不可领（领券中心按 expireAt 过滤）。
+func (s *Service) PublishPlatformCoupons(ctx context.Context, cmd dto.PublishPlatformCouponsCommand) (string, int, error) {
+	if cmd.Stock <= 0 || int(cmd.Stock) > entity.MaxPublishCouponStock {
+		return "", 0, entity.ErrInvalidCouponStock
+	}
+	now := s.now().UTC()
+	expireAt := time.Unix(cmd.ExpireAtUnix, 0).UTC()
+	if !now.Before(expireAt) {
+		return "", 0, entity.ErrPlatformCouponUnavailable
+	}
+	templateNo := strings.TrimSpace(cmd.TemplateNo)
+	if templateNo == "" {
+		templateNo = "TPL" + now.Format("20060102150405")
+	}
+	issued, err := s.platform.Publish(ctx, templateNo, strings.TrimSpace(cmd.Name),
+		cmd.FaceValueFen, cmd.ThresholdFen, expireAt, now, int(cmd.Stock))
+	if err != nil {
+		return "", 0, err
+	}
+	return templateNo, issued, nil
 }

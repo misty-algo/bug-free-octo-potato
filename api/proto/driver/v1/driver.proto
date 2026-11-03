@@ -35,6 +35,8 @@ service DriverService {
   rpc StartTrip(StartTripRequest) returns (HallOrderResponse);
   rpc CompleteOrder(CompleteOrderRequest) returns (CompleteOrderResponse);
   rpc CancelOrder(CancelOrderRequest) returns (HallOrderResponse);
+  // 目的地变更裁决：乘客行程中请求改下车点，司机同意即生效。
+  rpc DecideDestinationChange(DecideDestinationChangeRequest) returns (HallOrderResponse);
 
   // ── 首页收益对比 ──
   rpc GetIncomeCompare(GetIncomeCompareRequest) returns (IncomeCompareResponse);
@@ -52,6 +54,71 @@ service DriverService {
   rpc ApproveWithdraw(ApproveWithdrawRequest) returns (WithdrawResponse);
   rpc RejectWithdraw(RejectWithdrawRequest) returns (WithdrawResponse);
   rpc CompleteWithdraw(CompleteWithdrawRequest) returns (WithdrawResponse);
+
+  // ── 接单记录与反馈通知 ──
+  // 司机端"我的"页新增接单记录：查询该司机接过的订单，并附带乘客评价/投诉。
+  rpc ListDriverHistory(ListDriverHistoryRequest) returns (ListDriverHistoryResponse);
+  // 乘客评价/投诉后，司机在"我的"页收到的通知。
+  rpc ListDriverNotices(ListDriverNoticesRequest) returns (ListDriverNoticesResponse);
+}
+
+// ── 接单记录 ──
+
+message ListDriverHistoryRequest {
+  string driver_id = 1;
+  int32 limit = 2;
+}
+
+message HistoryRatingMessage {
+  int32 score = 1;       // 1–5 星
+  string content = 2;    // 评价内容（空表示仅打分）
+  bool anonymous = 3;    // 是否匿名
+  string rated_at = 4;   // RFC3339
+}
+
+message HistoryComplaintMessage {
+  string type = 1;       // 投诉类型
+  string content = 2;    // 投诉内容
+  string state = 3;      // pending / processing / resolved / rejected
+  string at = 4;         // 投诉创建时间 RFC3339
+}
+
+message HistoryOrderMessage {
+  string order_id = 1;
+  string passenger_name = 2;
+  int32 passenger_count = 3;
+  LocationMessage origin = 4;
+  LocationMessage destination = 5;
+  string status = 6;          // ACCEPTED/ARRIVED/IN_TRIP/ENDED
+  int64 driver_income_fen = 7;
+  string created_at = 8;
+  string ended_at = 9;
+  HistoryRatingMessage rating = 10;
+  HistoryComplaintMessage complaint = 11;
+}
+
+message ListDriverHistoryResponse {
+  repeated HistoryOrderMessage items = 1;
+}
+
+// ── 反馈通知 ──
+
+message ListDriverNoticesRequest {
+  string driver_id = 1;
+  int32 limit = 2;
+}
+
+message DriverNoticeMessage {
+  string id = 1;
+  string type = 2;       // rating / complaint
+  string order_id = 3;
+  string title = 4;      // 例：乘客给了你 5 星好评
+  string content = 5;    // 评价/投诉正文
+  string at = 6;         // RFC3339
+}
+
+message ListDriverNoticesResponse {
+  repeated DriverNoticeMessage items = 1;
 }
 
 // ── 司机账号 ──
@@ -233,6 +300,24 @@ message HallOrderResponse {
   int64 version = 34;
   string created_at = 35;
   string updated_at = 36;
+  // 乘客发起的更改下车点请求（无请求时为空）。
+  DestinationChangeMessage destination_change = 37;
+}
+
+message DestinationChangeMessage {
+  string new_name = 1;
+  string new_addr = 2;
+  double new_lng = 3;
+  double new_lat = 4;
+  // pending / approved / rejected
+  string state = 5;
+  string requested_at = 6;
+}
+
+message DecideDestinationChangeRequest {
+  string driver_id = 1;
+  string order_id = 2;
+  bool approve = 3;
 }
 
 message ListHallOrdersRequest {

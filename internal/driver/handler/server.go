@@ -408,6 +408,71 @@ func (s *Server) CompleteWithdraw(ctx context.Context, req *driverv1.CompleteWit
 	return toWithdrawProto(w), nil
 }
 
+// ListDriverHistory 查询司机接单记录（含乘客评价/投诉）。
+func (s *Server) ListDriverHistory(ctx context.Context, req *driverv1.ListDriverHistoryRequest) (*driverv1.ListDriverHistoryResponse, error) {
+	items, err := s.svc.ListDriverHistory(ctx, req.GetDriverId(), int(req.GetLimit()))
+	if err != nil {
+		return nil, mapDriverError(err)
+	}
+	out := &driverv1.ListDriverHistoryResponse{Items: make([]*driverv1.HistoryOrderMessage, 0, len(items))}
+	for _, o := range items {
+		out.Items = append(out.Items, toHistoryOrderProto(o))
+	}
+	return out, nil
+}
+
+// ListDriverNotices 查询司机收到的评价/投诉通知。
+func (s *Server) ListDriverNotices(ctx context.Context, req *driverv1.ListDriverNoticesRequest) (*driverv1.ListDriverNoticesResponse, error) {
+	items, err := s.svc.ListDriverNotices(ctx, req.GetDriverId(), int(req.GetLimit()))
+	if err != nil {
+		return nil, mapDriverError(err)
+	}
+	out := &driverv1.ListDriverNoticesResponse{Items: make([]*driverv1.DriverNoticeMessage, 0, len(items))}
+	for _, n := range items {
+		out.Items = append(out.Items, &driverv1.DriverNoticeMessage{
+			Id:      n.ID,
+			Type:    n.Type,
+			OrderId: n.OrderID,
+			Title:   n.Title,
+			Content: n.Content,
+			At:      biztime.RFC3339(n.At),
+		})
+	}
+	return out, nil
+}
+
+// toHistoryOrderProto 接单记录实体 → proto，附带评价/投诉。
+func toHistoryOrderProto(o *entity.HistoryOrder) *driverv1.HistoryOrderMessage {
+	m := &driverv1.HistoryOrderMessage{
+		OrderId:         o.OrderID,
+		PassengerName:   o.PassengerName,
+		PassengerCount:  int32(o.PassengerCount),
+		Origin:          &driverv1.LocationMessage{Name: o.Origin.Name, Lat: o.Origin.Lat, Lng: o.Origin.Lng},
+		Destination:     &driverv1.LocationMessage{Name: o.Destination.Name, Lat: o.Destination.Lat, Lng: o.Destination.Lng},
+		Status:          o.Status,
+		DriverIncomeFen: o.DriverIncomeFen,
+		CreatedAt:       biztime.RFC3339(o.CreatedAt),
+		EndedAt:         biztime.RFC3339(o.EndedAt),
+	}
+	if o.Rating != nil {
+		m.Rating = &driverv1.HistoryRatingMessage{
+			Score:     o.Rating.Score,
+			Content:   o.Rating.Content,
+			Anonymous: o.Rating.Anonymous,
+			RatedAt:   biztime.RFC3339(o.Rating.RatedAt),
+		}
+	}
+	if o.Complaint != nil {
+		m.Complaint = &driverv1.HistoryComplaintMessage{
+			Type:    o.Complaint.Type,
+			Content: o.Complaint.Content,
+			State:   o.Complaint.State,
+			At:      biztime.RFC3339(o.Complaint.At),
+		}
+	}
+	return m
+}
+
 // ─────────────────────────── 类型转换 ───────────────────────────
 
 func toProfileProto(p *dto.DriverProfileDTO) *driverv1.DriverProfileResponse {
@@ -444,6 +509,7 @@ func toOrderProto(o *dto.HallOrderDTO) *driverv1.HallOrderResponse {
 		Status: o.Status, DriverId: o.DriverID, DriverName: o.DriverName,
 		DispatchChannel: o.DispatchChannel, VisibleInPool: o.VisibleInPool,
 		PickupDistanceMeters: o.PickupDistanceMeters, InviteRound: o.InviteRound,
+		DestinationChange: toDestChangeProto(o.DestChange),
 		AcceptDeadline: biztime.RFC3339(o.AcceptDeadline), ListenDeadline: biztime.RFC3339(o.ListenDeadline),
 		DispatchDeadline: biztime.RFC3339(o.DispatchDeadline),
 		AssignedAt: biztime.RFC3339(o.AssignedAt), AcceptedAt: biztime.RFC3339(o.AcceptedAt),
@@ -455,6 +521,17 @@ func toOrderProto(o *dto.HallOrderDTO) *driverv1.HallOrderResponse {
 	}
 }
 
+// toDestChangeProto 目的地变更 DTO → proto。
+func toDestChangeProto(change *dto.DestinationChangeDTO) *driverv1.DestinationChangeMessage {
+	if change == nil {
+		return nil
+	}
+	return &driverv1.DestinationChangeMessage{
+		NewName: change.NewName, NewAddr: change.NewAddr,
+		NewLat: change.NewLat, NewLng: change.NewLng,
+		State: change.State,
+	}
+}
 func toFlowProto(f *dto.IncomeFlowDTO) *driverv1.IncomeFlowMessage {
 	return &driverv1.IncomeFlowMessage{
 		Id: f.ID, DriverId: f.DriverID, OrderId: f.OrderID, TaskId: f.TaskID,
@@ -568,4 +645,17 @@ func mapDriverError(err error) error {
 	default:
 		return apperrors.Wrap(apperrors.KindInternal, "driver_service_error", "司机服务内部错误", err)
 	}
+}
+
+// DecideDestinationChange 处理司机裁决下车点变更。
+func (s *Server) DecideDestinationChange(ctx context.Context, req *driverv1.DecideDestinationChangeRequest) (*driverv1.HallOrderResponse, error) {
+	out, err := s.svc.DecideDestinationChange(ctx, dto.DecideDestinationChangeCommand{
+		DriverID: req.GetDriverId(),
+		OrderID:  req.GetOrderId(),
+		Approve:  req.GetApprove(),
+	})
+	if err != nil {
+		return nil, mapDriverError(err)
+	}
+	return toOrderProto(out), nil
 }

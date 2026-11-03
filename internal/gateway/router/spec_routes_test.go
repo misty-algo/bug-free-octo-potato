@@ -25,11 +25,12 @@ func TestContractRoutesRegistered(t *testing.T) {
 	registerContractRoutes(api,
 		handler.NewPassengerHandler(nil, nil),
 		handler.NewDriverHandler(nil, nil),
-		handler.NewSpecContractHandler(jwtCfg, nil),
+		handler.NewSpecContractHandler(jwtCfg, nil, nil),
 		jwtCfg,
 	)
 
 	want := []string{
+		"POST /api/admin/coupon/template",
 		"POST /api/auth/account-cancel",
 		"POST /api/auth/binding",
 		"POST /api/auth/login",
@@ -84,6 +85,46 @@ func TestContractRoutesRegistered(t *testing.T) {
 	if len(missing) > 0 {
 		sort.Strings(missing)
 		t.Fatalf("契约路由缺失: %v", missing)
+	}
+}
+
+// TestAdminCouponTemplateRequiresAdminRole 验证管理端发布券必须带后台角色令牌：
+// 无令牌 401，非后台角色 403，避免运营接口被乘客/司机令牌直接调用。
+func TestAdminCouponTemplateRequiresAdminRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	api := engine.Group("/api")
+
+	jwtCfg := middleware.JWTConfig{Secret: "spec-secret", Issuer: "spec-issuer", ExpireSeconds: 1800}
+	registerContractRoutes(api,
+		handler.NewPassengerHandler(nil, nil),
+		handler.NewDriverHandler(nil, nil),
+		handler.NewSpecContractHandler(jwtCfg, nil, nil),
+		jwtCfg,
+	)
+
+	const path = "/api/admin/coupon/template"
+	do := func(token string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"stock":1}`))
+		req.Header.Set("Content-Type", "application/json")
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		w := httptest.NewRecorder()
+		engine.ServeHTTP(w, req)
+		return w
+	}
+
+	if w := do(""); w.Code != http.StatusUnauthorized {
+		t.Fatalf("无令牌: got %d, want %d", w.Code, http.StatusUnauthorized)
+	}
+
+	paxToken, err := middleware.GenerateToken(jwtCfg, middleware.JWTClaims{UserID: "pax-1", Role: "pax"})
+	if err != nil {
+		t.Fatalf("生成测试令牌失败: %v", err)
+	}
+	if w := do(paxToken); w.Code != http.StatusForbidden {
+		t.Fatalf("乘客角色: got %d, want %d", w.Code, http.StatusForbidden)
 	}
 }
 

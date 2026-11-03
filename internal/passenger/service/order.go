@@ -307,6 +307,14 @@ func (s *Service) syncOrderFromHall(ctx context.Context, order *entity.Order) {
 		return
 	}
 	now := s.now().UTC()
+	// 目的地变更裁决回传：司机同意后把新终点落到订单上。
+	if task.DestChange != nil && (order.DestChange == nil || order.DestChange.State != task.DestChange.State) {
+		mirrored := *task.DestChange
+		order.DestChange = &mirrored
+		if err := s.orders.ApplyDestChange(ctx, order); err != nil {
+			return
+		}
+	}
 	if task.DriverName != "" && order.DriverName != task.DriverName {
 		order.DriverName = task.DriverName
 		order.DriverPlate = task.DriverPlate
@@ -474,8 +482,64 @@ func toOrderDTO(order *entity.Order) *dto.OrderDTO {
 		Remark:      order.Remark,
 		DriverName:  order.DriverName,
 		DriverPlate: order.DriverPlate,
+		DestChange:  toDestChangeDTO(order.DestChange),
 		CreatedAt:   order.CreatedAt,
+		// 起终点坐标：行程地图据此画上车点/目的地标记。
+		StartLat: order.StartLat,
+		StartLng: order.StartLng,
+		EndLat:   order.EndLat,
+		EndLng:   order.EndLng,
 	}
+}
+
+// toDestChangeDTO 目的地变更实体 → DTO。
+func toDestChangeDTO(change *entity.DestinationChange) *dto.DestinationChangeDTO {
+	if change == nil {
+		return nil
+	}
+	return &dto.DestinationChangeDTO{
+		NewEndName: change.NewEndName,
+		NewEndAddr: change.NewEndAddr,
+		State:      change.State,
+	}
+}
+
+// RequestDestinationChange 乘客行程中请求更改下车点，写入派单任务待司机裁决。
+func (s *Service) RequestDestinationChange(ctx context.Context, cmd dto.RequestDestinationChangeCommand) (string, error) {
+	if s.hall == nil {
+		return "", entity.ErrInvalidStateTransition
+	}
+	if cmd.NewEndName == "" || cmd.NewEndLng == 0 || cmd.NewEndLat == 0 {
+		return "", entity.ErrInvalidStateTransition
+	}
+	order, err := s.orders.FindByOrderNo(ctx, cmd.OrderNo)
+	if err != nil {
+		return "", err
+	}
+	if order.AccountID != cmd.AccountID {
+		return "", entity.ErrForbidden
+	}
+	if !order.State.CanRequestDestChange() {
+		return "", entity.ErrInvalidStateTransition
+	}
+	change := &entity.DestinationChange{
+		NewEndName:  cmd.NewEndName,
+		NewEndAddr:  cmd.NewEndAddr,
+		NewEndLng:   cmd.NewEndLng,
+		NewEndLat:   cmd.NewEndLat,
+		State:       entity.DestChangePending,
+		RequestedAt: s.now().UTC(),
+	}
+	// 先写派单任务（司机端可见），再镜像到乘客订单。
+	if err := s.hall.RequestDestinationChange(ctx, order.OrderNo, *change); err != nil {
+		return "", err
+	}
+	order.DestChange = change
+	order.UpdatedAt = change.RequestedAt
+	if err := s.orders.ApplyDestChange(ctx, order); err != nil {
+		return "", err
+	}
+	return change.State, nil
 }
 
 // ensure the remark helper stays referenced.

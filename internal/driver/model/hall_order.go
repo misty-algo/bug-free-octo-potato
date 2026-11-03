@@ -9,6 +9,16 @@ type LocationDoc struct {
 	Lng  float64 `bson:"lng"`
 }
 
+// DestinationChangeDocument 派单任务上的目的地变更请求。
+type DestinationChangeDocument struct {
+	NewName     string    `bson:"new_name"`
+	NewAddr     string    `bson:"new_addr"`
+	NewLat      float64   `bson:"new_lat"`
+	NewLng      float64   `bson:"new_lng"`
+	State       string    `bson:"state"` // pending / approved / rejected
+	RequestedAt time.Time `bson:"requested_at"`
+}
+
 // HallOrderDocument 是 hall_orders 集合文档（同时也是派单任务）。
 type HallOrderDocument struct {
 	ID   string `bson:"_id"`
@@ -22,6 +32,8 @@ type HallOrderDocument struct {
 	RequireCarType string `bson:"require_car_type"`
 	Origin      LocationDoc `bson:"origin"`
 	Destination LocationDoc `bson:"destination"`
+	// 乘客发起的更改下车点请求（nil 表示无请求）。
+	DestChange *DestinationChangeDocument `bson:"destination_change,omitempty"`
 
 	// 金额一律整数分
 	OrigFareFen       int64 `bson:"orig_fare_fen"`

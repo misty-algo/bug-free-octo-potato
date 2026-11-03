@@ -39,6 +39,11 @@ func (b *fakeHallBridge) CancelWaitingTask(ctx context.Context, orderNo string, 
 	return true, nil
 }
 
+// RequestDestinationChange 记录改点请求到派单任务上；fake 不模拟司机裁决。
+func (b *fakeHallBridge) RequestDestinationChange(ctx context.Context, orderNo string, change entity.DestinationChange) error {
+	return nil
+}
+
 // TestCurrentOrderCancelsStaleOrphan 验证派单池查无任务的孤儿订单在超过宽限期后自动取消。
 func TestCurrentOrderCancelsStaleOrphan(t *testing.T) {
 	now := time.Now()

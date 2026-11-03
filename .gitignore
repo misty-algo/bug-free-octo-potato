@@ -26,3 +26,14 @@ docs/superpowers/
 
 .build/
 
+# 编译产物：本地构建出的可执行文件，禁止入库
+*.exe
+*.exe~
+
+# 端到端测试脚本与产物
+/.playwright-cli/
+
+# 本地测试 dump / 截图，禁止入库
+pax-check.png
+pax-fixed.png
+snap2.yaml

@@ -25,6 +25,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	passengerv1 "github.com/BwCloudWeGo/bw-cli/api/gen/passenger/v1"
 	"github.com/BwCloudWeGo/bw-cli/pkg/authn"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 	"github.com/BwCloudWeGo/bw-cli/pkg/httpx"
@@ -641,52 +642,52 @@ type specCouponTemplateRequest struct {
 	Area        string   `json:"area"`
 	Stock       int64    `json:"stock"`
 	PerLimit    int64    `json:"per_limit"`
-	Bearer      string   `json:"bearer"`     // platform / driver（二选一）
+	Bearer      string   `json:"bearer"`     // 只接受 platform
 	IssueType   string   `json:"issue_type"` // 注册/定向/活动领取
 	PassengerID string   `json:"passenger_id"`
 }
 
-// AdminCouponTemplate 创建券模板并向指定乘客发放（库存原子扣减，防超发）。
+// AdminCouponTemplate 创建券模板并发布到共享库 coupons（乘客领券中心可见并可领取）。
+//
+// 关键修复：旧实现只写入进程内 store，而乘客端领券中心读的是 MongoDB coupons 集合，
+// 导致管理端发布后乘客端看不到新券。这里改为调用乘客服务 PublishPlatformCoupons，
+// 把券真正落库为 AVAILABLE 状态，领券中心即可展示与领取。
 func (h *SpecContractHandler) AdminCouponTemplate(c *gin.Context) {
 	var req specCouponTemplateRequest
 	if !specBindJSON(c, &req) {
 		return
 	}
-	if req.Bearer != "platform" && req.Bearer != "driver" {
-		httpx.PaxError(c, http.StatusBadRequest, httpx.PaxCodeInvalidArgument, "bearer must be platform or driver")
+	// 这里只发布平台券：乘客领券中心读的是平台券库 coupons。
+	// 司机券属于司机域发放，不能混进乘客领券中心，故直接拒绝而不是静默当平台券。
+	if req.Bearer != "" && req.Bearer != "platform" {
+		httpx.PaxError(c, http.StatusBadRequest, httpx.PaxCodeInvalidArgument, "only platform coupons are supported")
 		return
 	}
 	if req.FaceValue <= 0 || req.Stock <= 0 || req.ValidTo <= req.ValidFrom {
 		httpx.PaxError(c, http.StatusBadRequest, httpx.PaxCodeInvalidArgument, "invalid template parameters")
 		return
 	}
-	at := h.now()
-
-	h.store.mu.Lock()
-	tpl := &specCouponTemplate{
-		ID: h.store.nextID("CT"), Name: req.Name, FaceValue: req.FaceValue, Threshold: req.Threshold,
-		ValidFrom: req.ValidFrom, ValidTo: req.ValidTo, CarTypes: req.CarTypes, Area: req.Area,
-		Stock: req.Stock, PerLimit: req.PerLimit, Bearer: req.Bearer,
-		IssueType: firstNonEmpty(req.IssueType, "活动领取"), State: "已发布",
+	if h.passenger == nil {
+		httpx.PaxError(c, http.StatusServiceUnavailable, httpx.PaxCodeInternal, "passenger service unavailable")
+		return
 	}
-	issued := int64(0)
-	if req.PassengerID != "" {
-		// 库存原子扣减：条件更新，库存为 0 则不再发放。
-		if tpl.Stock > 0 {
-			tpl.Stock--
-			issued++
-			h.store.coupons[h.store.nextID("C")] = &specCoupon{
-				ID: h.store.nextID(""), TemplateID: tpl.ID, PassengerID: req.PassengerID,
-				Name: tpl.Name, Bearer: tpl.Bearer, Threshold: tpl.Threshold,
-				Amount: tpl.FaceValue, State: CouponStateAvailable, ExpireAt: tpl.ValidTo,
-			}
-		}
+	// 模板号用纳秒时间戳：同一秒内连续发布两批券也必须是不同批次。
+	templateID := "CT" + strconv.FormatInt(h.clock.Now().UTC().UnixNano(), 10)
+	resp, err := h.passenger.PublishPlatformCoupons(c.Request.Context(), &passengerv1.PublishPlatformCouponsRequest{
+		TemplateNo:   templateID,
+		Name:         req.Name,
+		FaceValueFen: req.FaceValue,
+		ThresholdFen: req.Threshold,
+		ExpireAtUnix: req.ValidTo,
+		Stock:        int32(req.Stock),
+	})
+	if err != nil {
+		h.log.Warn("publish platform coupons failed")
+		httpx.PaxError(c, http.StatusBadGateway, httpx.PaxCodeInternal, "publish coupon failed")
+		return
 	}
-	h.store.templates[tpl.ID] = tpl
-	h.store.appendLogLocked("admin", "operator", "coupon_template", "create", httpx.RequestID(c), "", tpl.ID, at)
-	h.store.mu.Unlock()
-
-	httpx.PaxOK(c, map[string]any{"template_id": tpl.ID, "issued": issued, "stock": tpl.Stock})
+	issued := int64(resp.GetIssued())
+	httpx.PaxOK(c, map[string]any{"template_id": resp.GetTemplateNo(), "issued": issued})
 }
 
 // ── A08 补贴活动管理 ──

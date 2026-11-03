@@ -224,7 +224,44 @@ type OrderDTO struct {
 	// DriverName / DriverPlate 已接单后才有值。
 	DriverName  string    `json:"driverName"`
 	DriverPlate string    `json:"driverPlate"`
-	CreatedAt   time.Time `json:"createdAt"`
+	// DestChange 乘客发起的更改下车点请求（nil 表示无请求）。
+	DestChange *DestinationChangeDTO `json:"destChange,omitempty"`
+	CreatedAt  time.Time             `json:"createdAt"`
+	// 起终点坐标（WGS84）：行程地图据此画上车点/目的地标记，避免刷新后丢失。
+	StartLat float64 `json:"startLat"`
+	StartLng float64 `json:"startLng"`
+	EndLat   float64 `json:"endLat"`
+	EndLng   float64 `json:"endLng"`
+}
+
+// DestinationChangeDTO 更改下车点请求的对外形态。
+type DestinationChangeDTO struct {
+	NewEndName string `json:"newEndName"`
+	NewEndAddr string `json:"newEndAddr"`
+	// pending 等待司机裁决 / approved 司机已同意 / rejected 司机已拒绝。
+	State string `json:"state"`
+}
+
+// RequestDestinationChangeCommand 是乘客发起更改下车点的入参。
+type RequestDestinationChangeCommand struct {
+	AccountID  string
+	OrderNo    string
+	NewEndName string
+	NewEndAddr string
+	NewEndLng  float64
+	NewEndLat  float64
+}
+
+// SubmitReviewCommand 是乘客提交评价/投诉的入参。
+type SubmitReviewCommand struct {
+	AccountID     string
+	OrderNo       string
+	Rating        int32
+	Tags          []string
+	Comment       string
+	IsComplaint   bool
+	ComplaintType string
+	ComplaintDesc string
 }
 
 // CancelOrderCommand 是取消订单的入参。

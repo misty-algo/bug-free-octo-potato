@@ -316,6 +316,32 @@ func (h *DriverHandler) ListWithdrawals(c *gin.Context) {
 	handleDriverResponse(c, resp, err)
 }
 
+// ── 接单记录与反馈通知 ──
+
+// GetHistory 接单记录（含乘客评价/投诉）。
+func (h *DriverHandler) GetHistory(c *gin.Context) {
+	var req biz.DriverHistoryQuery
+	if !bindQuery(c, &req) {
+		return
+	}
+	resp, err := h.client.ListDriverHistory(outgoingContext(c), &driverv1.ListDriverHistoryRequest{
+		DriverId: req.DriverID, Limit: req.Limit,
+	})
+	handleDriverResponse(c, resp, err)
+}
+
+// ListNotices 反馈通知（乘客评价/投诉）。
+func (h *DriverHandler) ListNotices(c *gin.Context) {
+	var req biz.DriverHistoryQuery
+	if !bindQuery(c, &req) {
+		return
+	}
+	resp, err := h.client.ListDriverNotices(outgoingContext(c), &driverv1.ListDriverNoticesRequest{
+		DriverId: req.DriverID, Limit: req.Limit,
+	})
+	handleDriverResponse(c, resp, err)
+}
+
 // ── 跨模块回调接口（供支付域 / 财务域 / 后台集成）──
 
 // ReportPayment 支付成功回调。
@@ -428,4 +454,23 @@ func toAmountMessage(a biz.AmountItem) *driverv1.AmountMessage {
 		PlatformCouponFen: a.PlatformCouponFen, DriverCouponFen: a.DriverCouponFen,
 		CommissionFen: a.CommissionFen, SubsidyFen: a.SubsidyFen, DriverIncomeFen: a.DriverIncomeFen,
 	}
+}
+
+// DecideDestinationChange 司机裁决乘客的更改下车点请求。
+func (h *DriverHandler) DecideDestinationChange(c *gin.Context) {
+	var req biz.DriverDecideDestinationChangeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
+		return
+	}
+	resp, err := h.client.DecideDestinationChange(outgoingContext(c), &driverv1.DecideDestinationChangeRequest{
+		DriverId: req.DriverID,
+		OrderId:  req.OrderID,
+		Approve:  req.Approve,
+	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
 }
