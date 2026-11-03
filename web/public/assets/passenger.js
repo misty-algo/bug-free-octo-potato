@@ -3,6 +3,28 @@
 // 数据全部来自真实网关接口；订单列表为会话内状态（网关暂无订单查询接口）。
 import { api, fy, esc, toast, randomKey, stateName } from './api.js';
 
+// 全局错误上报：任何未捕获异常/Promise 拒都用 toast 冒泡到界面，
+// 避免「页面看着正常但点什么都不响应」时用户无从得知原因；
+// 详细堆栈同时落在 console 与 window.__paxLastError，便于 F12 排查。
+// 限流：同类错误 6 秒内只提示一次，防止轮询场景刷屏。
+let lastErrToastAt = 0;
+let lastErrToastText = '';
+function surfaceError(kind, detail) {
+  const text = String(detail);
+  console.error(`[pax] ${kind}:`, detail);
+  window.__paxLastError = `${kind}: ${text}`;
+  const now = Date.now();
+  if (text === lastErrToastText && now - lastErrToastAt < 6000) return;
+  lastErrToastAt = now;
+  lastErrToastText = text;
+  try { toast(`${kind}：${text.slice(0, 120)}`); } catch (e) { void e; }
+}
+window.addEventListener('error', (e) => { surfaceError('脚本错误', (e.error && e.error.message) || e.message); });
+window.addEventListener('unhandledrejection', (e) => {
+  surfaceError('异步错误', (e.reason && (e.reason.message || e.reason)) || 'unknown');
+});
+window.paxLastError = () => window.__paxLastError || '(none)';
+
 // 与原型一致的演示地点（含经纬度，供下单与估价使用）。
 const POIS = [
   { id: 'p1', name: '世纪大道地铁站', addr: '浦东新区·世纪大道100号', lng: 121.5399, lat: 31.2336 },
@@ -78,86 +100,146 @@ function loggedIn() { return Boolean(S.accountId && S.token); }
 // ---------------------------------------------------------------- 渲染
 
 function renderAll() {
+  // 渲染任何一步抛错都不能把页面打死：历史上弹层会停在 display:flex 的空壳上
+  // 盖住整屏，表现为「页面看着正常但点什么都无反应」，下次刷新又时好时坏。
+  // 这里兜底记录错误、给出可见提示，保证导航与后续渲染始终可用。
+  try {
+    renderAllInner();
+  } catch (error) {
+    console.error('[pax] renderAll failed:', error);
+    window.__paxLastError = String((error && error.stack) || error);
+    try { $overlay.style.display = 'none'; $overlay.innerHTML = ''; } catch (e) { void e; }
+    try {
+      $screen.innerHTML =
+        '<div class="card" style="margin:40px 16px;text-align:center;color:#909399;">页面渲染出错，请刷新重试' +
+        '<div class="note" style="margin-top:8px;">' + esc(String(error && error.message || error)) + '</div></div>';
+    } catch (e) { void e; }
+  }
+}
+
+function renderAllInner() {
   // 全屏页（客服中心）覆盖主屏。
   if (S.fullpage === 'service') {
+    detachLiveMap();
     $screen.innerHTML = serviceFullView();
     $nav.innerHTML = '';
     renderOverlay();
     return;
   }
+  // 关键：innerHTML 整体重写会销毁 Leaflet 容器，导致每次渲染都重建地图实例、
+  // 瓦片重新下载（地图反复闪灰），并让异步回调（定位/瓦片/司机位置）打在死
+  // 实例上抛错。这里把活着的容器先摘下，渲染完再插回原位，瓦片与实例都保留。
+  const keptMap = detachLiveMap();
   if (S.tab === 'orders') $screen.innerHTML = paxOrdersView();
   else if (S.tab === 'me') $screen.innerHTML = paxMeView();
   else if (activeOrder()) $screen.innerHTML = paxFlowView(activeOrder());
   else $screen.innerHTML = paxHomeView();
+  attachLiveMap(keptMap);
 
   $nav.innerHTML =
     `<div class="${S.tab === 'home' ? 'on' : ''}" data-tab="home">首页</div>` +
     `<div class="${S.tab === 'orders' ? 'on' : ''}" data-tab="orders">订单</div>` +
     `<div class="${S.tab === 'me' ? 'on' : ''}" data-tab="me">我的</div>`;
   renderOverlay();
+  // 首页渲染完成后初始化真实地图（容器必须已在 DOM 中）。
+  // 无行程时容器是 paxMap（选点地图）；行程中容器是 tripMap（行程地图）。
+  if (S.tab === 'home') renderMap();
+}
+
+// parkedMapEl 暂存被摘下的地图容器：视图临时没有同名占位符（如行程页、
+// 订单页）时先停在这里，等视图切回来再插回，实例与瓦片始终不丢。
+var parkedMapEl = null;
+
+// resetMapAnim 中止地图上的异步动画（飞行、平移、缩放过渡）并复位缩放动画状态。
+//
+// 容器被移出文档期间 CSS transition 不会触发 transitionend，Leaflet 收不到收尾
+// 回调会一直停在 _animatingZoom=true，之后 setView 被误判为「动画进行中」直接
+// 短路，动画状态与真实视图脱节。
+function resetMapAnim(map) {
+  if (!map) return;
+  try { map.stop(); } catch (e) { void e; }
+  if (map._animatingZoom) {
+    map._animatingZoom = false;
+    if (map._mapPane) map._mapPane.classList.remove('leaflet-zoom-anim');
+  }
+}
+
+// detachLiveMap 摘下当前活着的 Leaflet 容器（连同瓦片、标记、实例）并返回。
+// 仅对已初始化过地图的元素生效，避免把模板里的空占位符误当成可复用容器。
+function detachLiveMap() {
+  const el = $screen.querySelector('#paxMap, #tripMap');
+  if (el && el.__paxMap) {
+    // 先停动画再摘：容器离文档后尺寸为 0，飞行帧会按 Math.max(w,h)=0 做除零
+    // 算出 NaN 经纬度，后续所有 setView/flyTo 都会抛 Invalid LatLng。
+    resetMapAnim(el.__paxMap);
+    if (el.parentNode) el.parentNode.removeChild(el);
+    parkedMapEl = el;
+    return el;
+  }
+  return parkedMapEl && parkedMapEl.__paxMap ? parkedMapEl : null;
+}
+
+// attachLiveMap 把先前摘下的容器插回新渲染出的占位符位置。
+// 同名占位符直接替换；若视图换成了另一种地图容器（选点地图 paxMap ↔ 行程地图
+// tripMap），也复用同一实例，只把 id 与内联样式迁过去，避免重建地图、瓦片重载。
+// 当前视图完全没有地图容器时保持游离，等下一次渲染再插回。
+function attachLiveMap(el) {
+  if (!el) return;
+  const sameSlot = $screen.querySelector('#' + el.id);
+  let inserted = false;
+  if (sameSlot && sameSlot !== el && sameSlot.parentNode) {
+    sameSlot.parentNode.replaceChild(el, sameSlot);
+    inserted = true;
+  } else {
+    const otherSlot = $screen.querySelector('#paxMap, #tripMap');
+    if (otherSlot && otherSlot !== el && otherSlot.parentNode) {
+      el.id = otherSlot.id;
+      el.setAttribute('style', otherSlot.getAttribute('style') || '');
+      otherSlot.parentNode.replaceChild(el, otherSlot);
+      inserted = true;
+    }
+  }
+  if (!inserted) return;
+  parkedMapEl = null;
+  // 插回文档后立刻按真实尺寸重算：容器离文档期间 getSize() 会被算成 0x0 并缓存，
+  // 不刷新的话 flyTo/fitBounds 全按 0 尺寸算，直接产生 NaN 坐标。
+  const map = el.__paxMap;
+  if (map) {
+    resetMapAnim(map);
+    try { map.invalidateSize({ pan: false }); } catch (e) { void e; }
+  }
 }
 
 function renderOverlay() {
   if (!S.sheet) { $overlay.style.display = 'none'; $overlay.innerHTML = ''; return; }
   $overlay.style.display = 'flex';
   let body = '';
-  if (S.sheet.type === 'poi') body = poiSheet(S.sheet.kind);
-  else if (S.sheet.type === 'login') body = loginSheet();
-  else if (S.sheet.type === 'register') body = registerSheet();
-  else if (S.sheet.type === 'detail') body = orderDetailSheet(S.sheet.order);
-  else if (S.sheet.type === 'realname') body = realNameSheet();
-  else if (S.sheet.type === 'claim') body = claimCouponSheet();
+  // 某类弹层在异常数据下抛错时，display:flex 的空壳会盖住整屏拦截所有点击，
+  // 表现为整页「点什么都无反应」；这里兜底关闭弹层并回显错误。
+  try {
+    if (S.sheet.type === 'poi') body = poiSheet(S.sheet.kind);
+    else if (S.sheet.type === 'login') body = loginSheet();
+    else if (S.sheet.type === 'register') body = registerSheet();
+    else if (S.sheet.type === 'detail') body = orderDetailSheet(S.sheet.order);
+    else if (S.sheet.type === 'realname') body = realNameSheet();
+    else if (S.sheet.type === 'claim') body = claimCouponSheet();
+    else if (S.sheet.type === 'pay') body = paySheet();
+    else if (S.sheet.type === 'review') body = reviewSheet();
+  } catch (error) {
+    console.error('[pax] renderOverlay failed:', error);
+    window.__paxLastError = String((error && error.stack) || error);
+    S.sheet = null;
+    $overlay.style.display = 'none';
+    $overlay.innerHTML = '';
+    toast('弹层打开失败：' + String(error && error.message || error));
+    return;
+  }
   $overlay.innerHTML = `<div class="sheet">${body}</div>`;
 }
 
 /**
- * mapMock 渲染地图：城市底图（地块/水系/绿地/路网/地名）+ 定位蓝点 + 起终点标记。
- * 起终点未选时不画路线标记，只保留定位点与底图。
+ * mapMock 渲染地图容器：真实全国地图由 renderMap() 用 Leaflet 初始化。
  */
-function mapMock(start, end) {
-  const pin = (x, y, color) =>
-    `<circle cx="${x}" cy="${y}" r="5.5" fill="${color}" stroke="#fff" stroke-width="2"/>`;
-  return '<div class="hubmap"><svg viewBox="0 0 300 170">' +
-    '<rect width="300" height="170" fill="#f1f2f4"/>' +
-    // 江水与水岸线。
-    '<path d="M-6,130 C44,116 60,92 98,88 C138,84 158,110 198,114 C240,118 270,136 306,144 L306,172 L-6,172 Z" fill="#d3e7fa"/>' +
-    '<path d="M-6,130 C44,116 60,92 98,88 C138,84 158,110 198,114 C240,118 270,136 306,144" stroke="#bcd9f4" stroke-width="1" fill="none"/>' +
-    // 公园绿地。
-    '<path d="M12,20 L88,12 L98,58 L22,66 Z" fill="#dcead0"/>' +
-    '<path d="M224,104 L294,96 L300,150 L230,156 Z" fill="#dcead0"/>' +
-    // 重点街区（浅紫地块）。
-    '<path d="M110,24 L190,16 L200,64 L118,72 Z" fill="#e8e1fb"/>' +
-    // 街区建筑面。
-    '<rect x="30" y="96" width="46" height="26" rx="2" fill="#e6e8eb"/>' +
-    '<rect x="112" y="106" width="58" height="22" rx="2" fill="#e6e8eb"/>' +
-    '<rect x="212" y="18" width="52" height="34" rx="2" fill="#e6e8eb"/>' +
-    '<rect x="20" y="30" width="34" height="22" rx="2" fill="#e6e8eb"/>' +
-    // 主干道（白色路面 + 快速路黄色涂装）。
-    '<g stroke="#fff" fill="none" stroke-linecap="round">' +
-    '<path d="M0,86 L300,72" stroke-width="11"/><path d="M60,0 L72,170" stroke-width="9"/>' +
-    '<path d="M202,0 L192,170" stroke-width="9"/>' +
-    '<path d="M0,38 Q150,50 300,30" stroke-width="6.5"/><path d="M0,120 L300,110" stroke-width="6"/>' +
-    '<path d="M134,0 L148,170" stroke-width="4.5"/><path d="M262,0 L252,170" stroke-width="4.5"/>' +
-    '</g>' +
-    '<path d="M0,86 L300,72" stroke="#f8d66c" stroke-width="1.2" fill="none"/>' +
-    // 地名与路名（描边保证在路面上可读）。
-    '<g fill="#8a9099" font-size="6.5" stroke="#fff" stroke-width="2" paint-order="stroke">' +
-    '<text x="96" y="81">世纪大道</text><text x="204" y="42">张江高科技园区</text>' +
-    '<text x="24" y="52">运河春天</text><text x="230" y="122">新城家园</text>' +
-    '<text x="146" y="60">职业技术大学</text><text x="150" y="118">锦绣路</text>' +
-    '</g>' +
-    // POI 小图标。
-    '<g><rect x="96" y="112" width="7" height="7" rx="1.5" fill="#4a90e2"/>' +
-    '<circle cx="128" cy="34" r="3.2" fill="#f5a623"/><circle cx="240" cy="66" r="3.2" fill="#7ed321"/>' +
-    '<rect x="46" y="60" width="6" height="6" rx="1" fill="#f56c6c"/></g>' +
-    // 定位蓝点（脉冲光圈）。
-    '<circle class="pulse" cx="66" cy="82" r="7" fill="#2f7cf6" opacity="0.35"/>' +
-    '<circle cx="66" cy="82" r="4.6" fill="#2f7cf6" stroke="#fff" stroke-width="1.6"/>' +
-    (start ? pin(60, 56, '#67c23a') : '') +
-    (end ? pin(212, 50, '#f56c6c') : '') +
-    (start && end ? '<path d="M60,56 Q136,86 212,50" stroke="#2f7cf6" stroke-width="2.6" fill="none" stroke-dasharray="5,4"/>' : '') +
-    '</svg></div>';
-}
 
 function activeOrder() {
   const live = ['PENDING', 'WAITING', 'ACCEPTED', 'ARRIVED', 'IN_TRIP', 'IN_SERVICE', 'COMPLETED_UNPAID'];
@@ -189,6 +271,9 @@ function startFlowPoll() {
       S.currentOrder.driverPlate = payload.driverPlate || payload.driver_plate || '';
       S.currentOrder.payFee = (payload.totalFee != null ? payload.totalFee : payload.total_fee) != null
         ? (payload.totalFee != null ? payload.totalFee : payload.total_fee) : S.currentOrder.payFee;
+      // 同步更改下车点裁决状态（司机同意后新终点立即生效）。
+      const dcNow = payload.dest_change || payload.destChange;
+      if (dcNow) S.currentOrder.destChange = { state: dcNow.state, newEndName: dcNow.new_end_name || dcNow.newEndName || '' };
       // 待支付不是终态：保持轮询，支付完成后状态变为 COMPLETED 时自动收尾。
       const terminal = ['COMPLETED', 'CANCELLED', 'ENDED'].includes(S.currentOrder.state);
       if (terminal) stopFlowPoll();
@@ -299,6 +384,7 @@ async function loadOrderList() {
       payFee: o.total_fee != null ? o.total_fee : 0,
       startName: o.start_name || '-', endName: o.end_name || '-',
       startAddr: o.start_addr || '', endAddr: o.end_addr || '',
+      destChange: o.dest_change ? { state: o.dest_change.state, newEndName: o.dest_change.new_end_name || '' } : null,
       createdAtText: o.created_at
         ? new Date(o.created_at * 1000).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '',
     }));
@@ -398,6 +484,8 @@ function paxFlowView(order) {
   const headline = waiting ? '正在为您呼叫车辆' : `${stateName(order.state)}`;
   let h = `<div class="statbig"><div class="t1">${headline}</div>` +
     `<div class="t2">${waiting ? '订单已进入司机派单大厅 · 可切到「司机端」演示接单' : '状态实时同步自司机端'}</div></div>`;
+  // 行程地图：实时显示乘客上车点与司机当前位置（接单后每 5 秒刷新）。
+  h += '<div class="hubmap" id="tripMap" style="height:220px;"></div>';
   h += `<div class="card"><h4>${esc(order.typeName)} · ¥${fy(order.payFee)}（预估）</h4>` +
     `<div class="poirow" style="cursor:default"><span class="dot" style="background:#67c23a"></span><span class="txt"><b>${esc(order.startName)}</b><span>${esc(order.startAddr)}</span></span></div>` +
     `<div class="poirow" style="cursor:default"><span class="dot" style="background:#f56c6c"></span><span class="txt"><b>${esc(order.endName)}</b><span>${esc(order.endAddr)}</span></span></div>` +
@@ -410,12 +498,27 @@ function paxFlowView(order) {
     // 等待接单期间允许乘客无责取消；司机接单后需走客服协商。
     h += '<button class="btn" style="width:100%;margin-top:10px;background:#fff;color:#f56c6c;border:1px solid #fbc4c4;" onclick="paxCancelRide()">取消打车</button>';
   }
-  // 行程结束即待支付：展示应付金额并引导乘客完成支付，支付成功后订单才算完成。
+  // 行程中可发起更改下车点：提交后待司机裁决，拒绝则维持原终点。
+  const liveStates = ['ACCEPTED', 'ARRIVED', 'IN_SERVICE'];
+  if (liveStates.includes(order.state)) {
+    const dc = order.destChange;
+    if (dc && dc.state === 'pending') {
+      h += '<div class="card" style="background:#f0f9eb;border:1px solid #c2e7b0;">' +
+        '<b style="color:#67c23a;">更改下车点请求已提交</b>' +
+        `<div class="note">新终点：${esc(dc.newEndName || '-')} · 等待司机确认中</div></div>`;
+    } else {
+      if (dc && dc.state === 'rejected') {
+        h += '<div class="note" style="color:#e6a23c;">司机未同意上次的下车点更改，可重新选择</div>';
+      }
+      h += '<button class="btn" style="width:100%;margin-top:10px;background:#fff;color:#2f6fed;border:1px solid #b3d8ff;" onclick="paxOpenDestChange()">更改下车点</button>';
+    }
+  }
+  // 行程结束即待支付：进入收银台选微信/支付宝完成支付。
   if (order.state === 'COMPLETED_UNPAID') {
     h += `<div class="card" style="text-align:center;"><h4>行程结束 · 待支付</h4>` +
       `<div style="font-size:26px;color:#303133;margin:6px 0;">¥${fy(order.payFee)}</div>` +
       `<div class="note">支付完成后订单才会计入司机收入</div>` +
-      `<button class="btn yellow" style="width:100%;margin-top:8px;" onclick="paxPayOrder('${esc(order.no)}')">立即支付 ¥${fy(order.payFee)}</button></div>`;
+      `<button class="btn yellow" style="width:100%;margin-top:8px;" onclick="paxPaySheet('${esc(order.no)}')">去支付 ¥${fy(order.payFee)}</button></div>`;
   }
   return h;
 }
@@ -425,7 +528,19 @@ function flowChipState(state) {
   return { PENDING: 'WAITING', IN_SERVICE: 'IN_TRIP', COMPLETED_UNPAID: 'ENDED', COMPLETED: 'ENDED' }[state] || state;
 }
 
+/**
+ * mapMock 渲染首页地图容器：真实全国地图由 renderMap() 用 Leaflet 初始化。
+ * 起终点标记、路线与定位都在地图实例上绘制。
+ */
+function mapMock(start, end) {
+  void start; void end;
+  return '<div class="hubmap" id="paxMap" style="min-height:220px;"></div>';
+}
+
 function paxOrdersView() {
+  // 已评价订单集合：来自本地留痕（每单仅可评价一次）。
+  let reviewedSet = new Set();
+  try { reviewedSet = new Set(JSON.parse(localStorage.getItem('huazhu.reviewed') || '[]')); } catch (e) { void e; }
   let h = '<div style="background:#ffc300;padding:10px 14px 6px;"><b style="font-size:15px;">我的订单</b>' +
     '<div style="font-size:10px;color:#6b5900;">仅显示本人订单 · 金额按阶段标注</div></div>';
   if (!S.orders.length) h += '<div class="card" style="text-align:center;color:#909399;padding:30px 0;">暂无订单</div>';
@@ -437,7 +552,15 @@ function paxOrdersView() {
       `<span class="chip st-${esc(o.state)}">${esc(stateName(o.state))}</span></div>` +
       `<div style="display:flex;justify-content:space-between;font-size:11px;color:#909399;"><span>${esc(o.createdAtText || '')}</span>` +
       `<b style="color:#303133;">${feeLabel} ¥${fy(o.payFee)}</b></div>` +
-      (unpaid ? `<button class="btn yellow" style="width:100%;margin-top:8px;" onclick="event.stopPropagation();paxPayOrder('${esc(o.no)}')">去支付 ¥${fy(o.payFee)}</button>` : '') +
+      (unpaid ? `<button class="btn yellow" style="width:100%;margin-top:8px;" onclick="event.stopPropagation();paxPaySheet('${esc(o.no)}')">去支付 ¥${fy(o.payFee)}</button>` : '') +
+      (o.state === 'COMPLETED'
+        ? '<div class="btnrow" style="margin-top:8px;">' +
+          (reviewedSet.has(o.no)
+            ? '<span class="note" style="display:inline;">已评价 · 感谢您的反馈</span>'
+            : `<button class="btn blue" style="flex:1;" onclick="event.stopPropagation();paxOpenReview('${esc(o.no)}')">评价司机</button>` +
+              `<button class="btn ghost" style="flex:1;" onclick="event.stopPropagation();paxOpenReview('${esc(o.no)}');setTimeout(paxToggleReviewComplaint,0)">投诉</button>`) +
+          '</div>'
+        : '') +
       `</div>`;
   }
   return h;
@@ -510,9 +633,10 @@ function paxMeView() {
 
 function poiSheet(kind) {
   const list = S.sheet.results && S.sheet.results.length ? S.sheet.results : POIS;
-  let h = '<h3>选择' + (kind === 'start' ? '上车点' : '目的地') + ' <button class="x" onclick="paxCloseSheet()">✕</button></h3>';
+  const title = kind === 'start' ? '选择上车点' : (kind === 'dest' ? '更改下车点' : '选择目的地');
+  let h = `<h3>${title} <button class="x" onclick="paxCloseSheet()">✕</button></h3>`;
   h += '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
-    `<input id="poiKw" placeholder="搜索地点（如：张江）" value="${esc(S.sheet.kw || '')}" style="flex:1">` +
+    `<input id="poiKw" placeholder="搜索全国地点（如：北京西站）" value="${esc(S.sheet.kw || '')}" style="flex:1" onkeydown="if(event.key==='Enter')paxSearchPoi()">` +
     '<button class="btn blue" style="flex:none;padding:8px 14px;" onclick="paxSearchPoi()">搜索</button></div>';
   for (const p of list) {
     h += `<div class="poirow" onclick="paxChoosePoi('${kind}','${esc(p.id)}')"><span class="dot" style="background:${kind === 'start' ? '#67c23a' : '#f56c6c'}"></span>` +
@@ -747,21 +871,28 @@ async function searchPoi() {
   S.sheet.kw = kw;
   if (!kw) { S.sheet.results = null; renderAll(); return; }
   try {
-    const query = new URLSearchParams({
-      keyword: kw, hasCoord: 'true', lng: '121.601', lat: '31.2054', limit: '8',
-    });
+    // 全国地点搜索：走后端代理（服务端调 Nominatim，覆盖省市区县/乡镇/村庄/道路）。
+    const query = new URLSearchParams({ keyword: kw, limit: '8' });
     if (S.accountId) query.set('accountId', S.accountId);
+    // 带上当前定位，让后端按就近偏好排序（无定位时不传，避免虚假距离）。
+    if (paxLastLoc) {
+      query.set('lng', paxLastLoc.lng);
+      query.set('lat', paxLastLoc.lat);
+      query.set('hasCoord', 'true');
+    }
     const data = await api(`/passenger/poi/search?${query.toString()}`, { accountId: S.accountId, token: S.token });
-    const list = (data.list || []).map((p, i) => ({
+    S.sheet.results = (data.list || []).map((p, i) => ({
       id: `s_${i}_${p.lng}_${p.lat}`,
       name: p.name || p.title || '未命名地点',
       addr: p.addr || p.address || p.city || '',
       lng: p.lng, lat: p.lat,
-    }));
-    S.sheet.results = list;
-    if (!list.length) toast('没有匹配的地点');
-  } catch (error) {
-    toast(`搜索失败：${error.message}`);
+    })).filter((p) => Number.isFinite(p.lng) && Number.isFinite(p.lat));
+    if (!S.sheet.results.length) toast('没有匹配的地点');
+  } catch (e) {
+    // 后端检索不可达（断网/超时）：回退到内置常用地点，保证可继续下单演示。
+    S.sheet.results = POIS.filter((p) => p.name.includes(kw) || (p.addr || '').includes(kw));
+    if (!S.sheet.results.length) S.sheet.results = POIS;
+    toast('在线搜索暂不可用，已显示常用地点');
   }
   renderAll();
 }
@@ -770,9 +901,11 @@ async function choosePoi(kind, id) {
   const pool = (S.sheet && S.sheet.results) || POIS;
   const p = pool.find((x) => x.id === id) || POIS.find((x) => x.id === id);
   if (!p) return;
+  if (kind === 'dest') { await submitDestChange(p); return; }
   if (kind === 'start') S.start = p;
   else S.end = p;
   S.sheet = null;
+  savePaxSession(); // 记下起终点，刷新页面后行程地图仍可还原标记。
   renderAll();
   await refreshEstimate();
 }
@@ -968,6 +1101,10 @@ async function doLogin() {
     S.accountId = data.account_id;
     S.token = data.access_token;
     S.phone = phone.trim();
+    // 登录态写进 sessionStorage：刷新页面后 token 不会丢，
+    // 否则页面显示已登录但所有带鉴权的请求都会 401（估价会静默失败）。
+    // 同时存起终点坐标，刷新后行程地图能还原上车点/目的地标记。
+    savePaxSession();
     await loadHome();
     // 登录后补齐实名、券包、客服与个人资料，供首页用车与「我的」页使用。
     await Promise.all([loadRealname(), loadCoupons(), loadService(), loadProfile()]);
@@ -1113,23 +1250,33 @@ async function restoreCurrentOrder() {
       startFlowPoll();
       return true;
     }
-    S.currentOrder = {
-      no,
-      orderId: payload.orderId || payload.order_id || '',
-      state: payload.state || 'PENDING',
-      typeName: carName(payload.car_type),
-      payFee: payload.total_fee != null ? payload.total_fee : 0,
-      driverName: payload.driver_name || '',
-      driverPlate: payload.driver_plate || '',
-      startName: payload.start_name || '-', endName: payload.end_name || '-',
-      startAddr: payload.start_addr || '', endAddr: payload.end_addr || '',
-      createdAtText: payload.created_at
-        ? new Date(payload.created_at * 1000).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '',
-    };
+    S.currentOrder = buildCurrentOrder(payload);
     startFlowPoll();
     renderAll();
     return true;
   } catch { return false; }
+}
+
+// buildCurrentOrder 把后端订单响应映射成前端行程对象（行程卡与行程地图共用）。
+function buildCurrentOrder(payload) {
+  const no = payload.orderNo || payload.order_no || payload.order_id || payload.id || '-';
+  return {
+    no,
+    orderId: payload.orderId || payload.order_id || payload.id || '',
+    state: payload.state || 'PENDING',
+    typeName: carName(payload.car_type),
+    payFee: payload.total_fee != null ? payload.total_fee : 0,
+    driverName: payload.driver_name || '',
+    driverPlate: payload.driver_plate || '',
+    startName: payload.start_name || '-', endName: payload.end_name || '-',
+    startAddr: payload.start_addr || '', endAddr: payload.end_addr || '',
+    // 订单自带起终点坐标：刷新页面后 S.start/S.end 会丢，行程地图靠这四个值还原标记。
+    startLat: payload.start_lat, startLng: payload.start_lng,
+    endLat: payload.end_lat, endLng: payload.end_lng,
+    destChange: (() => { const d = payload.dest_change || payload.destChange; return d ? { state: d.state, newEndName: d.new_end_name || d.newEndName || '' } : null; })(),
+    createdAtText: payload.created_at
+      ? new Date(payload.created_at * 1000).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '',
+  };
 }
 
 function orderDetail(no) {
@@ -1147,6 +1294,8 @@ async function logout() {
   } catch { /* 退出失败不阻塞本地清理 */ }
   S.accountId = ''; S.token = ''; S.phone = '';
   S.currentOrder = null; S.flowNotified = false; S.fullpage = null;
+  // 清掉本地会话，避免刷新后又"自动登录"。
+  try { sessionStorage.removeItem('huazhu.paxSession'); } catch (e) { void e; }
   stopFlowPoll();
   toast('已退出登录');
   renderAll();
@@ -1201,4 +1350,623 @@ function tickClock() {
 tickClock();
 setInterval(tickClock, 30000);
 
+// savePaxSession 把登录态与起终点坐标写入 sessionStorage，刷新后自动还原。
+function savePaxSession() {
+  try {
+    sessionStorage.setItem('huazhu.paxSession', JSON.stringify({
+      accountId: S.accountId, token: S.token, phone: S.phone,
+      start: S.start || null, end: S.end || null,
+    }));
+  } catch (e) { void e; }
+}
+window.savePaxSession = savePaxSession;
+
+// 会话恢复：登录态存 sessionStorage（本次标签页有效），刷新后自动还原，
+// 避免「显示已登录但估价/下单全部 401」。
+(function restorePaxSession() {
+  try {
+    const raw = sessionStorage.getItem('huazhu.paxSession');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved && saved.accountId && saved.token) {
+      S.accountId = saved.accountId;
+      S.token = saved.token;
+      S.phone = saved.phone || '';
+      // 还原起终点坐标：行程地图刷新后能继续显示上车点/目的地标记。
+      if (saved.start && Number.isFinite(saved.start.lat) && Number.isFinite(saved.start.lng)) S.start = saved.start;
+      if (saved.end && Number.isFinite(saved.end.lat) && Number.isFinite(saved.end.lng)) S.end = saved.end;
+      S.sessionRestored = true;
+    }
+  } catch (e) { void e; }
+})();
+
+// PAX_TILE_SOURCES 候选底图源，按序尝试。
+// 部分浏览器（Edge 跟踪防护、系统代理）会拦截高德瓦片域名，导致地图只剩灰底；
+// 首个源连续报错时自动切到下一个候选源重挂，保证底图可用。
+// 必须在首次 renderAll() 之前赋值：初始渲染就会走到 addTileLayer 读它。
+var PAX_TILE_SOURCES = [
+  { url: 'https://webrd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scale=1&style=8', opts: { subdomains: '1234', minZoom: 3, maxZoom: 18 } },
+  { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { minZoom: 3, maxZoom: 18 } },
+  { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { minZoom: 3, maxZoom: 18 } },
+];
+// paxTileSrcIdx 当前生效的底图源下标：一旦切换，后续新建地图直接用可用的源。
+var paxTileSrcIdx = 0;
+
 renderAll();
+
+// 还原登录态后补齐首页与行程数据。
+if (S.sessionRestored) {
+  loadHome();
+  loadOrderList();
+  restoreCurrentOrder();
+}
+
+// ============ 真实地图 / 收银台 / 更改下车点 / 评价投诉 ============
+
+// paxMapInstance 首页 Leaflet 地图实例（renderAll 重渲染时按容器复用）。
+// 用 var 声明以获得模块级提升：初始 renderAll 发生在本块之前执行。
+var paxMapInstance = null;
+
+// dotIcon 用 div 圆点做标记图标，避免依赖图片资源。
+function dotIcon(color) {
+  return L.divIcon({
+    className: '',
+    html: '<span style="display:inline-block;width:14px;height:14px;border-radius:50%;' +
+      `background:${color};border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4);"></span>`,
+    iconSize: [14, 14], iconAnchor: [7, 7],
+  });
+}
+
+// ============ 坐标系转换：WGS84 → GCJ02（火星坐标） ============
+// 业务数据（POI 检索、GPS 定位、订单坐标）统一存 WGS84；
+// 高德底图是 GCJ02，渲染前转换，标记才不会偏移几百米。
+
+function mapTransformLat(x, y) {
+  let r = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3;
+  r += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3;
+  return r;
+}
+
+function mapTransformLng(x, y) {
+  let r = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3;
+  r += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3;
+  return r;
+}
+
+// gcj 把 WGS84 经纬度转成 GCJ02 数组 [lat, lng]；境外坐标原样返回。
+function gcj(lat, lng) {
+  const a = 6378245.0, ee = 0.00669342162296594323;
+  if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) return [lat, lng];
+  let dLat = mapTransformLat(lng - 105, lat - 35);
+  let dLng = mapTransformLng(lng - 105, lat - 35);
+  const radLat = lat / 180 * Math.PI;
+  let magic = Math.sin(radLat); magic = 1 - ee * magic * magic;
+  const sqrtMagic = Math.sqrt(magic);
+  dLat = (dLat * 180) / ((a * (1 - ee)) / (magic * sqrtMagic) * Math.PI);
+  dLng = (dLng * 180) / (a / sqrtMagic * Math.cos(radLat) * Math.PI);
+  return [lat + dLat, lng + dLng];
+}
+
+// paxMarkGroup 起终点标记/路线图层：复用地图像例时先清空再重绘。
+var paxMarkGroup = null;
+// paxMapSig 上一次上图的点位签名：只有起终点真的变了才调整视野，
+// 否则每次 renderAll 都会把用户手动拖到的位置拽回去。
+var paxMapSig = '';
+
+// PaxLocateCtl 地图右上角的「定位到我的位置」按钮，首次建图时惰性定义，
+// 避免 leaflet 未加载时在模块顶层直接抛错把整个页面打挂。
+var PaxLocateCtl = null;
+
+// addTileLayer 按当前候选源挂瓦片层，判定源不可达后切换下一源。
+// 两个触发条件：连续 3 块瓦片报错（快速失败）；或 5 秒宽限内一块都没加载成功
+// （可见区域可能只有 1~2 块瓦片，光靠错误计数达不到阈值）。
+// 所有候选源都失败时在地图上挂出可见提示，不再无声灰屏。
+function addTileLayer(map) {
+  const src = PAX_TILE_SOURCES[paxTileSrcIdx];
+  const isLastSource = paxTileSrcIdx >= PAX_TILE_SOURCES.length - 1;
+  const layer = L.tileLayer(src.url, src.opts);
+  let errors = 0;
+  let loaded = 0;
+  let switched = false;
+  const el = mapContainer(map);
+  const trySwitch = () => {
+    // 整体容错：切换发生在 5 秒后的定时器里，期间地图可能已被重渲染销毁；
+    // Leaflet 的图层操作还可能走延迟队列，死实例上的报错不应打断页面。
+    try {
+      // 已切换过 / 有成功瓦片 / 地图已随旧渲染销毁：都不再切。
+      if (switched || loaded > 0) return;
+      const liveEl = mapContainer(map);
+      if (!liveEl || !liveEl.isConnected) return;
+      if (isLastSource) {
+        // 最后一个源也失败：灰底已成定局，挂提示让用户知道是网络受限而非页面坏了。
+        if (!liveEl.querySelector('.map-tile-hint')) {
+          const tip = document.createElement('div');
+          tip.className = 'map-tile-hint';
+          tip.style.cssText = 'position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:600;' +
+            'background:rgba(0,0,0,.45);color:#fff;font-size:11px;padding:2px 10px;border-radius:10px;pointer-events:none;';
+          tip.textContent = '底图加载失败（网络受限），不影响选点与叫车';
+          liveEl.appendChild(tip);
+        }
+        return;
+      }
+      switched = true;
+      paxTileSrcIdx += 1;
+      try { map.removeLayer(layer); } catch (e) { void e; }
+      addTileLayer(map);
+      toast('默认底图加载失败，已切换备用底图');
+    } catch (e) { console.warn('[pax] tile switch skipped:', e && e.message); }
+  };
+  layer.on('tileerror', () => { errors += 1; if (errors >= 3) trySwitch(); });
+  layer.on('tileload', () => { loaded += 1; });
+  setTimeout(trySwitch, 5000);
+  layer.addTo(map);
+}
+
+// mapContainer 安全取实例容器：实例被 remove 后 getContainer 可能抛错。
+function mapContainer(map) {
+  try { return map ? map.getContainer() : null; } catch (e) { void e; return null; }
+}
+
+// paxMapRef 取当前活着的图实例：优先模块变量，其次容器上缓存的实例。
+//
+// renderAll 触发很频繁，模块变量有可能在重渲染中被清空，而地图本身还活着；
+// 只认模块变量的话，定位按钮会误报「当前浏览器不支持定位」、自动定位也静默失效。
+function paxMapRef() {
+  const el = document.getElementById('paxMap') || document.getElementById('tripMap');
+  if (!el) return null;
+  if (mapContainer(paxMapInstance) === el) return paxMapInstance;
+  if (mapContainer(el.__paxMap) === el) return el.__paxMap;
+  return null;
+}
+
+// renderMap 初始化/刷新乘客端 Leaflet 地图：高德底图，可拖动缩放看全国。
+// 首页容器 paxMap（选点地图）；行程中容器 tripMap（行程地图：起终点+司机实时位置）。
+//
+// 按容器复用地图像例：每次 renderAll 都 remove + 重建既会闪屏，
+// 也会在建图失败时把实例置空，导致地图发灰、定位按钮和交互全部失效。
+function renderMap() {
+  const el = document.getElementById('paxMap') || document.getElementById('tripMap');
+  stopDriverPoll();
+  // 没有容器（切到订单/我的/客服页时地图被暂存）时直接返回：不能把实例引用
+  // 清空，否则切回首页时只能重建地图，白丢已加载的瓦片。
+  if (!el || typeof L === 'undefined') return;
+  let map = mapContainer(paxMapInstance) === el ? paxMapInstance : null;
+  if (!map && mapContainer(el.__paxMap) === el) map = el.__paxMap;
+  const fresh = !map;
+  if (fresh) {
+    if (paxMapInstance) { try { paxMapInstance.remove(); } catch (e) { void e; } }
+    paxMapInstance = null;
+    paxMarkGroup = null;
+    // 容器可能残留上一次的 leaflet 初始化标记，不清掉 L.map 会抛
+    // "Map container is already initialized"。
+    if (el._leaflet_id) { delete el._leaflet_id; el.innerHTML = ''; }
+    // 动画全部用 Leaflet 默认（缩放、瓦片淡入、标记缩放、拖动惯性）。此前为了
+    // 压制 _leaflet_pos 才关闭，根因是每次 renderAll 都重建地图实例、动画回调
+    // 落在死实例上；现在实例跨渲染复用（见 detachLiveMap/attachLiveMap），回调
+    // 始终作用在同一个活实例上，动画可以安全恢复。
+    map = L.map(el, { zoomControl: false, attributionControl: false });
+    // 底图源见 PAX_TILE_SOURCES：默认高德栅格（国内可达），被拦时自动切备用。
+    addTileLayer(map);
+    paxMarkGroup = L.layerGroup().addTo(map);
+    if (!PaxLocateCtl) {
+      PaxLocateCtl = L.Control.extend({
+        onAdd() {
+          const btn = L.DomUtil.create('button', 'map-locate-btn');
+          btn.innerHTML = '◎';
+          btn.title = '定位到我的位置';
+          btn.type = 'button';
+          L.DomEvent.on(btn, 'click', (e) => { L.DomEvent.stop(e); locatePaxMap(true); });
+          return btn;
+        },
+      });
+    }
+    map.addControl(new PaxLocateCtl({ position: 'topright' }));
+    paxMapSig = '';
+  }
+  // 容器上留一份实例引用，模块变量丢了也能恢复。
+  el.__paxMap = map;
+  paxMapInstance = map;
+  // 图层组必须存在且绑在当前实例上：复用地图像例、或上次建图在中途失败时，
+  // paxMarkGroup 可能为 null 或仍挂在已销毁的旧实例上，直接 addTo 会抛
+  // "Cannot read properties of null (reading 'addLayer')" 并把整页渲染打断。
+  if (!paxMarkGroup || paxMarkGroup._map !== map) paxMarkGroup = L.layerGroup().addTo(map);
+  paxMarkGroup.clearLayers();
+  const trip = activeOrder();
+  // 标记点（转 GCJ02 后再上图）：行程中优先用订单自带的起终点坐标
+  // （刷新后 S.start/S.end 为空），空闲时用当前选点。
+  const tripStart = trip && trip.startLat ? { lat: trip.startLat, lng: trip.startLng } : null;
+  const tripEnd = trip && trip.endLat ? { lat: trip.endLat, lng: trip.endLng } : null;
+  const startPoint = tripStart || S.start;
+  const endPoint = tripEnd || S.end;
+  // 坐标必须是有限值才上图：历史上定位回调把 undefined 写进过 S.start，
+  // 一旦 gcj(undefined) 产出 NaN，L.marker 会抛 Invalid LatLng 并中断整个
+  // renderAll，表现为地图发灰且页面点不动，因此在入口处过滤坏点。
+  const pointOn = (p) => (p && Number.isFinite(p.lat) && Number.isFinite(p.lng) ? gcj(p.lat, p.lng) : null);
+  const pts = [];
+  const startPt = pointOn(startPoint);
+  const endPt = pointOn(endPoint);
+  if (startPt) pts.push(startPt);
+  if (endPt) pts.push(endPt);
+  pts.forEach((p, i) => {
+    L.marker(p, { icon: dotIcon(i === 0 ? '#19be6b' : '#f56c6c') })
+      .addTo(paxMarkGroup)
+      .bindTooltip(i === 0 ? '上车点' : (trip ? '下车点' : '目的地'));
+  });
+  if (pts.length === 2) {
+    L.polyline(pts, { color: '#2f7cf6', weight: 3, dashArray: '6,8' }).addTo(paxMarkGroup);
+  }
+  const sig = pts.map((p) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`).join('|');
+  if (fresh || sig !== paxMapSig) {
+    // 尺寸为 0 时 fitBounds 会算出无效缩放（NaN），先按真实尺寸校正一次，
+    // 仍为 0 就跳过视野设置，留到下一次渲染再定（标记不受影响）。
+    let size = map.getSize();
+    if (!size.x || !size.y) {
+      try { map.invalidateSize({ pan: false }); } catch (e) { void e; }
+      size = map.getSize();
+    }
+    if (size.x > 0 && size.y > 0) {
+      if (!pts.length) {
+        // 无选点：先给全国视野，随后自动定位飞到当前位置。
+        map.setView([35.8617, 104.1954], 4);
+      } else if (pts.length === 1) {
+        map.setView(pts[0], 14);
+      } else {
+        map.fitBounds(L.latLngBounds(pts).pad(0.35));
+      }
+      paxMapSig = sig;
+    }
+  }
+  // 新建地图时自动定位一次（静默，失败不打扰）；复用时不再重复请求定位。
+  if (fresh) locatePaxMap(false);
+  // 行程中（已接单）启动司机实时位置轮询，在地图上画司机车辆标记。
+  // IN_TRIP/IN_SERVICE 都是行程进行中的状态，必须一并覆盖，否则司机标记不会出现。
+  if (trip && ['ACCEPTED', 'ARRIVED', 'IN_TRIP', 'IN_SERVICE'].includes(trip.state)) startDriverPoll();
+  // 容器刚插入 DOM 时尺寸可能还是 0，下一帧再让 leaflet 重算一次；尺寸没变时
+  // 是空操作。必须同时校验实例与容器：容器被视图切换摘下时若仍重算，会把
+  // getSize() 缓存成 0x0，插回后 flyTo 按 0 尺寸除零算出 NaN 坐标。
+  setTimeout(() => {
+    if (map !== paxMapInstance) return;
+    const host = mapContainer(map);
+    if (!host || !host.isConnected) return;
+    try { map.invalidateSize(); } catch (e) { void e; }
+  }, 80);
+}
+
+// drvMarker / drvPollTimer 行程地图上的司机标记与轮询句柄。
+// 用 var 声明以获得模块级提升：初始 renderAll 发生在本块之前执行。
+var drvMarker = null;
+var drvPollTimer = null;
+
+// startDriverPoll 每 5 秒拉取司机实时位置并更新地图标记。
+function startDriverPoll() {
+  stopDriverPoll();
+  fetchDriverLocation();
+  drvPollTimer = setInterval(fetchDriverLocation, 5000);
+}
+
+// stopDriverPoll 停止司机位置轮询并摘除标记。
+function stopDriverPoll() {
+  if (drvPollTimer) { clearInterval(drvPollTimer); drvPollTimer = null; }
+  if (drvMarker) { try { drvMarker.remove(); } catch (e) { void e; } drvMarker = null; }
+}
+
+// fetchDriverLocation 拉取一次司机位置；失败静默（下一轮重试）。
+async function fetchDriverLocation() {
+  const trip = activeOrder();
+  if (!trip || !trip.orderId) return;
+  try {
+    const d = await api(`/passenger/orders/driver-position?orderId=${encodeURIComponent(trip.orderId)}`,
+      { accountId: S.accountId, token: S.token });
+    // await 期间 renderAll 可能重建过地图：上图前重新解析活实例。
+    const map = paxMapRef();
+    const mapEl = mapContainer(map);
+    if (!map || !mapEl || !mapEl.isConnected) return;
+    const lng = d.lng != null ? d.lng : d.driver_lng;
+    const lat = lat0(d);
+    if (!Number.isFinite(lng) || !Number.isFinite(lat) || (lng === 0 && lat === 0)) return;
+    if (drvMarker) drvMarker.remove();
+    // 司机坐标是 WGS84，上图前转 GCJ02。
+    drvMarker = L.marker(gcj(lat, lng), {
+      icon: L.divIcon({
+        className: '',
+        html: '<span style="display:inline-flex;width:26px;height:26px;border-radius:8px;background:#2f6fed;' +
+          'color:#fff;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.35);">🚗</span>',
+        iconSize: [26, 26], iconAnchor: [13, 13],
+      }),
+    }).addTo(map)
+      .bindTooltip(`司机 ${trip.driverName || ''} ${trip.driverPlate || ''}`.trim());
+  } catch (e) { void e; }
+}
+
+// lat0 兼容驼峰/蛇形的纬度字段。
+function lat0(d) {
+  if (d.lat != null) return d.lat;
+  if (d.driver_lat != null) return d.driver_lat;
+  return NaN;
+}
+
+// paxLocateMarker 我的定位蓝点（重复定位时先移除旧点）。
+var paxLocateMarker = null;
+// paxLastLoc 最近一次成功定位的坐标，供地点搜索做就近偏好。
+var paxLastLoc = null;
+
+// locatePaxMap 浏览器地理定位：成功后飞到当前位置并画蓝点。
+// manual=true 时失败会给 toast 提示，自动定位静默失败。
+function locatePaxMap(manual) {
+  const map = paxMapRef();
+  if (!map || !navigator.geolocation) {
+    if (manual) toast(!navigator.geolocation ? '当前浏览器不支持定位' : '地图未就绪，请稍后重试');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition((pos) => {
+    // GPS 是 WGS84，上图前转 GCJ02。gcj 返回 [lat, lng] 数组，
+    // 这里解构成对象再写 S.start / paxLastLoc：直接读数组的 .lat/.lng 会得到
+    // undefined，下一次渲染就会用 NaN 建 marker 并抛异常。
+    const [lat, lng] = gcj(pos.coords.latitude, pos.coords.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    // 记录最近一次定位坐标，供地点搜索做就近偏好。
+    paxLastLoc = { lng, lat };
+    // 默认上车点取当前定位：尚未手动选点且不在行程中时自动填充。
+    if (!S.start && !S.currentOrder) {
+      S.start = { id: 'gps', name: '当前位置', addr: '我的位置', lng, lat };
+      savePaxSession();
+    }
+    renderAll();
+    // 数据更新不依赖地图实例，先于上图完成；地图操作可能撞上 Leaflet 的
+    // 延迟队列（addTo/setView 在地图未就绪时走 whenReady/动画帧，若期间
+    // renderAll 重建地图，回调就在死实例上跑并抛 _leaflet_pos/appendChild），
+    // 因此整体 try/catch 降级：定位失败只影响蓝点，不影响数据与交互。
+    try {
+      // 定位是异步的：入口拿到的地图实例可能已被某次 renderAll 重建或销毁，
+      // 必须重新解析当前活着的实例，且容器必须仍挂在 DOM 上。
+      const live = paxMapRef();
+      const liveEl = mapContainer(live);
+      if (live && liveEl && liveEl.isConnected) {
+        const latlng = L.latLng(lat, lng);
+        if (paxLocateMarker) paxLocateMarker.remove();
+        paxLocateMarker = L.marker(latlng, {
+          icon: L.divIcon({
+            className: '',
+            html: '<span style="position:relative;display:inline-block;width:22px;height:22px;">' +
+              '<span style="position:absolute;inset:0;border-radius:50%;background:#2f7cf6;opacity:.25;"></span>' +
+              '<span style="position:absolute;inset:6px;border-radius:50%;background:#2f7cf6;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.4);"></span></span>',
+            iconSize: [22, 22], iconAnchor: [11, 11],
+          }),
+        }).addTo(live).bindTooltip('我的位置');
+        // 定位飞行动画。尺寸为 0 时 flyTo 内部会除零算出 NaN 坐标（容器刚插回、
+        // 还没完成布局的瞬间），此时退化为无动画定位。
+        const size = live.getSize();
+        if (size.x > 0 && size.y > 0) live.flyTo(latlng, 15, { duration: 0.6 });
+        else live.setView(latlng, 15, { animate: false });
+      }
+    } catch (e) { console.warn('[pax] locate map update skipped:', e && e.message); }
+    if (manual) toast('已定位到当前位置');
+  }, (err) => {
+    if (manual) {
+      if (err.code === err.PERMISSION_DENIED) toast('定位被拒绝：请在浏览器地址栏允许位置权限');
+      else toast('定位失败，请稍后重试');
+    }
+  }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+}
+// submitDestChange 乘客行程中请求更改下车点，由司机端裁决。
+async function submitDestChange(poi) {
+  const order = S.currentOrder;
+  if (!order || !order.no) { toast('当前没有进行中的行程'); return; }
+  try {
+    const resp = await api('/passenger/orders/destination-change', {
+      method: 'POST', accountId: S.accountId, token: S.token,
+      body: {
+        accountId: S.accountId, orderNo: order.no,
+        newEndName: poi.name, newEndAddr: poi.addr || poi.name,
+        newEndLng: poi.lng, newEndLat: poi.lat,
+      },
+    });
+    order.destChange = {
+      state: (resp && resp.state) || 'pending',
+      newEndName: poi.name, newEndAddr: poi.addr || poi.name,
+    };
+    S.sheet = null;
+    toast('已提交更改请求，等待司机确认');
+  } catch (error) {
+    toast(`提交失败：${error.message}`);
+  }
+  renderAll();
+}
+
+// paxOpenDestChange 行程中打开更改下车点选点面板。
+function paxOpenDestChange() {
+  if (!S.currentOrder) { toast('当前没有进行中的行程'); return; }
+  S.sheet = { type: 'poi', kind: 'dest', kw: '', results: null };
+  renderAll();
+}
+
+// pickRating / toggleReviewComplaint / toggleReviewTag 评价面板交互。
+function pickRating(n) { if (S.sheet && S.sheet.type === 'review') { S.sheet.rating = n; renderAll(); } }
+function toggleReviewComplaint() {
+  if (S.sheet && S.sheet.type === 'review') { S.sheet.complaint = !S.sheet.complaint; renderAll(); }
+}
+function toggleReviewTag(tag) {
+  const st = S.sheet;
+  if (!st || st.type !== 'review') return;
+  st.tags = st.tags || [];
+  const i = st.tags.indexOf(tag);
+  if (i >= 0) st.tags.splice(i, 1);
+  else st.tags.push(tag);
+  renderAll();
+}
+// submitReview 提交评价或投诉（每单仅一条，提交后不可改）。
+async function submitReview() {
+  const st = S.sheet;
+  if (!st || st.type !== 'review') return;
+  const comment = ((document.getElementById('rvComment') || {}).value || '').trim();
+  const complaintDesc = ((document.getElementById('cmpDesc') || {}).value || '').trim();
+  const complaintType = ((document.getElementById('cmpType') || {}).value || '').trim();
+  if (st.complaint && (!complaintType || !complaintDesc)) {
+    st.error = '投诉需选择类型并填写问题描述';
+    renderAll();
+    return;
+  }
+  if (!st.complaint && !st.rating) {
+    st.error = '请先选择星级';
+    renderAll();
+    return;
+  }
+  try {
+    await api('/passenger/orders/review', {
+      method: 'POST', accountId: S.accountId, token: S.token,
+      body: {
+        accountId: S.accountId, orderNo: st.orderNo,
+        rating: st.complaint ? st.rating || 0 : st.rating,
+        tags: st.tags || [], comment,
+        isComplaint: st.complaint, complaintType, complaintDesc,
+      },
+    });
+    try {
+      const reviewed = new Set(JSON.parse(localStorage.getItem('huazhu.reviewed') || '[]'));
+      reviewed.add(st.orderNo);
+      localStorage.setItem('huazhu.reviewed', JSON.stringify([...reviewed]));
+    } catch (e) { void e; }
+    S.sheet = null;
+    toast(st.complaint ? '投诉已提交，客服会尽快跟进' : '感谢您的评价');
+  } catch (error) {
+    st.error = error.message;
+  }
+  renderAll();
+}
+
+// paxOpenReview 打开评价/投诉面板。
+function paxOpenReview(orderNo) {
+  S.sheet = { type: 'review', orderNo, rating: 5, tags: [], complaint: false, error: '' };
+  renderAll();
+}
+// PAY_CHANNELS 收银台可选支付渠道。
+const PAY_CHANNELS = [
+  { id: 'wechat', name: '微信支付', color: '#09bb07', mark: '微' },
+  { id: 'alipay', name: '支付宝', color: '#1677ff', mark: '支' },
+];
+
+// paxPaySheet 打开收银台：先选渠道再确认支付。
+function paxPaySheet(orderNo) {
+  if (!loggedIn()) { toast('请先登录'); openLogin(); return; }
+  S.sheet = { type: 'pay', orderNo, channel: '', error: '' };
+  renderAll();
+}
+
+// paxPickChannel 收银台选择支付渠道。
+function paxPickChannel(channelId) {
+  if (S.sheet && S.sheet.type === 'pay') { S.sheet.channel = channelId; renderAll(); }
+}
+
+// paySheet 渲染收银台：金额 + 微信/支付宝渠道选择 + 确认按钮。
+function paySheet() {
+  const st = S.sheet;
+  const order = S.orders.find((o) => o.no === st.orderNo) ||
+    (S.currentOrder && S.currentOrder.no === st.orderNo ? S.currentOrder : null);
+  const fee = order && order.payFee != null ? order.payFee : 0;
+  let h = '<h3>收银台 <button class="x" onclick="paxCloseSheet()">✕</button></h3>';
+  h += `<div style="text-align:center;margin:8px 0 12px;"><div class="note">订单 ${esc(st.orderNo)}</div>` +
+    `<div style="font-size:30px;font-weight:700;color:#303133;">¥${fy(fee)}</div></div>`;
+  h += '<div class="couponlist">';
+  for (const ch of PAY_CHANNELS) {
+    const on = st.channel === ch.id;
+    h += `<div class="crow ${on ? 'on' : ''}" onclick="paxPickChannel('${ch.id}')">` +
+      `<div class="face"><b style="width:30px;height:30px;border-radius:8px;background:${ch.color};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;">${ch.mark}</b></div>` +
+      `<div class="meta"><b>${esc(ch.name)}</b><small>跳转${esc(ch.name)}完成付款（演示环境模拟）</small></div>` +
+      '<span class="pick"></span></div>';
+  }
+  h += '</div>';
+  h += `<button class="btn yellow" style="width:100%;margin-top:10px;${st.channel ? '' : 'opacity:.5;pointer-events:none;'}" onclick="paxConfirmPay()">确认支付 ¥${fy(fee)}</button>`;
+  if (st.error) h += `<div class="note" style="color:#f56c6c;">${esc(st.error)}</div>`;
+  return h;
+}
+// paxConfirmPay 确认支付：创建支付单 → 渠道回调（演示环境模拟支付成功）。
+// 回调成功后网关联动下游：订单推进到已完成、司机域记账结算；
+// 完成后引导乘客对本次行程评价。
+async function paxConfirmPay() {
+  const st = S.sheet;
+  if (!st || st.type !== 'pay' || !st.channel) return;
+  const orderNo = st.orderNo;
+  const order = S.orders.find((o) => o.no === orderNo) ||
+    (S.currentOrder && S.currentOrder.no === orderNo ? S.currentOrder : null);
+  const fee = order && order.payFee != null ? order.payFee : 0;
+  try {
+    st.error = '';
+    await api('/payments', {
+      method: 'POST', accountId: S.accountId, token: S.token,
+      body: {
+        order_no: orderNo, subject: '花小猪打车·车费', amount: fee,
+        channel: st.channel, user_id: S.accountId,
+        idempotent_key: `pay-${orderNo}`,
+      },
+    });
+    const tradeNo = `demo-${Date.now()}`;
+    await api('/payments/notify', {
+      method: 'POST', accountId: S.accountId, token: S.token,
+      body: { order_no: orderNo, trade_no: tradeNo, channel: st.channel, paid_amount: fee, paid_at_unix: Math.floor(Date.now() / 1000) },
+    });
+    S.flowNotified = false;
+    stopFlowPoll();
+    if (S.currentOrder) {
+      S.currentOrder.state = 'COMPLETED';
+      const row = S.orders.find((o) => o.no === S.currentOrder.no);
+      if (row) row.state = 'COMPLETED';
+    }
+    S.currentOrder = null;
+    S.tab = 'orders';
+    await loadOrderList();
+    toast('支付成功，订单已完成');
+    // 支付完成立即引导评价（可跳过）。
+    S.sheet = { type: 'review', orderNo, rating: 5, tags: [], complaint: false, error: '' };
+  } catch (error) {
+    if (S.sheet && S.sheet.type === 'pay') { S.sheet.error = error.message; }
+    toast(`支付失败：${error.message}`);
+  }
+  renderAll();
+}
+// reviewSheet 评价/投诉面板：星级 + 标签 + 评语；投诉模式追加类型与描述。
+function reviewSheet() {
+  const st = S.sheet;
+  const TAGS = ['服务好', '开车稳', '车内整洁', '准时到达', '路线合理'];
+  let h = '<h3>' + (st.complaint ? '投诉司机' : '评价本次行程') + ' <button class="x" onclick="paxCloseSheet()">✕</button></h3>';
+  h += '<div style="text-align:center;font-size:26px;letter-spacing:6px;margin:6px 0;">';
+  for (let i = 1; i <= 5; i++) {
+    h += `<span style="cursor:pointer;color:${i <= (st.rating || 0) ? '#ffc300' : '#dcdfe6'};" onclick="paxPickRating(${i})">★</span>`;
+  }
+  h += '</div>';
+  if (!st.complaint) {
+    h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;">' +
+      TAGS.map((t) => `<button class="btn ${(st.tags || []).includes(t) ? 'blue' : 'ghost'}" style="flex:none;padding:4px 10px;font-size:11px;" onclick="paxToggleReviewTag('${esc(t)}')">${esc(t)}</button>`).join('') +
+      '</div>';
+  }
+  h += '<textarea id="rvComment" placeholder="' + (st.complaint ? '补充说明（选填）' : '写下您的评价（选填）') + '" style="width:100%;box-sizing:border-box;height:60px;margin-bottom:8px;"></textarea>';
+  h += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">' +
+    `<input type="checkbox" id="cmpSwitch" ${st.complaint ? 'checked' : ''} onchange="paxToggleReviewComplaint()" style="flex:none;">` +
+    '<label for="cmpSwitch" style="font-size:12px;color:#606266;">我要投诉司机</label></div>';
+  if (st.complaint) {
+    h += '<select id="cmpType" style="width:100%;box-sizing:border-box;margin-bottom:8px;font-size:12px;">' +
+      '<option value="">请选择投诉类型</option>' +
+      '<option value="service_attitude">服务态度差</option>' +
+      '<option value="route_detour">故意绕路</option>' +
+      '<option value="unsafe_driving">危险驾驶</option>' +
+      '<option value="overcharge">乱收费</option>' +
+      '<option value="other">其他问题</option></select>';
+    h += '<textarea id="cmpDesc" placeholder="请描述问题经过（必填，500 字内）" style="width:100%;box-sizing:border-box;height:60px;margin-bottom:8px;"></textarea>';
+  }
+  if (st.error) h += `<div class="note" style="color:#f56c6c;">${esc(st.error)}</div>`;
+  h += '<button class="btn dark" style="width:100%;" onclick="paxSubmitReview()">' + (st.complaint ? '提交投诉' : '提交评价') + '</button>';
+  return h;
+}
+
+window.paxPaySheet = paxPaySheet;
+window.paxPickChannel = paxPickChannel;
+window.paxConfirmPay = paxConfirmPay;
+window.paxOpenDestChange = paxOpenDestChange;
+window.paxPickRating = pickRating;
+window.paxToggleReviewTag = toggleReviewTag;
+window.paxToggleReviewComplaint = toggleReviewComplaint;
+window.paxSubmitReview = submitReview;
+window.paxOpenReview = paxOpenReview;

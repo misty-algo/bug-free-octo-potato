@@ -4,12 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>花小猪打车 · 乘客端</title>
-  <link rel="stylesheet" href="/assets/app.css?v=2" />
+  <link rel="stylesheet" href="/assets/app.css?v=10" />
+  <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css" />
 </head>
 <body>
   <header id="topbar">
     <div class="logo"><span class="pig">花</span>花小猪打车</div>
-    <div class="sub">乘客端 · 司机端 · 管理端联调</div>
+    <div class="sub">乘客端 · 司机端 · 管理端联调 · <span id="paxVer">v?</span></div>
     <div class="grow"></div>
     <a class="on" href="/">乘客端</a>
     <a href="/driver/">司机端</a>
@@ -26,6 +27,17 @@
   </main>
 
   <div id="toast"></div>
-  <script type="module" src="/assets/passenger.js?v=2"></script>
+  <script src="/assets/vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="/assets/passenger.js?v=22"></script>
+  <script>
+    // 版本徽章直接取模块脚本的缓存参数：改版只改 ?v=N，徽章自动跟着变，
+    // 避免「页面在跑新版、徽章仍显示旧版」造成排查误导（曾因此误判缓存）。
+    (function () {
+      var el = document.getElementById('paxVer');
+      var m = (document.querySelector('script[type="module"][src*="passenger.js"]') || {}).src || '';
+      var v = m.match(/v=(\d+)/);
+      if (el && v) el.textContent = 'v' + v[1];
+    })();
+  </script>
 </body>
 </html>
