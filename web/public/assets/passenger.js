@@ -785,7 +785,6 @@ function orderDetailSheet(order) {
     `<div><span>订单号</span><span>${esc(order.no || '-')}</span></div>` +
     `<div><span>下单时间</span><span>${esc(order.createdAtText || '-')}</span></div>` +
     `<div class="total"><span>预估车费</span><span>¥${fy(order.payFee)}</span></div></div>`;
-  h += '<div class="tl"><div class="ev"><b>OrderCreated</b><span>订单已创建，等待派单</span></div></div>';
   return h;
 }
 

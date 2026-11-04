@@ -996,8 +996,20 @@ function drvGcj(lat, lng) {
 // 初始化后自动定位到司机当前位置（浏览器授权），并提供手动定位按钮。
 function renderDrvMap() {
   const el = document.getElementById('drvMap');
-  if (window.drvMapInstance) { try { window.drvMapInstance.remove(); } catch (e) { void e; } window.drvMapInstance = null; }
+  // 轮询每 5 秒重建页面 DOM，地图容器会被替换。销毁旧实例前记下当前视野，
+  // 新实例按该视野还原，避免司机手动滑动查看别的地区时被拉回定位点。
+  if (window.drvMapInstance) {
+    try {
+      window.drvMapLastView = {
+        center: window.drvMapInstance.getCenter(),
+        zoom: window.drvMapInstance.getZoom(),
+      };
+    } catch (e) { void e; }
+    try { window.drvMapInstance.remove(); } catch (e) { void e; }
+    window.drvMapInstance = null;
+  }
   if (!el || typeof L === 'undefined') return;
+  const restoredView = window.drvMapLastView;
   // 动画用 Leaflet 默认（缩放、瓦片淡入、标记缩放、拖动惯性），与乘客端一致。
   window.drvMapInstance = L.map(el, { zoomControl: false, attributionControl: false });
   // 高德栅格底图（国内可达；OSM 瓦片在境内网络超时）。
@@ -1009,8 +1021,8 @@ function renderDrvMap() {
   if (active && active.origin && active.origin.lat) pts.push(drvGcj(active.origin.lat, active.origin.lng));
   if (active && active.destination && active.destination.lat) pts.push(drvGcj(active.destination.lat, active.destination.lng));
   if (!pts.length) {
-    // 无任务：先给全国视野，随后自动定位飞到当前位置。
-    window.drvMapInstance.setView([35.8617, 104.1954], 4);
+    // 无任务：首次给全国视野，随后自动定位飞到当前位置。
+    if (!restoredView) window.drvMapInstance.setView([35.8617, 104.1954], 4);
   } else {
     // 上车点即乘客位置：用乘客头像标记，和目的地红点区分。
     pts.forEach((p, i) => L.marker(p, {
@@ -1024,10 +1036,13 @@ function renderDrvMap() {
     })
       .addTo(window.drvMapInstance)
       .bindTooltip(i === 0 ? '乘客位置（上车点）' : '目的地'));
-    if (pts.length === 1) window.drvMapInstance.setView(pts[0], 14);
-    else {
+    if (pts.length > 1) {
       L.polyline(pts, { color: '#2f6fed', weight: 3, dashArray: '6,8' }).addTo(window.drvMapInstance);
-      window.drvMapInstance.fitBounds(L.latLngBounds(pts).pad(0.35));
+    }
+    // 有保存视野时不再按订单坐标重设视野，保留司机正在查看的区域。
+    if (!restoredView) {
+      if (pts.length === 1) window.drvMapInstance.setView(pts[0], 14);
+      else window.drvMapInstance.fitBounds(L.latLngBounds(pts).pad(0.35));
     }
   }
   // 定位按钮（右上角）。
@@ -1037,13 +1052,17 @@ function renderDrvMap() {
       btn.innerHTML = '◎';
       btn.title = '定位到我的位置';
       btn.type = 'button';
-      L.DomEvent.on(btn, 'click', (e) => { L.DomEvent.stop(e); locateDrvMap(true); });
+      L.DomEvent.on(btn, 'click', (e) => { L.DomEvent.stop(e); locateDrvMap(true, true); });
       return btn;
     },
   });
   window.drvMapInstance.addControl(new LocateCtl({ position: 'topright' }));
-  // 打开页面自动定位一次（静默，失败不打扰）。
-  locateDrvMap(false);
+  if (restoredView && restoredView.center) {
+    window.drvMapInstance.setView(restoredView.center, restoredView.zoom, { animate: false });
+  }
+  // 只在首次进入大厅时自动定位并居中；之后仅刷新定位蓝点，不改变当前视野。
+  locateDrvMap(false, !window.drvMapAutoCentered);
+  window.drvMapAutoCentered = true;
   // 容器尺寸就绪后重算一次；尺寸没变时是空操作。校验实例未被重建。
   setTimeout(() => {
     const map = window.drvMapInstance;
@@ -1056,8 +1075,8 @@ function renderDrvMap() {
 // drvLocateMarker 司机定位蓝点。用 var 声明避免模块提升问题。
 var drvLocateMarker = null;
 
-// locateDrvMap 司机端地理定位：成功后飞到当前位置并画蓝点。
-function locateDrvMap(manual) {
+// locateDrvMap 司机端地理定位：成功后画蓝点；仅在手动定位或首次进入时居中。
+function locateDrvMap(manual, recenter = false) {
   if (!window.drvMapInstance || !navigator.geolocation) {
     if (manual) toast('当前浏览器不支持定位');
     return;
@@ -1080,10 +1099,14 @@ function locateDrvMap(manual) {
         iconSize: [22, 22], iconAnchor: [11, 11],
       }),
     }).addTo(map).bindTooltip('我的位置');
-    // 尺寸为 0 时 flyTo 会除零算出 NaN 坐标，退化为无动画定位。
-    const size = map.getSize();
-    if (size.x > 0 && size.y > 0) map.flyTo(latlng, 15, { duration: 0.6 });
-    else map.setView(latlng, 15, { animate: false });
+    // 只有手动点定位按钮或首次进入时才改变视野；周期性定位只更新蓝点，
+    // 否则司机正在查看别的地区会被反复拉回定位点。
+    if (recenter) {
+      // 尺寸为 0 时 flyTo 会除零算出 NaN 坐标，退化为无动画定位。
+      const size = map.getSize();
+      if (size.x > 0 && size.y > 0) map.flyTo(latlng, 15, { duration: 0.6 });
+      else map.setView(latlng, 15, { animate: false });
+    }
     if (manual) toast('已定位到当前位置');
   }, (err) => {
     if (manual) {
