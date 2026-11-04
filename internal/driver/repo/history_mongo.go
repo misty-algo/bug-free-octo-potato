@@ -13,7 +13,9 @@ import (
 )
 
 // historyRepo 跨域只读：从本域 hall_orders 取司机接单记录，
-// 再从订单域 orders / tickets 取乘客评价与投诉（同一物理库，直接读集合）。
+// 再从订单域 orders / tickets 与乘客域 passenger_reviews 取乘客评价与投诉。
+// 乘客端页面的评价接口写入 passenger_reviews，而不是 orders.rating，
+// 两处都要读才能覆盖全部评价来源（同一物理库，直接读集合）。
 type historyRepo struct {
 	db *mongo.Database
 }
@@ -62,6 +64,50 @@ type ticketLite struct {
 	Content string    `bson:"content"`
 	State   string    `bson:"state"`
 	CreatedAt time.Time `bson:"createdAt"`
+}
+
+// passengerReviewLite passenger_reviews 的精简投影。
+// 乘客域用 snake_case 字段名，与订单域 orders / tickets 的 camelCase 不同。
+type passengerReviewLite struct {
+	OrderNo       string    `bson:"order_no"`
+	Rating        int32     `bson:"rating"`
+	Comment       string    `bson:"comment"`
+	IsComplaint   bool      `bson:"is_complaint"`
+	ComplaintType string    `bson:"complaint_type"`
+	ComplaintDesc string    `bson:"complaint_desc"`
+	CreatedAt     time.Time `bson:"created_at"`
+}
+
+// mergePassengerReviews 把乘客域评价/投诉并入接单记录的评分与投诉映射。
+// orders.rating / tickets 已有值时不覆盖，避免同一订单派生出两条重复通知。
+func mergePassengerReviews(
+	docs []passengerReviewLite,
+	ratings map[string]*entity.HistoryRating,
+	complaints map[string]*entity.HistoryComplaint,
+) {
+	for _, d := range docs {
+		if d.OrderNo == "" {
+			continue
+		}
+		if _, ok := ratings[d.OrderNo]; !ok {
+			ratings[d.OrderNo] = &entity.HistoryRating{
+				Score:   d.Rating,
+				Content: d.Comment,
+				RatedAt: d.CreatedAt,
+			}
+		}
+		if !d.IsComplaint {
+			continue
+		}
+		if _, ok := complaints[d.OrderNo]; !ok {
+			complaints[d.OrderNo] = &entity.HistoryComplaint{
+				Type:    d.ComplaintType,
+				Content: d.ComplaintDesc,
+				State:   "待处理",
+				At:      d.CreatedAt,
+			}
+		}
+	}
 }
 
 // ListTakenOrders 返回司机接过的订单（ACCEPTED/ARRIVED/IN_TRIP/ENDED），并批量补上评价/投诉。
@@ -137,6 +183,19 @@ func (r *historyRepo) ListTakenOrders(ctx context.Context, driverID string, limi
 					At:      d.CreatedAt,
 				}
 			}
+		}
+	}
+
+	// 乘客端页面的评价/投诉写入 passenger_reviews，按同一批订单号批量补齐。
+	// 排序后按「先到先留」合并，同一订单即使有多条也只派生一次通知。
+	pcur, err := r.db.Collection("passenger_reviews").Find(ctx, bson.M{
+		"order_no": bson.M{"$in": orderNos},
+	}, options.Find().SetSort(bson.D{{Key: "created_at", Value: 1}}))
+	if err == nil {
+		defer pcur.Close(ctx)
+		var pdocs []passengerReviewLite
+		if pErr := pcur.All(ctx, &pdocs); pErr == nil {
+			mergePassengerReviews(pdocs, ratingMap, complaintMap)
 		}
 	}
 
