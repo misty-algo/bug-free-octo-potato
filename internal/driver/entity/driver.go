@@ -46,11 +46,11 @@ var (
 
 // 资金五桶键名（司机侧资金互斥模型）。
 const (
-	BucketPending    = "U"    // 待结算（行程已完成但尚未结算到账）
-	BucketAvailable  = "A"    // 可用（可提现金额就是 A）
-	BucketFrozen     = "Fz"   // 冻结
-	BucketWithdraw   = "W"    // 提现预占
-	BucketDebt       = "Debt" // 待追偿
+	BucketPending   = "U"    // 待结算（行程已完成但尚未结算到账）
+	BucketAvailable = "A"    // 可用（可提现金额就是 A）
+	BucketFrozen    = "Fz"   // 冻结
+	BucketWithdraw  = "W"    // 提现预占
+	BucketDebt      = "Debt" // 待追偿
 )
 
 // ReleaseRecord 退单记录（含责任方）：乘客取消与平台责任取消不计入每日 3 次上限。
@@ -124,35 +124,35 @@ type AreaBox struct {
 
 // Driver 是司机档案聚合根：状态机、接单模式、接单区域、资质与资金五桶。
 type Driver struct {
-	ID    string
+	ID       string
 	DriverNo string // 司机编号：排序并列时的稳定打破依据
-	Name  string
-	Phone string
+	Name     string
+	Phone    string
 	// Status 四态：offline / idle / busy / pre_occupied
-	Status   string
-	Mode     string
-	ModeVersion int64 // 模式版本：切换时递增，使旧邀请立即失效
-	AreaLimitSwitch bool
-	Areas    []AreaBox
-	CityCode string
-	CarType  string
-	Seats    int
-	Qualified bool // 资质有效（含证照未过期）
-	CanAccept bool // 后台禁接单开关（A01）
+	Status           string
+	Mode             string
+	ModeVersion      int64 // 模式版本：切换时递增，使旧邀请立即失效
+	AreaLimitSwitch  bool
+	Areas            []AreaBox
+	CityCode         string
+	CarType          string
+	Seats            int
+	Qualified        bool // 资质有效（含证照未过期）
+	CanAccept        bool // 后台禁接单开关（A01）
 	OfflineAfterTrip bool // 本单后收车
-	LastHeartbeatAt time.Time
-	LastLat float64 // 最近一次心跳上报的坐标（GCJ02，用于派单距离）
-	LastLng float64
-	ActiveTaskID    string // 当前活动任务（唯一约束兜底：一司机一个活动任务）
-	OnlineSinceAt   time.Time
-	RecentReleases  []ReleaseRecord // 最近退单记录（含责任方，用於每日 3 次上限）
+	LastHeartbeatAt  time.Time
+	LastLat          float64 // 最近一次心跳上报的坐标（GCJ02，用于派单距离）
+	LastLng          float64
+	ActiveTaskID     string // 当前活动任务（唯一约束兜底：一司机一个活动任务）
+	OnlineSinceAt    time.Time
+	RecentReleases   []ReleaseRecord // 最近退单记录（含责任方，用於每日 3 次上限）
 	MonthlyIncomeFen int64
-	Rating      float64 // 好评率 0–5
-	SuccessRate float64 // 成功率 0–1
-	Funds       Funds
-	Version     int64 // 乐观锁版本
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Rating           float64 // 好评率 0–5
+	SuccessRate      float64 // 成功率 0–1
+	Funds            Funds
+	Version          int64 // 乐观锁版本
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // newDriverID 生成司机档案标识。
@@ -288,6 +288,7 @@ func (d *Driver) UpdateAreaConfig(switchOn bool, areas []AreaBox) error {
 		if a.MinLat >= a.MaxLat || a.MinLng >= a.MaxLng {
 			return ErrInvalidDriver
 		}
+		//有效的经纬度
 		if a.MinLat < -90 || a.MaxLat > 90 || a.MinLng < -180 || a.MaxLng > 180 {
 			return ErrInvalidDriver
 		}

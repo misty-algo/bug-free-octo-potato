@@ -80,6 +80,7 @@ func (s *Service) WithAuth(codes entity.DriverCodeRepository, auth AuthConfig) *
 }
 
 // SyncDriverNoSequence 用库内已有最大编号校准内存序列，避免重启后编号重复。
+// 防止因系统重启而导致司机编号重复
 func (s *Service) SyncDriverNoSequence(ctx context.Context) {
 	max, err := s.drivers.MaxDriverNo(ctx)
 	if err != nil {
